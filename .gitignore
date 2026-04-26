@@ -1,6 +1,9 @@
 # Maven
 target/
 **/target/
+
+# Credenciales locales (nunca subir a git)
+**/application-local.properties
 !.mvn/wrapper/maven-wrapper.jar
 
 # IntelliJ IDEA
