@@ -1,17 +1,14 @@
-FROM openjdk:21-slim
-
-
-# Establecer el directorio de trabajo dentro del contenedor
+# Stage 1 — Build con Maven (no necesita Java instalado en el servidor)
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-
-# Copiar el JAR generado en la carpeta target
-COPY target/PH-0.0.1-SNAPSHOT.jar app.jar
-
-
-# Exponer el puerto en el que corre la aplicación
+# Stage 2 — Runtime liviano
+FROM eclipse-temurin:21-jre-jammy
+WORKDIR /app
+COPY --from=build /app/target/PH-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
-
-
-# Usar ENTRYPOINT en lugar de CMD para mejor control del proceso
 ENTRYPOINT ["java", "-jar", "app.jar"]
