@@ -6,9 +6,11 @@ import balance.catalog.model.Category;
 import balance.catalog.model.Product;
 import balance.catalog.repository.CategoryRepository;
 import balance.catalog.repository.ProductRepository;
+import balance.inventory.service.InventoryService;
 import balance.model.Store;
 import balance.repository.StoreRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,10 @@ public class ProductService {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @Lazy
+    @Autowired
+    private InventoryService inventoryService;
 
     public List<ProductResponseDTO> findByStore(Long storeId, Boolean active, Long categoryId, String search) {
         List<Product> products;
@@ -58,7 +64,9 @@ public class ProductService {
         }
 
         Product product = buildProduct(dto, store.get());
-        return Optional.of(ProductResponseDTO.from(productRepository.save(product)));
+        Product saved = productRepository.save(product);
+        inventoryService.initStock(saved, store.get());
+        return Optional.of(ProductResponseDTO.from(saved));
     }
 
     @Transactional
