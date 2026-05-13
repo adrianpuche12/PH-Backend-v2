@@ -6,6 +6,8 @@ import balance.catalog.model.Category;
 import balance.catalog.model.Product;
 import balance.catalog.repository.CategoryRepository;
 import balance.catalog.repository.ProductRepository;
+import balance.inventory.repository.InventoryMovementRepository;
+import balance.inventory.repository.InventoryStockRepository;
 import balance.inventory.service.InventoryService;
 import balance.model.Store;
 import balance.repository.StoreRepository;
@@ -32,6 +34,12 @@ public class ProductService {
     @Lazy
     @Autowired
     private InventoryService inventoryService;
+
+    @Autowired
+    private InventoryStockRepository inventoryStockRepository;
+
+    @Autowired
+    private InventoryMovementRepository inventoryMovementRepository;
 
     public List<ProductResponseDTO> findByStore(Long storeId, Boolean active, Long categoryId, String search) {
         List<Product> products;
@@ -93,6 +101,8 @@ public class ProductService {
     @Transactional
     public boolean delete(Long id) {
         if (!productRepository.existsById(id)) return false;
+        inventoryMovementRepository.deleteByProductId(id);
+        inventoryStockRepository.deleteByProductId(id);
         productRepository.deleteById(id);
         return true;
     }

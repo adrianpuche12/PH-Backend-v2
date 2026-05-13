@@ -20,4 +20,6 @@ public interface InventoryStockRepository extends JpaRepository<InventoryStock, 
 
     @Query("SELECT COUNT(s) FROM InventoryStock s WHERE s.store.id = :storeId AND s.quantity <= s.product.minStock")
     long countLowStockByStoreId(Long storeId);
+
+    void deleteByProductId(Long productId);
 }
