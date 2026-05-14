@@ -30,7 +30,16 @@ public class KeycloakAdminService {
     @Value("${keycloak.admin.password}")
     private String adminPassword;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = buildRestTemplate();
+
+    /** RestTemplate con timeout de 5s conexión y 15s lectura para evitar bloqueos. */
+    private static RestTemplate buildRestTemplate() {
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory =
+            new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5_000);
+        factory.setReadTimeout(15_000);
+        return new RestTemplate(factory);
+    }
 
     // ── Obtener token de admin ────────────────────────────────────────────────
 
