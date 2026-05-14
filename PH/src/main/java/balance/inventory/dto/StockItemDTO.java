@@ -19,6 +19,7 @@ public class StockItemDTO {
     private boolean lowStock;
     private String categoryName;
     private String categoryPath;
+    private Long categoryId;
     private Long storeId;
     private String storeName;
     private LocalDateTime updatedAt;
@@ -42,6 +43,7 @@ public class StockItemDTO {
         if (p.getCategory() != null) {
             dto.categoryName = p.getCategory().getName();
             dto.categoryPath = buildPath(p.getCategory());
+            dto.categoryId   = p.getCategory().getId();
         }
         if (stock.getStore() != null) {
             dto.storeId   = stock.getStore().getId();
@@ -68,6 +70,7 @@ public class StockItemDTO {
     public boolean isLowStock() { return lowStock; }
     public String getCategoryName() { return categoryName; }
     public String getCategoryPath() { return categoryPath; }
+    public Long getCategoryId() { return categoryId; }
     public Long getStoreId() { return storeId; }
     public String getStoreName() { return storeName; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
