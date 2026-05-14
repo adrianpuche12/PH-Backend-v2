@@ -237,72 +237,35 @@ public class FormsService {
         }
         
         if (updatedDeposit.getDepositDate() != null) {
-            System.out.println("Actualizando depositDate a: " + updatedDeposit.getDepositDate());
             existingDeposit.setDepositDate(updatedDeposit.getDepositDate());
         }
-        
         if (updatedDeposit.getStore() != null) {
             existingDeposit.setStore(updatedDeposit.getStore());
         }
-        
-        ClosingDeposit saved = closingDepositRepository.save(existingDeposit);
-        System.out.println("ClosingDeposit guardado con depositDate: " + saved.getDepositDate());
-        return saved;
+        return closingDepositRepository.save(existingDeposit);
     }
 
     public SupplierPayment updateSupplierPayment(Long id, SupplierPayment updatedPayment) {
         SupplierPayment existingPayment = supplierPaymentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "SupplierPayment no encontrado con id " + id));
         existingPayment.setAmount(updatedPayment.getAmount());
-        //SexistingPayment.setDescription(updatedPayment.getDescription());
-
-        if (updatedPayment.getDescription() != null) {
-            existingPayment.setDescription(updatedPayment.getDescription());
-        }
-
-        existingPayment.setUsername(updatedPayment.getUsername());
-        
-        if (updatedPayment.getSupplier() != null) {
-            existingPayment.setSupplier(updatedPayment.getSupplier());
-        }
-        
-        if (updatedPayment.getPaymentDate() != null) {
-            System.out.println("Actualizando paymentDate a: " + updatedPayment.getPaymentDate());
-            existingPayment.setPaymentDate(updatedPayment.getPaymentDate());
-        }
-        
-        if (updatedPayment.getStore() != null) {
-            existingPayment.setStore(updatedPayment.getStore());
-        }
-        
-        SupplierPayment saved = supplierPaymentRepository.save(existingPayment);
-        System.out.println("SupplierPayment guardado con paymentDate: " + saved.getPaymentDate());
-        return saved;
+        if (updatedPayment.getDescription() != null)   existingPayment.setDescription(updatedPayment.getDescription());
+        if (updatedPayment.getUsername()    != null)   existingPayment.setUsername(updatedPayment.getUsername());
+        if (updatedPayment.getSupplier()    != null)   existingPayment.setSupplier(updatedPayment.getSupplier());
+        if (updatedPayment.getPaymentDate() != null)   existingPayment.setPaymentDate(updatedPayment.getPaymentDate());
+        if (updatedPayment.getStore()       != null)   existingPayment.setStore(updatedPayment.getStore());
+        return supplierPaymentRepository.save(existingPayment);
     }
 
     public SalaryPayment updateSalaryPayment(Long id, SalaryPayment updatedPayment) {
         SalaryPayment existingPayment = salaryPaymentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "SalaryPayment no encontrado con id " + id));
         existingPayment.setAmount(updatedPayment.getAmount());
-        
-        if (updatedPayment.getDescription() != null) {
-            existingPayment.setDescription(updatedPayment.getDescription());
-        }
-        
-        existingPayment.setUsername(updatedPayment.getUsername());
-        
-        if (updatedPayment.getSalaryDate() != null) {
-            System.out.println("Actualizando salaryDate a: " + updatedPayment.getSalaryDate());
-            existingPayment.setSalaryDate(updatedPayment.getSalaryDate());
-        }
-        
-        if (updatedPayment.getStore() != null) {
-            existingPayment.setStore(updatedPayment.getStore());
-        }
-       
-        SalaryPayment saved = salaryPaymentRepository.save(existingPayment);
-        System.out.println("SalaryPayment guardado con salaryDate: " + saved.getSalaryDate());
-        return saved;
+        if (updatedPayment.getDescription() != null) existingPayment.setDescription(updatedPayment.getDescription());
+        if (updatedPayment.getUsername()    != null) existingPayment.setUsername(updatedPayment.getUsername());
+        if (updatedPayment.getSalaryDate()  != null) existingPayment.setSalaryDate(updatedPayment.getSalaryDate());
+        if (updatedPayment.getStore()       != null) existingPayment.setStore(updatedPayment.getStore());
+        return salaryPaymentRepository.save(existingPayment);
     }
 
     // Métodos de eliminación (DELETE)
@@ -449,7 +412,6 @@ public class FormsService {
         }
         
         GastoAdmin saved = gastoAdminRepository.save(existingGastoAdmin);
-        System.out.println("GastoAdmin actualizado con id: " + saved.getId());
         return saved;
     }
 

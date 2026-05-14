@@ -29,6 +29,10 @@ public class InventoryService {
 
     // ── Stock ──────────────────────────────────────────────────────────────
 
+    /**
+     * Retorna el stock de todos los productos activos del local.
+     * Si un producto no tiene registro de stock, lo crea automáticamente con quantity=0.
+     */
     public List<StockItemDTO> getStock(Long storeId) {
         Store store = storeRepository.findById(storeId).orElse(null);
         if (store == null) return List.of();
@@ -74,6 +78,10 @@ public class InventoryService {
 
     // ── Ajuste de stock ────────────────────────────────────────────────────
 
+    /**
+     * Aplica un ajuste de stock (ENTRADA, SALIDA o AJUSTE) y registra el movimiento.
+     * @throws IllegalArgumentException si el stock es insuficiente para una SALIDA
+     */
     @Transactional
     public StockItemDTO adjust(Long storeId, StockAdjustmentDTO dto) {
         Store store = storeRepository.findById(storeId)

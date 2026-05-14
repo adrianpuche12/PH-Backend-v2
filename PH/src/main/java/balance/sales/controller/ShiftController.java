@@ -26,6 +26,8 @@ public class ShiftController {
             return ResponseEntity.ok(shiftService.openShift(storeId, username));
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No se pudo abrir el turno: " + e.getMessage()));
         }
     }
 

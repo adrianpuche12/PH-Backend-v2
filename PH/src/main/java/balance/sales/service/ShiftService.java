@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -68,12 +69,15 @@ public class ShiftService {
                 .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
     }
 
+    /** Genera código único de turno: T-YYYYMMDD-HHmm-DAN
+     *  Incluye hora:minuto para permitir múltiples turnos por día. */
     private String generateCode(Store store) {
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HHmm"));
         String storePart = store.getName()
                 .replaceAll("[^a-zA-Z]", "")
                 .toUpperCase();
         if (storePart.length() > 3) storePart = storePart.substring(0, 3);
-        return "T-" + date + "-" + storePart;
+        return "T-" + date + "-" + time + "-" + storePart;
     }
 }

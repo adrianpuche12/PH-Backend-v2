@@ -37,9 +37,6 @@ public class BalanceController {
         }
 
         try {
-            System.out.println("Datos recibidos: " + transaction); // Para depuración
-
-            // Guardar la transacción usando el servicio
             Transaction savedTransaction = balanceService.saveTransaction(transaction);
 
             // Devolver respuesta con código de estado 201 (Created)
@@ -56,9 +53,6 @@ public class BalanceController {
     public ResponseEntity<BigDecimal> getBalance(
             @RequestParam LocalDate startDate,
             @RequestParam LocalDate endDate) {
-        System.out.println("Start Date received: " + startDate);
-        System.out.println("End Date received: " + endDate);
-
         BigDecimal balance = balanceService.calculateBalance(startDate, endDate);
         return ResponseEntity.ok(balance);
     }

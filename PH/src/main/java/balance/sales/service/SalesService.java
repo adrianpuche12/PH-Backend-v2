@@ -38,6 +38,12 @@ public class SalesService {
 
     // ── Crear venta ──────────────────────────────────────────────────────────
 
+    /**
+     * Registra una venta dentro de un turno abierto.
+     * Calcula ISV 15%, guarda snapshot de precio de cada ítem y descuenta stock.
+     * @throws IllegalArgumentException si el turno o algún producto no existe
+     * @throws IllegalStateException    si el turno ya está cerrado
+     */
     @Transactional
     public SaleResponseDTO createSale(Long shiftId, SaleRequestDTO request) {
         Shift shift = shiftRepository.findById(shiftId)
@@ -99,6 +105,10 @@ public class SalesService {
 
     // ── Cancelar venta ───────────────────────────────────────────────────────
 
+    /**
+     * Cancela una venta con status OPEN y revierte el stock descontado.
+     * No se puede cancelar una venta ya CONFIRMED (incluida en cierre).
+     */
     @Transactional
     public void cancelSale(Long saleId) {
         Sale sale = saleRepository.findById(saleId)
@@ -133,13 +143,14 @@ public class SalesService {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
 
-        List<Sale> openSales = saleRepository.findOpenByShiftId(shiftId);
+        // Muestra todas las ventas del turno (OPEN o CONFIRMED) para permitir
+        // consultar el resumen incluso después del cierre
+        List<Sale> openSales = saleRepository.findByShiftIdOrderByCreatedAtDesc(shiftId);
 
         BigDecimal totalSubtotal = BigDecimal.ZERO;
         BigDecimal totalIsv      = BigDecimal.ZERO;
         BigDecimal totalAmount   = BigDecimal.ZERO;
 
-        // Agregar por producto (usando nombre del snapshot)
         Map<String, int[]> productQty       = new LinkedHashMap<>();
         Map<String, BigDecimal> productSub  = new LinkedHashMap<>();
         Map<String, Long> productIds        = new LinkedHashMap<>();
@@ -180,6 +191,11 @@ public class SalesService {
 
     // ── Cierre de turno ───────────────────────────────────────────────────────
 
+    /**
+     * Cierra el turno: confirma todas las ventas OPEN, crea un ClosingDeposit
+     * en el sistema financiero V1 y registra la hora de cierre.
+     * @throws IllegalStateException si el turno ya está cerrado o no hay ventas
+     */
     @Transactional
     public DailyClosingResponseDTO closeShift(Long shiftId, String username) {
         Shift shift = shiftRepository.findById(shiftId)
@@ -216,8 +232,9 @@ public class SalesService {
             saleRepository.save(sale);
         });
 
-        // Cerrar el turno
+        // Cerrar el turno y registrar hora de cierre
         shift.setStatus("CLOSED");
+        shift.setClosedAt(java.time.LocalDateTime.now());
         shiftRepository.save(shift);
 
         return new DailyClosingResponseDTO(

@@ -38,7 +38,8 @@ public class StockItemDTO {
         dto.productActive = p.getActive();
         dto.price         = p.getPrice();
         dto.minStock      = p.getMinStock();
-        dto.lowStock      = stock.getQuantity() <= p.getMinStock();
+        // lowStock solo aplica cuando hay un mínimo definido (minStock > 0)
+        dto.lowStock      = p.getMinStock() > 0 && stock.getQuantity() <= p.getMinStock();
 
         if (p.getCategory() != null) {
             dto.categoryName = p.getCategory().getName();
