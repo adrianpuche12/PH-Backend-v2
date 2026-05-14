@@ -111,6 +111,13 @@ public class InventoryService {
         return StockItemDTO.from(stock);
     }
 
+    // ── Ajuste silencioso (usado por SalesService — no lanza excepción si stock insuficiente) ──
+
+    @Transactional
+    public void adjustSilent(Long storeId, StockAdjustmentDTO dto) {
+        try { adjust(storeId, dto); } catch (IllegalArgumentException ignored) {}
+    }
+
     // ── Movimientos ────────────────────────────────────────────────────────
 
     public List<MovementDTO> getMovements(Long storeId) {
