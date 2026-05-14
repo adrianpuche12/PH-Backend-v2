@@ -119,6 +119,15 @@ public class AppUserService {
         userRepository.delete(user);
     }
 
+    // ── Buscar por username ────────────────────────────────────────────────────
+
+    /** Retorna el perfil del empleado según su username (igual al de Keycloak). */
+    public AppUserResponseDTO findByUsername(String username) {
+        return userRepository.findByUsername(username.toLowerCase())
+                .map(AppUserResponseDTO::from)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+    }
+
     // ── Helper ────────────────────────────────────────────────────────────────
 
     private AppUser findOrThrow(Long id) {

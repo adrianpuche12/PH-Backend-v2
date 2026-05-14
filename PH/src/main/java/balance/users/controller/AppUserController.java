@@ -25,6 +25,16 @@ public class AppUserController {
         return ResponseEntity.ok(userService.findAll());
     }
 
+    /** Retorna el perfil de un empleado por su username (usado al iniciar sesión). */
+    @GetMapping("/by-username/{username}")
+    public ResponseEntity<?> findByUsername(@PathVariable String username) {
+        try {
+            return ResponseEntity.ok(userService.findByUsername(username));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     /** Lista usuarios por local. */
     @GetMapping("/store/{storeId}")
     public ResponseEntity<List<AppUserResponseDTO>> findByStore(@PathVariable Long storeId) {
