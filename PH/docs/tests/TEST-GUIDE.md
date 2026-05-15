@@ -20,19 +20,21 @@
 
 Los tests cubren la **capa de servicio** (lógica de negocio) de los cuatro módulos críticos del sistema:
 
-| Módulo          | Clase testeada          | Tests | Tipo            |
-|-----------------|-------------------------|-------|-----------------|
-| Ventas          | `SalesService`          | 16    | Unitario        |
-| Turnos          | `ShiftService`          | 13    | Unitario        |
-| Inventario      | `InventoryService`      | 12    | Unitario        |
-| Usuarios        | `AppUserService`        | 19    | Unitario        |
-| Ventas (HTTP)   | `SalesController`       | 11    | @WebMvcTest     |
-| Turnos (HTTP)   | `ShiftController`       | 10    | @WebMvcTest     |
-| Inventario (HTTP)| `InventoryController`  | 9     | @WebMvcTest     |
-| Usuarios (HTTP) | `AppUserController`     | 20    | @WebMvcTest     |
-| **Total**       |                         | **110**|                |
-
-> Nota: `BalanceApplicationTests` agrega 1 test de contexto adicional → **117 en total**.
+| Módulo                  | Clase testeada                  | Tests | Tipo                        |
+|-------------------------|---------------------------------|-------|-----------------------------|
+| Ventas                  | `SalesService`                  | 16    | Unitario (Mockito)          |
+| Turnos                  | `ShiftService`                  | 13    | Unitario (Mockito)          |
+| Inventario              | `InventoryService`              | 12    | Unitario (Mockito)          |
+| Usuarios                | `AppUserService`                | 19    | Unitario (Mockito)          |
+| Ventas (HTTP)           | `SalesController`               | 11    | @WebMvcTest + MockMvc       |
+| Turnos (HTTP)           | `ShiftController`               | 10    | @WebMvcTest + MockMvc       |
+| Inventario (HTTP)       | `InventoryController`           | 9     | @WebMvcTest + MockMvc       |
+| Usuarios (HTTP)         | `AppUserController`             | 20    | @WebMvcTest + MockMvc       |
+| Inventario (repo)       | `InventoryStockRepository`      | 12    | @DataJpaTest + Testcontainers |
+| Turnos (repo)           | `ShiftRepository`               | 9     | @DataJpaTest + Testcontainers |
+| Ventas (repo)           | `SaleRepository`                | 9     | @DataJpaTest + Testcontainers |
+| Contexto                | `BalanceApplicationTests`       | 1     | @SpringBootTest             |
+| **Total**               |                                 | **141** |                           |
 
 Todos son **tests unitarios puros** — no requieren base de datos, ni Keycloak, ni red. Se ejecutan en milisegundos.
 
@@ -64,25 +66,33 @@ Para tests de integración (ver sección 11) se planea agregar Testcontainers 1.
 ## 3. Estructura de archivos
 
 ```
-src/test/java/balance/
-├── BalanceApplicationTests.java              ← test de contexto original (sin cambios)
-├── sales/
-│   ├── service/
-│   │   ├── SalesServiceTest.java             ← 16 tests (unitarios, Mockito)
-│   │   └── ShiftServiceTest.java             ← 13 tests (unitarios, Mockito)
-│   └── controller/
-│       ├── SalesControllerTest.java          ← 11 tests (@WebMvcTest, MockMvc)
-│       └── ShiftControllerTest.java          ← 10 tests (@WebMvcTest, MockMvc)
-├── inventory/
-│   ├── service/
-│   │   └── InventoryServiceTest.java         ← 12 tests (unitarios, Mockito)
-│   └── controller/
-│       └── InventoryControllerTest.java      ← 9 tests (@WebMvcTest, MockMvc)
-└── users/
-    ├── service/
-    │   └── AppUserServiceTest.java           ← 19 tests (unitarios, Mockito)
-    └── controller/
-        └── AppUserControllerTest.java        ← 20 tests (@WebMvcTest, MockMvc)
+src/test/
+├── resources/
+│   └── application-test.properties           ← eureka deshabilitado, ddl create-drop
+└── java/balance/
+    ├── BalanceApplicationTests.java              ← 1 test de contexto
+    ├── sales/
+    │   ├── service/
+    │   │   ├── SalesServiceTest.java             ← 16 tests (unitarios, Mockito)
+    │   │   └── ShiftServiceTest.java             ← 13 tests (unitarios, Mockito)
+    │   ├── controller/
+    │   │   ├── SalesControllerTest.java          ← 11 tests (@WebMvcTest)
+    │   │   └── ShiftControllerTest.java          ← 10 tests (@WebMvcTest)
+    │   └── repository/
+    │       ├── ShiftRepositoryIT.java            ← 9 tests (@DataJpaTest + Testcontainers)
+    │       └── SaleRepositoryIT.java             ← 9 tests (@DataJpaTest + Testcontainers)
+    ├── inventory/
+    │   ├── service/
+    │   │   └── InventoryServiceTest.java         ← 12 tests (unitarios, Mockito)
+    │   ├── controller/
+    │   │   └── InventoryControllerTest.java      ← 9 tests (@WebMvcTest)
+    │   └── repository/
+    │       └── InventoryStockRepositoryIT.java   ← 12 tests (@DataJpaTest + Testcontainers)
+    └── users/
+        ├── service/
+        │   └── AppUserServiceTest.java           ← 19 tests (unitarios, Mockito)
+        └── controller/
+            └── AppUserControllerTest.java        ← 20 tests (@WebMvcTest)
 
 docs/tests/
 ├── TEST-GUIDE.md                         ← este archivo
@@ -396,36 +406,93 @@ inOrder.verify(userRepository).delete(user);            // después
 
 ---
 
-## 11. Roadmap — tests de integración
+## 11. Tests de repositorio (@DataJpaTest + Testcontainers)
 
-Los siguientes tests están planificados para una segunda iteración. Requieren agregar **Testcontainers 1.19** al `pom.xml`:
+**Archivos:**
+- `src/test/java/balance/inventory/repository/InventoryStockRepositoryIT.java`
+- `src/test/java/balance/sales/repository/ShiftRepositoryIT.java`
+- `src/test/java/balance/sales/repository/SaleRepositoryIT.java`
 
-```xml
-<!-- Agregar en pom.xml cuando se implementen tests de integración -->
-<dependency>
-    <groupId>org.testcontainers</groupId>
-    <artifactId>junit-jupiter</artifactId>
-    <version>1.19.8</version>
-    <scope>test</scope>
-</dependency>
-<dependency>
-    <groupId>org.testcontainers</groupId>
-    <artifactId>postgresql</artifactId>
-    <version>1.19.8</version>
-    <scope>test</scope>
-</dependency>
+**Requisito:** Docker Desktop corriendo en la máquina. Testcontainers levanta un contenedor `postgres:16-alpine` por clase de test y lo destruye al terminar.
+
+**Configuración:**
+```java
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Testcontainers
+@TestPropertySource(locations = "classpath:application-test.properties")
+class InventoryStockRepositoryIT {
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 ```
 
-### Tests de repositorio (`@DataJpaTest`)
-- `ShiftRepositoryIT` — `existsByStoreIdAndStatus`, `findByStoreIdAndStatus`
-- `InventoryStockRepositoryIT` — `findLowStockByStoreId` (verifica el fix del bug minStock=0)
-- `SaleRepositoryIT` — `findOpenByShiftId`, `findByShiftIdOrderByCreatedAtDesc`
+- `replace = NONE` → no reemplaza con H2, usa el container real
+- `@ServiceConnection` → Spring Boot 3.1+ configura automáticamente la datasource del container
+- `application-test.properties` → desactiva Eureka y usa `ddl-auto=create-drop`
 
-### Tests de controller (`@WebMvcTest`)
-- `ShiftControllerTest` — POST `/stores/{id}/shifts`, PUT `/shifts/{id}/close`
-- `SalesControllerTest` — POST `/shifts/{id}/sales`, DELETE `/sales/{id}`
-- `InventoryControllerTest` — POST `/stores/{id}/stock/adjustment`
+### InventoryStockRepositoryIT (12 tests)
 
-### Tests end-to-end (`@SpringBootTest`)
-- Flujo completo: abrir turno → crear venta → cerrar turno → verificar ClosingDeposit
+| Test | Qué verifica |
+|------|-------------|
+| `findLowStockByStoreId_returnsProductBelowMinStock` | Producto con qty < minStock aparece en la lista |
+| `findLowStockByStoreId_excludesProductAboveMinStock` | Producto con qty > minStock NO aparece |
+| `findLowStockByStoreId_excludesProductWithMinStockZero` | **Bug fix:** minStock=0, qty=0 NO es bajo stock |
+| `findLowStockByStoreId_excludesProductWithMinStockZeroAndPositiveQuantity` | minStock=0 nunca es bajo stock |
+| `findLowStockByStoreId_includesProductAtExactMinStock` | qty == minStock SÍ es bajo stock |
+| `findLowStockByStoreId_returnsOnlyLowStockAmongMultipleProducts` | Con 3 productos, solo retorna el bajo stock |
+| `findLowStockByStoreId_onlyReturnsProductsForRequestedStore` | No mezcla productos de otros locales |
+| `countLowStockByStoreId_returnsCorrectCount` | Cuenta correctamente los productos bajo stock |
+| `countLowStockByStoreId_returnsZeroWhenNoLowStock` | Retorna 0 cuando no hay bajo stock |
+| `findByProductIdAndStoreId_returnsStockWhenExists` | Encuentra el registro de stock por producto+local |
+| `findByProductIdAndStoreId_returnsEmptyWhenNotExists` | Retorna Optional.empty() cuando no existe |
+| `findByStoreIdOrderByProductNameAsc_returnsInAlphabeticOrder` | Orden alfabético verificado con 3 productos |
+
+**Bug corregido junto con los tests:** La query `findLowStockByStoreId` y `countLowStockByStoreId` ahora incluyen `AND s.product.minStock > 0`, alineando el criterio con `StockItemDTO.from()` que ya tenía el fix. Antes, productos con `minStock=0` y `quantity=0` aparecían como "bajo stock" por falso positivo (`0 <= 0 = true`).
+
+### ShiftRepositoryIT (9 tests)
+
+| Test | Qué verifica |
+|------|-------------|
+| `existsByStoreIdAndStatus_returnsTrueWhenOpenShiftExists` | Detecta turno OPEN existente |
+| `existsByStoreIdAndStatus_returnsFalseWhenNoOpenShift` | Turno CLOSED no cuenta como OPEN |
+| `existsByStoreIdAndStatus_returnsFalseWhenStoreHasNoShifts` | Sin turnos → false |
+| `existsByStoreIdAndStatus_returnsFalseForDifferentStore` | No mezcla turnos de otros locales |
+| `findByStoreIdAndStatus_returnsOpenShift` | Retorna el turno OPEN con su código |
+| `findByStoreIdAndStatus_returnsEmptyWhenShiftIsClosed` | CLOSED no matchea OPEN |
+| `findByStoreIdOrderByOpenedAtDesc_returnsMostRecentFirst` | Orden descendente por fecha de apertura |
+| `findByStoreIdOrderByOpenedAtDesc_returnsEmptyWhenNoShifts` | Lista vacía cuando no hay turnos |
+| `findByStoreIdOrderByOpenedAtDesc_onlyReturnsShiftsForRequestedStore` | Aislamiento por local |
+
+### SaleRepositoryIT (9 tests)
+
+| Test | Qué verifica |
+|------|-------------|
+| `findOpenByShiftId_returnsOnlyOpenSales` | Solo ventas OPEN, excluye CONFIRMED |
+| `findOpenByShiftId_returnsEmptyWhenAllSalesConfirmed` | Todas confirmadas → vacío |
+| `findOpenByShiftId_returnsEmptyWhenNoSales` | Sin ventas → vacío |
+| `findOpenByShiftId_onlyReturnsFromRequestedShift` | No mezcla ventas de otros turnos |
+| `countOpenByShiftId_returnsCorrectCount` | Cuenta solo ventas OPEN |
+| `countOpenByShiftId_returnsZeroWhenNoOpenSales` | 0 cuando todas están CONFIRMED |
+| `findByShiftIdOrderByCreatedAtDesc_returnsAllSalesRegardlessOfStatus` | Retorna OPEN y CONFIRMED |
+| `findByShiftIdOrderByCreatedAtDesc_returnsEmptyForUnknownShift` | Shift inexistente → vacío |
+| `findByShiftIdAndStatus_filtersCorrectly` | Filtra por OPEN y por CONFIRMED independientemente |
+
+---
+
+## 12. Roadmap — próximos tests opcionales
+
+Las tres capas principales están cubiertas. Lo que queda es opcional:
+
+### Tests end-to-end (`@SpringBootTest` + Testcontainers)
+Requieren levantar el contexto completo de Spring:
+- Flujo completo: abrir turno → crear venta → cerrar turno → verificar ClosingDeposit creado en V1
 - Flujo de inventario: crear producto → ajustar stock → verificar movimiento registrado
+
+### Tests frontend (Jest)
+- `numberFormat.test.ts` — funciones `formatCurrency`, `formatAmountInput`, `parseFormattedNumber`
+- Snapshot tests de componentes `KpiCard`, `AppButton`, `AppBadge`
+
+### KeycloakAdminService (WireMock)
+Requiere agregar `wiremock-standalone` como dependencia de test:
+- Simular respuestas HTTP de Keycloak para `createUser`, `setUserEnabled`, `deleteUser`
