@@ -4,9 +4,11 @@ import balance.sales.dto.*;
 import balance.sales.service.SalesService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -61,6 +63,28 @@ public class SalesController {
     public ResponseEntity<?> getSummary(@PathVariable Long shiftId) {
         try {
             return ResponseEntity.ok(salesService.getDailySummary(shiftId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // Historial de ventas por local (admin) — opcional: ?from=yyyy-MM-dd&to=yyyy-MM-dd
+    @GetMapping("/stores/{storeId}/sales")
+    public ResponseEntity<List<SaleResponseDTO>> getSalesByStore(
+            @PathVariable Long storeId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(salesService.getSalesByStore(storeId, from, to));
+    }
+
+    // Resumen de ventas por local (admin) — opcional: ?from=yyyy-MM-dd&to=yyyy-MM-dd
+    @GetMapping("/stores/{storeId}/sales/summary")
+    public ResponseEntity<?> getSalesSummaryByStore(
+            @PathVariable Long storeId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        try {
+            return ResponseEntity.ok(salesService.getSummaryByStore(storeId, from, to));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

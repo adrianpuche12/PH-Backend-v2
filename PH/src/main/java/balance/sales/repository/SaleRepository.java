@@ -13,6 +13,10 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
     List<Sale> findByStoreIdAndSaleDateOrderByCreatedAtDesc(Long storeId, LocalDate date);
     List<Sale> findByShiftIdAndStatus(Long shiftId, String status);
 
+    // Historial de ventas por local con rango de fechas opcional
+    @Query("SELECT s FROM Sale s WHERE s.store.id = :storeId AND (:from IS NULL OR s.saleDate >= :from) AND (:to IS NULL OR s.saleDate <= :to) ORDER BY s.createdAt DESC")
+    List<Sale> findByStoreIdAndDateRange(@Param("storeId") Long storeId, @Param("from") LocalDate from, @Param("to") LocalDate to);
+
     @Query("SELECT s FROM Sale s WHERE s.shift.id = :shiftId AND s.status = 'OPEN'")
     List<Sale> findOpenByShiftId(@Param("shiftId") Long shiftId);
 

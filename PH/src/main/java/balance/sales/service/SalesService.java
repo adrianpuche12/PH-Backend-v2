@@ -137,6 +137,51 @@ public class SalesService {
                 .orElseThrow(() -> new IllegalArgumentException("Venta no encontrada"));
     }
 
+    // ── Ventas por local (admin) ───────────────────────────────────────────────
+
+    public List<SaleResponseDTO> getSalesByStore(Long storeId, LocalDate from, LocalDate to) {
+        return saleRepository.findByStoreIdAndDateRange(storeId, from, to)
+                .stream().map(SaleResponseDTO::from).toList();
+    }
+
+    public DailySummaryDTO getSummaryByStore(Long storeId, LocalDate from, LocalDate to) {
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new IllegalArgumentException("Local no encontrado"));
+
+        List<Sale> sales = saleRepository.findByStoreIdAndDateRange(storeId, from, to);
+
+        BigDecimal totalSubtotal = BigDecimal.ZERO;
+        BigDecimal totalIsv      = BigDecimal.ZERO;
+        BigDecimal totalAmount   = BigDecimal.ZERO;
+
+        Map<String, int[]>        productQty = new LinkedHashMap<>();
+        Map<String, BigDecimal>   productSub = new LinkedHashMap<>();
+        Map<String, Long>         productIds = new LinkedHashMap<>();
+
+        for (Sale sale : sales) {
+            totalSubtotal = totalSubtotal.add(sale.getSubtotal());
+            totalIsv      = totalIsv.add(sale.getIsv());
+            totalAmount   = totalAmount.add(sale.getTotal());
+            for (SaleItem item : sale.getItems()) {
+                String key = item.getProductNameSnapshot();
+                productQty.merge(key, new int[]{item.getQuantity()}, (a, b) -> new int[]{a[0] + b[0]});
+                productSub.merge(key, item.getSubtotal(), BigDecimal::add);
+                if (item.getProduct() != null) productIds.putIfAbsent(key, item.getProduct().getId());
+            }
+        }
+
+        List<DailySummaryDTO.ProductSummaryItem> summary = productQty.entrySet().stream()
+                .map(e -> new DailySummaryDTO.ProductSummaryItem(
+                        productIds.get(e.getKey()), e.getKey(),
+                        e.getValue()[0], productSub.get(e.getKey())))
+                .sorted(Comparator.comparing(DailySummaryDTO.ProductSummaryItem::getSubtotal).reversed())
+                .toList();
+
+        LocalDate rangeDate = from != null ? from : LocalDate.now();
+        return new DailySummaryDTO(rangeDate, store.getId(), store.getName(),
+                sales.size(), totalSubtotal, totalIsv, totalAmount, summary);
+    }
+
     // ── Resumen diario ────────────────────────────────────────────────────────
 
     public DailySummaryDTO getDailySummary(Long shiftId) {
