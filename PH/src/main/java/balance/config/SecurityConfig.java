@@ -35,6 +35,13 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // Swagger / OpenAPI — acceso público para que el equipo pueda explorar la API
+                .requestMatchers(
+                    "/swagger-ui.html",
+                    "/swagger-ui/**",
+                    "/api-docs/**",
+                    "/api-docs.yaml"
+                ).permitAll()
                 // Endpoints públicos (sistema V1 legacy — ya en producción, no tocar)
                 .requestMatchers(
                     "/transactions/**",
