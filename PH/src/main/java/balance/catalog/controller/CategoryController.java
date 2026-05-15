@@ -7,7 +7,6 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,25 +18,22 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
-    // Árbol completo de categorías de un local
+    // Ãrbol completo de categorÃ­as de un local
     @GetMapping("/api/v2/stores/{storeId}/categories")
-    @PreAuthorize("hasAnyRole('admin', 'user')")
     public ResponseEntity<List<CategoryResponseDTO>> getTree(@PathVariable Long storeId) {
         return ResponseEntity.ok(categoryService.getTree(storeId));
     }
 
-    // Detalle de una categoría
+    // Detalle de una categorÃ­a
     @GetMapping("/api/v2/categories/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'user')")
     public ResponseEntity<CategoryResponseDTO> getById(@PathVariable Long id) {
         return categoryService.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Crear categoría raíz
+    // Crear categorÃ­a raÃ­z
     @PostMapping("/api/v2/stores/{storeId}/categories")
-    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<CategoryResponseDTO> createRoot(@PathVariable Long storeId,
                                                            @Valid @RequestBody CategoryRequestDTO dto) {
         return categoryService.createRoot(storeId, dto)
@@ -45,9 +41,8 @@ public class CategoryController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Crear subcategoría (sin límite de profundidad)
+    // Crear subcategorÃ­a (sin lÃ­mite de profundidad)
     @PostMapping("/api/v2/stores/{storeId}/categories/{parentId}/children")
-    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<CategoryResponseDTO> createChild(@PathVariable Long storeId,
                                                             @PathVariable Long parentId,
                                                             @Valid @RequestBody CategoryRequestDTO dto) {
@@ -56,9 +51,8 @@ public class CategoryController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Editar categoría
+    // Editar categorÃ­a
     @PutMapping("/api/v2/categories/{id}")
-    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<CategoryResponseDTO> update(@PathVariable Long id,
                                                        @Valid @RequestBody CategoryRequestDTO dto) {
         return categoryService.update(id, dto)
@@ -66,18 +60,16 @@ public class CategoryController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Activar/desactivar categoría
+    // Activar/desactivar categorÃ­a
     @PutMapping("/api/v2/categories/{id}/toggle")
-    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<CategoryResponseDTO> toggle(@PathVariable Long id) {
         return categoryService.toggle(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Eliminar categoría
+    // Eliminar categorÃ­a
     @DeleteMapping("/api/v2/categories/{id}")
-    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (categoryService.delete(id)) {
             return ResponseEntity.noContent().build();
@@ -85,3 +77,4 @@ public class CategoryController {
         return ResponseEntity.notFound().build();
     }
 }
+

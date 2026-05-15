@@ -20,14 +20,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(
-    value = AppUserController.class,
-    excludeAutoConfiguration = {
-        org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration.class
-    }
-)
+@WebMvcTest(AppUserController.class)
 class AppUserControllerTest {
 
     @Autowired private MockMvc mockMvc;
@@ -35,7 +28,7 @@ class AppUserControllerTest {
 
     @MockBean private AppUserService userService;
 
-    // ── GET /api/v2/users ─────────────────────────────────────────────────────
+    // â”€â”€ GET /api/v2/users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void findAll_returns200WithList() throws Exception {
@@ -57,7 +50,7 @@ class AppUserControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
-    // ── GET /api/v2/users/by-username/{username} ──────────────────────────────
+    // â”€â”€ GET /api/v2/users/by-username/{username} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void findByUsername_returns200WhenFound() throws Exception {
@@ -78,7 +71,7 @@ class AppUserControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // ── GET /api/v2/users/store/{storeId} ─────────────────────────────────────
+    // â”€â”€ GET /api/v2/users/store/{storeId} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void findByStore_returns200WithFilteredList() throws Exception {
@@ -92,7 +85,7 @@ class AppUserControllerTest {
                 .andExpect(jsonPath("$.length()").value(2));
     }
 
-    // ── POST /api/v2/users ────────────────────────────────────────────────────
+    // â”€â”€ POST /api/v2/users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void create_returns200WhenSuccessful() throws Exception {
@@ -115,7 +108,7 @@ class AppUserControllerTest {
     @Test
     void create_returns400WhenUsernameAlreadyExists() throws Exception {
         when(userService.create(any()))
-                .thenThrow(new IllegalArgumentException("El username 'cajero01' ya está en uso"));
+                .thenThrow(new IllegalArgumentException("El username 'cajero01' ya estÃ¡ en uso"));
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "fullName", "Cajero Uno",
@@ -128,12 +121,12 @@ class AppUserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("El username 'cajero01' ya está en uso"));
+                .andExpect(jsonPath("$.error").value("El username 'cajero01' ya estÃ¡ en uso"));
     }
 
     @Test
     void create_returns400WhenValidationFails() throws Exception {
-        // fullName es @NotBlank — omitirlo → 400 sin llamar al servicio
+        // fullName es @NotBlank â€” omitirlo â†’ 400 sin llamar al servicio
         String body = objectMapper.writeValueAsString(Map.of(
                 "username", "cajero01",
                 "password", "pass123",
@@ -167,7 +160,7 @@ class AppUserControllerTest {
                 .andExpect(jsonPath("$.error").exists());
     }
 
-    // ── PUT /api/v2/users/{id}/suspend ────────────────────────────────────────
+    // â”€â”€ PUT /api/v2/users/{id}/suspend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void suspend_returns200WhenSuccessful() throws Exception {
@@ -181,7 +174,7 @@ class AppUserControllerTest {
     @Test
     void suspend_returns400WhenAlreadySuspended() throws Exception {
         when(userService.suspend(1L))
-                .thenThrow(new IllegalStateException("El usuario ya está suspendido"));
+                .thenThrow(new IllegalStateException("El usuario ya estÃ¡ suspendido"));
 
         mockMvc.perform(put("/api/v2/users/1/suspend"))
                 .andExpect(status().isBadRequest())
@@ -197,7 +190,7 @@ class AppUserControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // ── PUT /api/v2/users/{id}/activate ──────────────────────────────────────
+    // â”€â”€ PUT /api/v2/users/{id}/activate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void activate_returns200WhenSuccessful() throws Exception {
@@ -211,13 +204,13 @@ class AppUserControllerTest {
     @Test
     void activate_returns400WhenAlreadyActive() throws Exception {
         when(userService.activate(1L))
-                .thenThrow(new IllegalStateException("El usuario ya está activo"));
+                .thenThrow(new IllegalStateException("El usuario ya estÃ¡ activo"));
 
         mockMvc.perform(put("/api/v2/users/1/activate"))
                 .andExpect(status().isBadRequest());
     }
 
-    // ── PUT /api/v2/users/{id}/reassign ──────────────────────────────────────
+    // â”€â”€ PUT /api/v2/users/{id}/reassign â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void reassign_returns200WhenSuccessful() throws Exception {
@@ -240,7 +233,7 @@ class AppUserControllerTest {
         verifyNoInteractions(userService);
     }
 
-    // ── PUT /api/v2/users/{id}/reset-password ─────────────────────────────────
+    // â”€â”€ PUT /api/v2/users/{id}/reset-password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void resetPassword_returns200WhenSuccessful() throws Exception {
@@ -250,7 +243,7 @@ class AppUserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("password", "nuevaPass123"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Contraseña actualizada correctamente"));
+                .andExpect(jsonPath("$.message").value("ContraseÃ±a actualizada correctamente"));
     }
 
     @Test
@@ -259,12 +252,12 @@ class AppUserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("password", ""))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("La nueva contraseña es obligatoria"));
+                .andExpect(jsonPath("$.error").value("La nueva contraseÃ±a es obligatoria"));
 
         verifyNoInteractions(userService);
     }
 
-    // ── DELETE /api/v2/users/{id} ─────────────────────────────────────────────
+    // â”€â”€ DELETE /api/v2/users/{id} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void delete_returns204WhenSuccessful() throws Exception {
@@ -284,7 +277,7 @@ class AppUserControllerTest {
                 .andExpect(jsonPath("$.error").exists());
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────
+    // â”€â”€ Helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private AppUserResponseDTO buildUserResponse(String username, String status) {
         AppUserResponseDTO dto = new AppUserResponseDTO();
@@ -296,3 +289,4 @@ class AppUserControllerTest {
         return dto;
     }
 }
+

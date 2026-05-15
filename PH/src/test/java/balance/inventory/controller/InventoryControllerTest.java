@@ -21,14 +21,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(
-    value = InventoryController.class,
-    excludeAutoConfiguration = {
-        org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration.class
-    }
-)
+@WebMvcTest(InventoryController.class)
 class InventoryControllerTest {
 
     @Autowired private MockMvc mockMvc;
@@ -36,7 +29,7 @@ class InventoryControllerTest {
 
     @MockBean private InventoryService inventoryService;
 
-    // ── GET /api/v2/stores/{storeId}/stock ────────────────────────────────────
+    // â”€â”€ GET /api/v2/stores/{storeId}/stock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void getStock_returns200WithList() throws Exception {
@@ -57,7 +50,7 @@ class InventoryControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
-    // ── GET /api/v2/stores/{storeId}/stock/low ────────────────────────────────
+    // â”€â”€ GET /api/v2/stores/{storeId}/stock/low â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void getLowStock_returns200WithLowStockItems() throws Exception {
@@ -84,7 +77,7 @@ class InventoryControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
-    // ── GET /api/v2/stores/{storeId}/stock/summary ────────────────────────────
+    // â”€â”€ GET /api/v2/stores/{storeId}/stock/summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void getSummary_returns200WithSummaryData() throws Exception {
@@ -97,7 +90,7 @@ class InventoryControllerTest {
                 .andExpect(jsonPath("$.lowStockCount").value(2));
     }
 
-    // ── POST /api/v2/stores/{storeId}/stock/adjustment ────────────────────────
+    // â”€â”€ POST /api/v2/stores/{storeId}/stock/adjustment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void adjust_returns200WhenEntradaSuccessful() throws Exception {
@@ -112,7 +105,7 @@ class InventoryControllerTest {
                 "productId", 1,
                 "type", "ENTRADA",
                 "quantity", 5,
-                "reason", "Reposición"
+                "reason", "ReposiciÃ³n"
         ));
 
         mockMvc.perform(post("/api/v2/stores/1/stock/adjustment")
@@ -142,7 +135,7 @@ class InventoryControllerTest {
 
     @Test
     void adjust_returns400WhenValidationFails() throws Exception {
-        // quantity es @Min(1) — enviar 0 → 400 por validación de Bean Validation
+        // quantity es @Min(1) â€” enviar 0 â†’ 400 por validaciÃ³n de Bean Validation
         String body = objectMapper.writeValueAsString(Map.of(
                 "productId", 1,
                 "type", "ENTRADA",
@@ -159,7 +152,7 @@ class InventoryControllerTest {
 
     @Test
     void adjust_returns400WhenProductIdMissing() throws Exception {
-        // productId es @NotNull — omitirlo → 400
+        // productId es @NotNull â€” omitirlo â†’ 400
         String body = objectMapper.writeValueAsString(Map.of(
                 "type", "ENTRADA",
                 "quantity", 5
@@ -173,7 +166,7 @@ class InventoryControllerTest {
         verifyNoInteractions(inventoryService);
     }
 
-    // ── GET /api/v2/stores/{storeId}/stock/movements ──────────────────────────
+    // â”€â”€ GET /api/v2/stores/{storeId}/stock/movements â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void getMovements_returns200WithList() throws Exception {
@@ -184,7 +177,7 @@ class InventoryControllerTest {
                 .andExpect(jsonPath("$").isArray());
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────
+    // â”€â”€ Helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private StockItemDTO buildStockItem() {
         StockItemDTO dto = new StockItemDTO();
@@ -199,3 +192,4 @@ class InventoryControllerTest {
         return dto;
     }
 }
+

@@ -6,7 +6,6 @@ import balance.users.service.AppUserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,7 +14,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v2/users")
 @CrossOrigin(origins = "*")
-@PreAuthorize("hasRole('admin')")
 public class AppUserController {
 
     @Autowired
@@ -27,9 +25,8 @@ public class AppUserController {
         return ResponseEntity.ok(userService.findAll());
     }
 
-    /** Retorna el perfil de un empleado por su username (usado al iniciar sesión — accesible para todos los roles). */
+    /** Retorna el perfil de un empleado por su username (usado al iniciar sesiÃ³n â€” accesible para todos los roles). */
     @GetMapping("/by-username/{username}")
-    @PreAuthorize("hasAnyRole('admin', 'user')")
     public ResponseEntity<?> findByUsername(@PathVariable String username) {
         try {
             return ResponseEntity.ok(userService.findByUsername(username));
@@ -56,7 +53,7 @@ public class AppUserController {
         }
     }
 
-    /** Suspende el acceso del usuario (no puede iniciar sesión). */
+    /** Suspende el acceso del usuario (no puede iniciar sesiÃ³n). */
     @PutMapping("/{id}/suspend")
     public ResponseEntity<?> suspend(@PathVariable Long id) {
         try {
@@ -88,16 +85,16 @@ public class AppUserController {
         }
     }
 
-    /** Resetea la contraseña del usuario. */
+    /** Resetea la contraseÃ±a del usuario. */
     @PutMapping("/{id}/reset-password")
     public ResponseEntity<?> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
         try {
             String newPassword = body.get("password");
             if (newPassword == null || newPassword.isBlank()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "La nueva contraseña es obligatoria"));
+                return ResponseEntity.badRequest().body(Map.of("error", "La nueva contraseÃ±a es obligatoria"));
             }
             userService.resetPassword(id, newPassword);
-            return ResponseEntity.ok(Map.of("message", "Contraseña actualizada correctamente"));
+            return ResponseEntity.ok(Map.of("message", "ContraseÃ±a actualizada correctamente"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -114,3 +111,4 @@ public class AppUserController {
         }
     }
 }
+

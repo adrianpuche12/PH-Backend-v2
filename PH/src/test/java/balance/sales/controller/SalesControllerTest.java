@@ -22,14 +22,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(
-    value = SalesController.class,
-    excludeAutoConfiguration = {
-        org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration.class
-    }
-)
+@WebMvcTest(SalesController.class)
 class SalesControllerTest {
 
     @Autowired private MockMvc mockMvc;
@@ -37,7 +30,7 @@ class SalesControllerTest {
 
     @MockBean private SalesService salesService;
 
-    // ── POST /api/v2/shifts/{shiftId}/sales ───────────────────────────────────
+    // â”€â”€ POST /api/v2/shifts/{shiftId}/sales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void createSale_returns200WhenSuccessful() throws Exception {
@@ -58,7 +51,7 @@ class SalesControllerTest {
     @Test
     void createSale_returns400WhenShiftClosed() throws Exception {
         when(salesService.createSale(eq(1L), any()))
-                .thenThrow(new IllegalStateException("El turno ya está cerrado"));
+                .thenThrow(new IllegalStateException("El turno ya estÃ¡ cerrado"));
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "username", "cajero01",
@@ -91,7 +84,7 @@ class SalesControllerTest {
 
     @Test
     void createSale_returns400WhenValidationFails() throws Exception {
-        // username es @NotBlank — enviar sin username → 400
+        // username es @NotBlank â€” enviar sin username â†’ 400
         String body = objectMapper.writeValueAsString(Map.of(
                 "items", List.of(Map.of("productId", 1, "quantity", 1))
         ));
@@ -104,7 +97,7 @@ class SalesControllerTest {
         verifyNoInteractions(salesService);
     }
 
-    // ── GET /api/v2/shifts/{shiftId}/sales ────────────────────────────────────
+    // â”€â”€ GET /api/v2/shifts/{shiftId}/sales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void getSalesByShift_returns200WithList() throws Exception {
@@ -126,7 +119,7 @@ class SalesControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
-    // ── GET /api/v2/sales/{saleId} ────────────────────────────────────────────
+    // â”€â”€ GET /api/v2/sales/{saleId} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void getSale_returns200WhenFound() throws Exception {
@@ -145,7 +138,7 @@ class SalesControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // ── DELETE /api/v2/sales/{saleId} ─────────────────────────────────────────
+    // â”€â”€ DELETE /api/v2/sales/{saleId} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void cancelSale_returns204WhenSuccessful() throws Exception {
@@ -174,7 +167,7 @@ class SalesControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // ── GET /api/v2/shifts/{shiftId}/summary ──────────────────────────────────
+    // â”€â”€ GET /api/v2/shifts/{shiftId}/summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void getSummary_returns200WhenFound() throws Exception {
@@ -200,7 +193,7 @@ class SalesControllerTest {
                 .andExpect(jsonPath("$.error").exists());
     }
 
-    // ── POST /api/v2/shifts/{shiftId}/closing ─────────────────────────────────
+    // â”€â”€ POST /api/v2/shifts/{shiftId}/closing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void closeShift_returns400WhenNoOpenSales() throws Exception {
@@ -216,7 +209,7 @@ class SalesControllerTest {
                 .andExpect(jsonPath("$.error").exists());
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────
+    // â”€â”€ Helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private SaleResponseDTO buildSaleResponse() {
         SaleResponseDTO dto = new SaleResponseDTO();
@@ -229,3 +222,4 @@ class SalesControllerTest {
         return dto;
     }
 }
+

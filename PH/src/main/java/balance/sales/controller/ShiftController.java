@@ -4,7 +4,6 @@ import balance.sales.dto.ShiftResponseDTO;
 import balance.sales.service.ShiftService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,7 +12,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v2")
 @CrossOrigin(origins = "*")
-@PreAuthorize("hasAnyRole('admin', 'user')")
 public class ShiftController {
 
     @Autowired
@@ -67,3 +65,4 @@ public class ShiftController {
         }
     }
 }
+

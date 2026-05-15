@@ -20,14 +20,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(
-    value = ShiftController.class,
-    excludeAutoConfiguration = {
-        org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration.class
-    }
-)
+@WebMvcTest(ShiftController.class)
 class ShiftControllerTest {
 
     @Autowired private MockMvc mockMvc;
@@ -35,7 +28,7 @@ class ShiftControllerTest {
 
     @MockBean private ShiftService shiftService;
 
-    // ── POST /api/v2/stores/{storeId}/shifts ──────────────────────────────────
+    // â”€â”€ POST /api/v2/stores/{storeId}/shifts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void openShift_returns200WhenSuccessful() throws Exception {
@@ -84,7 +77,7 @@ class ShiftControllerTest {
         verify(shiftService).openShift(1L, "unknown");
     }
 
-    // ── PUT /api/v2/shifts/{shiftId}/close ────────────────────────────────────
+    // â”€â”€ PUT /api/v2/shifts/{shiftId}/close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void closeShift_returns200WhenSuccessful() throws Exception {
@@ -98,14 +91,14 @@ class ShiftControllerTest {
     @Test
     void closeShift_returns400WhenAlreadyClosed() throws Exception {
         when(shiftService.closeShift(1L))
-                .thenThrow(new IllegalStateException("El turno ya está cerrado"));
+                .thenThrow(new IllegalStateException("El turno ya estÃ¡ cerrado"));
 
         mockMvc.perform(put("/api/v2/shifts/1/close"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").exists());
     }
 
-    // ── GET /api/v2/shifts/active/{storeId} ───────────────────────────────────
+    // â”€â”€ GET /api/v2/shifts/active/{storeId} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void getActiveShift_returns200WhenShiftExists() throws Exception {
@@ -124,7 +117,7 @@ class ShiftControllerTest {
                 .andExpect(status().isNoContent());
     }
 
-    // ── GET /api/v2/stores/{storeId}/shifts ───────────────────────────────────
+    // â”€â”€ GET /api/v2/stores/{storeId}/shifts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void getHistory_returns200WithList() throws Exception {
@@ -146,7 +139,7 @@ class ShiftControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
-    // ── GET /api/v2/shifts/{shiftId} ──────────────────────────────────────────
+    // â”€â”€ GET /api/v2/shifts/{shiftId} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void getById_returns200WhenFound() throws Exception {
@@ -165,7 +158,7 @@ class ShiftControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────
+    // â”€â”€ Helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private ShiftResponseDTO buildShiftResponse(String status) {
         ShiftResponseDTO dto = new ShiftResponseDTO();
@@ -177,3 +170,4 @@ class ShiftControllerTest {
         return dto;
     }
 }
+

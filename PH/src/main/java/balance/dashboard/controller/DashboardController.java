@@ -4,21 +4,20 @@ import balance.dashboard.dto.DashboardDTO;
 import balance.dashboard.service.DashboardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v2/dashboard")
 @CrossOrigin(origins = "*")
-@PreAuthorize("hasRole('admin')")
 public class DashboardController {
 
     @Autowired
     private DashboardService dashboardService;
 
-    /** Resumen global del sistema para el admin: turnos activos, ventas del día e inventario. */
+    /** Resumen global del sistema para el admin: turnos activos, ventas del dÃ­a e inventario. */
     @GetMapping
     public ResponseEntity<DashboardDTO> getDashboard() {
         return ResponseEntity.ok(dashboardService.getDashboard());
     }
 }
+
