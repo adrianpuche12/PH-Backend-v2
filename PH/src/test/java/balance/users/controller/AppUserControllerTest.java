@@ -20,7 +20,14 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(AppUserController.class)
+@WebMvcTest(
+    value = AppUserController.class,
+    excludeAutoConfiguration = {
+        org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
+        org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration.class,
+        org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration.class
+    }
+)
 class AppUserControllerTest {
 
     @Autowired private MockMvc mockMvc;

@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -15,6 +16,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v2")
 @CrossOrigin(origins = "*")
+@PreAuthorize("hasAnyRole('admin', 'user')")
 public class SalesController {
 
     @Autowired
@@ -70,6 +72,7 @@ public class SalesController {
 
     // Historial de ventas por local (admin) — opcional: ?from=yyyy-MM-dd&to=yyyy-MM-dd
     @GetMapping("/stores/{storeId}/sales")
+    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<List<SaleResponseDTO>> getSalesByStore(
             @PathVariable Long storeId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -79,6 +82,7 @@ public class SalesController {
 
     // Resumen de ventas por local (admin) — opcional: ?from=yyyy-MM-dd&to=yyyy-MM-dd
     @GetMapping("/stores/{storeId}/sales/summary")
+    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<?> getSalesSummaryByStore(
             @PathVariable Long storeId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,

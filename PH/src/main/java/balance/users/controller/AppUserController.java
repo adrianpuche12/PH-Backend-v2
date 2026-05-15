@@ -6,6 +6,7 @@ import balance.users.service.AppUserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v2/users")
 @CrossOrigin(origins = "*")
+@PreAuthorize("hasRole('admin')")
 public class AppUserController {
 
     @Autowired
@@ -25,8 +27,9 @@ public class AppUserController {
         return ResponseEntity.ok(userService.findAll());
     }
 
-    /** Retorna el perfil de un empleado por su username (usado al iniciar sesión). */
+    /** Retorna el perfil de un empleado por su username (usado al iniciar sesión — accesible para todos los roles). */
     @GetMapping("/by-username/{username}")
+    @PreAuthorize("hasAnyRole('admin', 'user')")
     public ResponseEntity<?> findByUsername(@PathVariable String username) {
         try {
             return ResponseEntity.ok(userService.findByUsername(username));

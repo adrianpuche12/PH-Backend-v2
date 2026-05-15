@@ -4,11 +4,13 @@ import balance.dashboard.dto.DashboardDTO;
 import balance.dashboard.service.DashboardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v2/dashboard")
 @CrossOrigin(origins = "*")
+@PreAuthorize("hasRole('admin')")
 public class DashboardController {
 
     @Autowired
