@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +21,7 @@ public class ProductController {
     private ProductService productService;
 
     @GetMapping("/api/v2/stores/{storeId}/products")
+    @PreAuthorize("hasAnyRole('admin', 'user')")
     public ResponseEntity<List<ProductResponseDTO>> getByStore(
             @PathVariable Long storeId,
             @RequestParam(required = false) Boolean active,
@@ -29,6 +31,7 @@ public class ProductController {
     }
 
     @GetMapping("/api/v2/products/{id}")
+    @PreAuthorize("hasAnyRole('admin', 'user')")
     public ResponseEntity<ProductResponseDTO> getById(@PathVariable Long id) {
         return productService.findById(id)
                 .map(ResponseEntity::ok)
@@ -36,6 +39,7 @@ public class ProductController {
     }
 
     @PostMapping("/api/v2/stores/{storeId}/products")
+    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<?> create(@PathVariable Long storeId,
                                     @Valid @RequestBody ProductRequestDTO dto) {
         try {
@@ -48,6 +52,7 @@ public class ProductController {
     }
 
     @PutMapping("/api/v2/products/{id}")
+    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<?> update(@PathVariable Long id,
                                      @Valid @RequestBody ProductRequestDTO dto) {
         try {
@@ -60,6 +65,7 @@ public class ProductController {
     }
 
     @PutMapping("/api/v2/products/{id}/toggle")
+    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<ProductResponseDTO> toggle(@PathVariable Long id) {
         return productService.toggle(id)
                 .map(ResponseEntity::ok)
@@ -67,6 +73,7 @@ public class ProductController {
     }
 
     @DeleteMapping("/api/v2/products/{id}")
+    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (productService.delete(id)) {
             return ResponseEntity.noContent().build();
