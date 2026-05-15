@@ -3,6 +3,7 @@ package balance.inventory.repository;
 import balance.inventory.model.InventoryStock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,11 +16,12 @@ public interface InventoryStockRepository extends JpaRepository<InventoryStock, 
 
     Optional<InventoryStock> findByProductIdAndStoreId(Long productId, Long storeId);
 
-    @Query("SELECT s FROM InventoryStock s WHERE s.store.id = :storeId AND s.quantity <= s.product.minStock")
-    List<InventoryStock> findLowStockByStoreId(Long storeId);
+    // minStock > 0 evita falsos positivos cuando el producto no tiene mínimo definido
+    @Query("SELECT s FROM InventoryStock s WHERE s.store.id = :storeId AND s.product.minStock > 0 AND s.quantity <= s.product.minStock")
+    List<InventoryStock> findLowStockByStoreId(@Param("storeId") Long storeId);
 
-    @Query("SELECT COUNT(s) FROM InventoryStock s WHERE s.store.id = :storeId AND s.quantity <= s.product.minStock")
-    long countLowStockByStoreId(Long storeId);
+    @Query("SELECT COUNT(s) FROM InventoryStock s WHERE s.store.id = :storeId AND s.product.minStock > 0 AND s.quantity <= s.product.minStock")
+    long countLowStockByStoreId(@Param("storeId") Long storeId);
 
     void deleteByProductId(Long productId);
 }
