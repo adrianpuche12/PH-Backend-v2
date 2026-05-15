@@ -20,13 +20,19 @@
 
 Los tests cubren la **capa de servicio** (lógica de negocio) de los cuatro módulos críticos del sistema:
 
-| Módulo          | Clase testeada      | Tests | Tipo       |
-|-----------------|---------------------|-------|------------|
-| Ventas          | `SalesService`      | 12    | Unitario   |
-| Turnos          | `ShiftService`      | 10    | Unitario   |
-| Inventario      | `InventoryService`  | 12    | Unitario   |
-| Usuarios        | `AppUserService`    | 14    | Unitario   |
-| **Total**       |                     | **48**|            |
+| Módulo          | Clase testeada          | Tests | Tipo            |
+|-----------------|-------------------------|-------|-----------------|
+| Ventas          | `SalesService`          | 16    | Unitario        |
+| Turnos          | `ShiftService`          | 13    | Unitario        |
+| Inventario      | `InventoryService`      | 12    | Unitario        |
+| Usuarios        | `AppUserService`        | 19    | Unitario        |
+| Ventas (HTTP)   | `SalesController`       | 11    | @WebMvcTest     |
+| Turnos (HTTP)   | `ShiftController`       | 10    | @WebMvcTest     |
+| Inventario (HTTP)| `InventoryController`  | 9     | @WebMvcTest     |
+| Usuarios (HTTP) | `AppUserController`     | 20    | @WebMvcTest     |
+| **Total**       |                         | **110**|                |
+
+> Nota: `BalanceApplicationTests` agrega 1 test de contexto adicional → **117 en total**.
 
 Todos son **tests unitarios puros** — no requieren base de datos, ni Keycloak, ni red. Se ejecutan en milisegundos.
 
@@ -59,17 +65,24 @@ Para tests de integración (ver sección 11) se planea agregar Testcontainers 1.
 
 ```
 src/test/java/balance/
-├── BalanceApplicationTests.java          ← test de contexto original (sin cambios)
+├── BalanceApplicationTests.java              ← test de contexto original (sin cambios)
 ├── sales/
-│   └── service/
-│       ├── SalesServiceTest.java         ← 12 tests para SalesService
-│       └── ShiftServiceTest.java         ← 10 tests para ShiftService
+│   ├── service/
+│   │   ├── SalesServiceTest.java             ← 16 tests (unitarios, Mockito)
+│   │   └── ShiftServiceTest.java             ← 13 tests (unitarios, Mockito)
+│   └── controller/
+│       ├── SalesControllerTest.java          ← 11 tests (@WebMvcTest, MockMvc)
+│       └── ShiftControllerTest.java          ← 10 tests (@WebMvcTest, MockMvc)
 ├── inventory/
-│   └── service/
-│       └── InventoryServiceTest.java     ← 12 tests para InventoryService
+│   ├── service/
+│   │   └── InventoryServiceTest.java         ← 12 tests (unitarios, Mockito)
+│   └── controller/
+│       └── InventoryControllerTest.java      ← 9 tests (@WebMvcTest, MockMvc)
 └── users/
-    └── service/
-        └── AppUserServiceTest.java       ← 14 tests para AppUserService
+    ├── service/
+    │   └── AppUserServiceTest.java           ← 19 tests (unitarios, Mockito)
+    └── controller/
+        └── AppUserControllerTest.java        ← 20 tests (@WebMvcTest, MockMvc)
 
 docs/tests/
 ├── TEST-GUIDE.md                         ← este archivo
