@@ -121,7 +121,7 @@ class ShiftControllerTest {
 
     @Test
     void getHistory_returns200WithList() throws Exception {
-        when(shiftService.getShiftHistory(1L))
+        when(shiftService.getShiftHistory(eq(1L), anyInt(), anyInt()))
                 .thenReturn(List.of(buildShiftResponse("OPEN"), buildShiftResponse("CLOSED")));
 
         mockMvc.perform(get("/api/v2/stores/1/shifts"))
@@ -132,7 +132,7 @@ class ShiftControllerTest {
 
     @Test
     void getHistory_returns200WithEmptyListWhenNoShifts() throws Exception {
-        when(shiftService.getShiftHistory(1L)).thenReturn(List.of());
+        when(shiftService.getShiftHistory(eq(1L), anyInt(), anyInt())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v2/stores/1/shifts"))
                 .andExpect(status().isOk())
