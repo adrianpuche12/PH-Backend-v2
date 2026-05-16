@@ -40,6 +40,9 @@ public class Transaction {
     @Column(name = "gasto_admin_id")
     private Long gastoAdminId;
 
+    @Column(name = "image_uri", length = 512)
+    private String imageUri;
+
     // Getters y Setters
 
     public Long getId() {
@@ -97,4 +100,7 @@ public class Transaction {
     public void setGastoAdminId(Long gastoAdminId) {
         this.gastoAdminId = gastoAdminId;
     }
+
+    public String getImageUri() { return imageUri; }
+    public void setImageUri(String imageUri) { this.imageUri = imageUri; }
 }

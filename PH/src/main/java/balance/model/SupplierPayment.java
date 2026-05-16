@@ -34,6 +34,9 @@ public class SupplierPayment {
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
+    @Column(name = "image_uri", length = 512)
+    private String imageUri;
+
     // Getters y Setters
 
     public Long getId() {
@@ -91,4 +94,7 @@ public class SupplierPayment {
     public void setStore(Store store) {
         this.store = store;
     }
+
+    public String getImageUri() { return imageUri; }
+    public void setImageUri(String imageUri) { this.imageUri = imageUri; }
 }
