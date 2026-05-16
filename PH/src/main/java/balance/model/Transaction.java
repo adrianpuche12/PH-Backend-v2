@@ -36,6 +36,10 @@ public class Transaction {
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
+    // Referencia opcional al GastoAdmin que originó esta transacción (null si es directa)
+    @Column(name = "gasto_admin_id")
+    private Long gastoAdminId;
+
     // Getters y Setters
 
     public Long getId() {
@@ -84,5 +88,13 @@ public class Transaction {
 
     public void setStore(Store store) {
         this.store = store;
+    }
+
+    public Long getGastoAdminId() {
+        return gastoAdminId;
+    }
+
+    public void setGastoAdminId(Long gastoAdminId) {
+        this.gastoAdminId = gastoAdminId;
     }
 }

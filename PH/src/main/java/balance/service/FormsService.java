@@ -327,6 +327,7 @@ public class FormsService {
             tx.setDescription(String.format("%s (%s %d%%)",
                     request.getDescripcion(), store.getName(), dist.getPorcentaje()));
             tx.setStore(store);
+            tx.setGastoAdminId(gastoAdminSaved.getId());
 
             Transaction saved = transactionRepository.save(tx);
 
@@ -385,6 +386,62 @@ public class FormsService {
         
         GastoAdmin saved = gastoAdminRepository.save(existingGastoAdmin);
         return saved;
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public GastoAdminResponseDTO updateGastoAdminV2(Long id, GastoAdminRequestDTO request) {
+        if (!request.isValidPercentages()) {
+            throw new IllegalArgumentException("Los porcentajes deben sumar exactamente 100%");
+        }
+
+        GastoAdmin existing = gastoAdminRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "GastoAdmin no encontrado con id " + id));
+
+        // 1. Eliminar transacciones derivadas anteriores
+        transactionRepository.deleteByGastoAdminId(id);
+
+        // 2. Actualizar el registro principal
+        existing.setFecha(request.getFecha());
+        existing.setMonto(request.getMonto());
+        existing.setDescripcion(request.getDescripcion());
+        gastoAdminRepository.save(existing);
+
+        // 3. Crear nuevas transacciones con la nueva distribución
+        List<GastoAdminResponseDTO.TransaccionCreada> transaccionesCreadas = new ArrayList<>();
+
+        for (GastoAdminRequestDTO.StoreDistribucion dist : request.getDistribuciones()) {
+            Store store = storeRepository.findById(dist.getStoreId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Local no encontrado con id: " + dist.getStoreId()));
+
+            BigDecimal montoLocal = calcularMonto(request.getMonto(), dist.getPorcentaje());
+
+            Transaction tx = new Transaction();
+            tx.setType(request.getTipo());
+            tx.setAmount(montoLocal);
+            tx.setDate(request.getFecha());
+            tx.setDescription(String.format("%s (%s %d%%)",
+                    request.getDescripcion(), store.getName(), dist.getPorcentaje()));
+            tx.setStore(store);
+            tx.setGastoAdminId(id);
+
+            Transaction saved = transactionRepository.save(tx);
+
+            transaccionesCreadas.add(new GastoAdminResponseDTO.TransaccionCreada(
+                    saved.getId(), saved.getType(), saved.getAmount(),
+                    saved.getDate(), saved.getDescription(),
+                    store.getName(), dist.getPorcentaje()
+            ));
+        }
+
+        return new GastoAdminResponseDTO(
+                "Gasto administrativo actualizado. Se recrearon " + transaccionesCreadas.size() + " transacciones.",
+                transaccionesCreadas.size(),
+                request.getMonto(),
+                transaccionesCreadas,
+                id
+        );
     }
 
     public void deleteGastoAdmin(Long id) {
