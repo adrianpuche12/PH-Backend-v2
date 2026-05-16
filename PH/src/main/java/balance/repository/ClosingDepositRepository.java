@@ -19,6 +19,7 @@ public interface ClosingDepositRepository extends JpaRepository<ClosingDeposit, 
     List<ClosingDeposit> findAllOrderByDepositDateDesc();
 
     List<ClosingDeposit> findByDepositDateBetween(LocalDate startDate, LocalDate endDate);
-    List<ClosingDeposit> findByStoreId(Long storeId); 
+    List<ClosingDeposit> findByStoreId(Long storeId);
     List<ClosingDeposit> findByDepositDateBetweenAndStoreId(LocalDate startDate, LocalDate endDate, Long storeId);
+    List<ClosingDeposit> findByUsernameOrderByDepositDateDesc(String username);
 }

@@ -290,6 +290,22 @@ public class FormsService {
         salaryPaymentRepository.deleteById(id);
     }
 
+    public List<AllOperationsDTO> getOperationsByUsername(String username) {
+        List<AllOperationsDTO> result = new ArrayList<>();
+        closingDepositRepository.findByUsernameOrderByDepositDateDesc(username)
+                .stream().map(AllOperationsDTO::fromClosingDeposit).forEach(result::add);
+        supplierPaymentRepository.findByUsernameOrderByPaymentDateDesc(username)
+                .stream().map(AllOperationsDTO::fromSupplierPayment).forEach(result::add);
+        salaryPaymentRepository.findByUsernameOrderBySalaryDateDesc(username)
+                .stream().map(AllOperationsDTO::fromSalaryPayment).forEach(result::add);
+        result.sort((a, b) -> {
+            if (a.getDate() == null) return 1;
+            if (b.getDate() == null) return -1;
+            return b.getDate().compareTo(a.getDate());
+        });
+        return result;
+    }
+
     public GastoAdminResponseDTO saveGastoAdmin(GastoAdminRequestDTO request) {
         // Validar que los porcentajes sumen exactamente 100%
         if (!request.isValidPercentages()) {

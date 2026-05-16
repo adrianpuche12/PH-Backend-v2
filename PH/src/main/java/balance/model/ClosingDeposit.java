@@ -16,7 +16,7 @@ public class ClosingDeposit {
     private Integer closingsCount;
     
     @NotNull(message = "El monto es obligatorio")
-    @DecimalMin(value = "0.0", message = "El monto debe ser mayor que 0")
+    @DecimalMin(value = "0.01", message = "El monto debe ser mayor a 0")
     @Column(nullable = false)
     private BigDecimal amount;
     
