@@ -291,8 +291,8 @@ public class FormsService {
     }
 
     public GastoAdminResponseDTO saveGastoAdmin(GastoAdminRequestDTO request) {
-        // Validar que los porcentajes sumen 100%
-        if (!isValidPercentages(request.getPorcentajeDanli(), request.getPorcentajeParaiso())) {
+        // Validar que los porcentajes sumen exactamente 100%
+        if (!request.isValidPercentages()) {
             throw new IllegalArgumentException("Los porcentajes deben sumar exactamente 100%");
         }
 
@@ -301,81 +301,47 @@ public class FormsService {
         gastoAdmin.setFecha(request.getFecha());
         gastoAdmin.setMonto(request.getMonto());
         gastoAdmin.setDescripcion(request.getDescripcion());
-        gastoAdmin.setPorcentajeDanli(request.getPorcentajeDanli());
-        gastoAdmin.setPorcentajeParaiso(request.getPorcentajeParaiso());
-        gastoAdmin.setUsername("admin_user"); // O username del contexto
-        
+        gastoAdmin.setUsername("admin_user");
         GastoAdmin gastoAdminSaved = gastoAdminRepository.save(gastoAdmin);
 
-        // 2. Crear transacciones individuales por local
+        // 2. Crear una transacción por cada local en la distribución
         List<GastoAdminResponseDTO.TransaccionCreada> transaccionesCreadas = new ArrayList<>();
-        int transaccionesCount = 0;
 
-        // Obtener stores (asumir ID 1=Danli, ID 2=El Paraíso)
-        Store storeDanli = storeRepository.findById(1L).orElseThrow(() -> 
-            new IllegalArgumentException("Store Danli no encontrado"));
-        Store storeParaiso = storeRepository.findById(2L).orElseThrow(() -> 
-            new IllegalArgumentException("Store El Paraíso no encontrado"));
+        for (GastoAdminRequestDTO.StoreDistribucion dist : request.getDistribuciones()) {
+            Store store = storeRepository.findById(dist.getStoreId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Local no encontrado con id: " + dist.getStoreId()));
 
-        // Crear transacción para Danli si el porcentaje > 0
-        if (request.getPorcentajeDanli() > 0) {
-            BigDecimal montoDanli = calcularMonto(request.getMonto(), request.getPorcentajeDanli());
-            
-            Transaction transactionDanli = new Transaction();
-            transactionDanli.setType(request.getTipo());
-            transactionDanli.setAmount(montoDanli);
-            transactionDanli.setDate(request.getFecha());
-            transactionDanli.setDescription(String.format("%s (Danli %d%%)", 
-                request.getDescripcion(), request.getPorcentajeDanli()));
-            transactionDanli.setStore(storeDanli);
-            
-            Transaction savedDanli = transactionRepository.save(transactionDanli);
-            transaccionesCount++;
-            
+            BigDecimal montoLocal = calcularMonto(request.getMonto(), dist.getPorcentaje());
+
+            Transaction tx = new Transaction();
+            tx.setType(request.getTipo());
+            tx.setAmount(montoLocal);
+            tx.setDate(request.getFecha());
+            tx.setDescription(String.format("%s (%s %d%%)",
+                    request.getDescripcion(), store.getName(), dist.getPorcentaje()));
+            tx.setStore(store);
+
+            Transaction saved = transactionRepository.save(tx);
+
             transaccionesCreadas.add(new GastoAdminResponseDTO.TransaccionCreada(
-                savedDanli.getId(),
-                savedDanli.getType(),
-                savedDanli.getAmount(),
-                savedDanli.getDate(),
-                savedDanli.getDescription(),
-                "Danli",
-                request.getPorcentajeDanli()
-            ));
-        }
-
-        // Crear transacción para El Paraíso si el porcentaje > 0
-        if (request.getPorcentajeParaiso() > 0) {
-            BigDecimal montoParaiso = calcularMonto(request.getMonto(), request.getPorcentajeParaiso());
-            
-            Transaction transactionParaiso = new Transaction();
-            transactionParaiso.setType(request.getTipo());
-            transactionParaiso.setAmount(montoParaiso);
-            transactionParaiso.setDate(request.getFecha());
-            transactionParaiso.setDescription(String.format("%s (El Paraíso %d%%)", 
-                request.getDescripcion(), request.getPorcentajeParaiso()));
-            transactionParaiso.setStore(storeParaiso);
-            
-            Transaction savedParaiso = transactionRepository.save(transactionParaiso);
-            transaccionesCount++;
-            
-            transaccionesCreadas.add(new GastoAdminResponseDTO.TransaccionCreada(
-                savedParaiso.getId(),
-                savedParaiso.getType(),
-                savedParaiso.getAmount(),
-                savedParaiso.getDate(),
-                savedParaiso.getDescription(),
-                "El Paraíso",
-                request.getPorcentajeParaiso()
+                    saved.getId(),
+                    saved.getType(),
+                    saved.getAmount(),
+                    saved.getDate(),
+                    saved.getDescription(),
+                    store.getName(),
+                    dist.getPorcentaje()
             ));
         }
 
         // 3. Construir respuesta
         return new GastoAdminResponseDTO(
-            "Gasto administrativo creado exitosamente. Se crearon " + transaccionesCount + " transacciones.",
-            transaccionesCount,
-            request.getMonto(),
-            transaccionesCreadas,
-            gastoAdminSaved.getId()
+                "Gasto administrativo creado exitosamente. Se crearon " + transaccionesCreadas.size() + " transacciones.",
+                transaccionesCreadas.size(),
+                request.getMonto(),
+                transaccionesCreadas,
+                gastoAdminSaved.getId()
         );
     }
 
@@ -423,13 +389,6 @@ public class FormsService {
         gastoAdminRepository.deleteById(id);
     }
 
-    private boolean isValidPercentages(Integer porcentajeDanli, Integer porcentajeParaiso) {
-        if (porcentajeDanli == null || porcentajeParaiso == null) {
-            return false;
-        }
-        return (porcentajeDanli + porcentajeParaiso) == 100;
-    }
-    
     private BigDecimal calcularMonto(BigDecimal montoTotal, Integer porcentaje) {
         return montoTotal.multiply(BigDecimal.valueOf(porcentaje))
                         .divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);
