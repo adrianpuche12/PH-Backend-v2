@@ -18,5 +18,6 @@ public interface SupplierPaymentRepository extends JpaRepository<SupplierPayment
 
     List<SupplierPayment> findByPaymentDateBetween(LocalDate startDate, LocalDate endDate);
     List<SupplierPayment> findByPaymentDateBetweenAndStoreId(LocalDate startDate, LocalDate endDate, Long storeId);
-    List<SupplierPayment> findByStoreId(Long storeId); 
+    List<SupplierPayment> findByStoreId(Long storeId);
+    List<SupplierPayment> findByUsernameOrderByPaymentDateDesc(String username);
 }

@@ -18,5 +18,6 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
 
     List<SalaryPayment> findBySalaryDateBetween(LocalDate startDate, LocalDate endDate);
     List<SalaryPayment> findBySalaryDateBetweenAndStoreId(LocalDate startDate, LocalDate endDate, Long storeId);
-    List<SalaryPayment> findByStoreId(Long storeId); 
+    List<SalaryPayment> findByStoreId(Long storeId);
+    List<SalaryPayment> findByUsernameOrderBySalaryDateDesc(String username);
 }

@@ -34,6 +34,9 @@ public class AllOperationsDTO {
     // Campos específicos de Supplier Payments
     private String supplier;
 
+    // Comprobante (URL pública en Cloudflare R2)
+    private String imageUri;
+
     // Constructores para cada tipo de operación
     public static AllOperationsDTO fromClosingDeposit(balance.model.ClosingDeposit deposit) {
         AllOperationsDTO dto = new AllOperationsDTO();
@@ -51,6 +54,7 @@ public class AllOperationsDTO {
         dto.setPeriodStart(deposit.getPeriodStart());
         dto.setPeriodEnd(deposit.getPeriodEnd());
         dto.setDescription("Depósito de " + deposit.getClosingsCount() + " cierres");
+        dto.setImageUri(deposit.getImageUri());
         return dto;
     }
 
@@ -73,7 +77,7 @@ public class AllOperationsDTO {
         } else {
             dto.setDescription("Pago a proveedor: " + payment.getSupplier());
         }
-
+        dto.setImageUri(payment.getImageUri());
         return dto;
     }
 
@@ -90,7 +94,7 @@ public class AllOperationsDTO {
             dto.setStoreId(payment.getStore().getId());
             dto.setStoreName(payment.getStore().getName());
         }
-
+        dto.setImageUri(payment.getImageUri());
         return dto;
     }
 
@@ -214,6 +218,9 @@ public class AllOperationsDTO {
     public void setSalaryDate(LocalDate salaryDate) {
         this.salaryDate = salaryDate;
     }
+
+    public String getImageUri() { return imageUri; }
+    public void setImageUri(String imageUri) { this.imageUri = imageUri; }
 
 
     // ================================================================
