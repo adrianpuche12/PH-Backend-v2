@@ -14,11 +14,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class DashboardService {
+
+    private static final ZoneId HONDURAS_TZ = ZoneId.of("America/Tegucigalpa");
 
     @Autowired private StoreRepository          storeRepository;
     @Autowired private ShiftRepository          shiftRepository;
@@ -27,10 +31,12 @@ public class DashboardService {
     @Autowired private ProductRepository        productRepository;
 
     /**
-     * Retorna el resumen global del sistema para el admin:
-     * por cada local activo, muestra turno activo, ventas del turno y estado del inventario.
+     * Retorna el resumen global del sistema para el admin.
+     * Usa zona horaria Honduras (UTC-6) para el cálculo de "hoy".
      */
     public DashboardDTO getDashboard() {
+        LocalDate today = LocalDate.now(HONDURAS_TZ);
+
         List<Store> activeStores = storeRepository.findAll().stream()
                 .filter(s -> Boolean.TRUE.equals(s.getActive()))
                 .toList();
@@ -39,7 +45,16 @@ public class DashboardService {
                 .map(this::buildStoreDTO)
                 .toList();
 
-        return new DashboardDTO(storeDTOs);
+        // Totales reales del día: todas las ventas de hoy (turno abierto O cerrado)
+        long totalSalesToday = activeStores.stream()
+                .mapToLong(s -> saleRepository.findByStoreIdAndDateRange(s.getId(), today, today).size())
+                .sum();
+        BigDecimal totalAmountToday = activeStores.stream()
+                .flatMap(s -> saleRepository.findByStoreIdAndDateRange(s.getId(), today, today).stream())
+                .map(Sale::getTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new DashboardDTO(storeDTOs, totalSalesToday, totalAmountToday);
     }
 
     private StoreDashboardDTO buildStoreDTO(Store store) {

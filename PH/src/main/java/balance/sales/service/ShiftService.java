@@ -6,6 +6,7 @@ import balance.sales.dto.ShiftResponseDTO;
 import balance.sales.model.Shift;
 import balance.sales.repository.ShiftRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,8 +59,8 @@ public class ShiftService {
                 .orElse(null);
     }
 
-    public List<ShiftResponseDTO> getShiftHistory(Long storeId) {
-        return shiftRepository.findByStoreIdOrderByOpenedAtDesc(storeId)
+    public List<ShiftResponseDTO> getShiftHistory(Long storeId, int page, int size) {
+        return shiftRepository.findByStoreIdOrderByOpenedAtDesc(storeId, PageRequest.of(page, size))
                 .stream().map(ShiftResponseDTO::from).toList();
     }
 

@@ -3,6 +3,7 @@ package balance.sales.controller;
 import balance.sales.dto.ShiftResponseDTO;
 import balance.sales.service.ShiftService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -49,10 +50,13 @@ public class ShiftController {
         return ResponseEntity.ok(dto);
     }
 
-    // Historial de turnos de un local
+    // Historial de turnos de un local (paginado — ?page=0&size=20)
     @GetMapping("/stores/{storeId}/shifts")
-    public ResponseEntity<List<ShiftResponseDTO>> getHistory(@PathVariable Long storeId) {
-        return ResponseEntity.ok(shiftService.getShiftHistory(storeId));
+    public ResponseEntity<List<ShiftResponseDTO>> getHistory(
+            @PathVariable Long storeId,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(shiftService.getShiftHistory(storeId, page, size));
     }
 
     // Detalle de un turno

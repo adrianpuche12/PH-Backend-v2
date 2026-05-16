@@ -12,13 +12,11 @@ public class DashboardDTO {
     private BigDecimal totalAmountToday;
     private long       totalLowStockAlerts;
 
-    public DashboardDTO(List<StoreDashboardDTO> stores) {
-        this.stores             = stores;
-        this.totalActiveShifts  = stores.stream().filter(StoreDashboardDTO::isHasActiveShift).count();
-        this.totalSalesToday    = stores.stream().mapToLong(StoreDashboardDTO::getShiftSalesCount).sum();
-        this.totalAmountToday   = stores.stream()
-                .map(s -> s.getShiftSalesTotal() != null ? s.getShiftSalesTotal() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    public DashboardDTO(List<StoreDashboardDTO> stores, long totalSalesToday, BigDecimal totalAmountToday) {
+        this.stores              = stores;
+        this.totalActiveShifts   = stores.stream().filter(StoreDashboardDTO::isHasActiveShift).count();
+        this.totalSalesToday     = totalSalesToday;
+        this.totalAmountToday    = totalAmountToday != null ? totalAmountToday : BigDecimal.ZERO;
         this.totalLowStockAlerts = stores.stream().mapToLong(StoreDashboardDTO::getLowStockCount).sum();
     }
 
