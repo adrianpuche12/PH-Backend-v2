@@ -297,11 +297,17 @@ public class FormsService {
         }
 
         // 1. Guardar registro en tabla gasto_admin para auditoría
+        // Los campos legacy porcentajeDanli/Paraiso y montoDanli/Paraiso se guardan
+        // como 0 ya que en V2 la distribución real vive en las transacciones individuales
         GastoAdmin gastoAdmin = new GastoAdmin();
         gastoAdmin.setFecha(request.getFecha());
         gastoAdmin.setMonto(request.getMonto());
         gastoAdmin.setDescripcion(request.getDescripcion());
         gastoAdmin.setUsername("admin_user");
+        gastoAdmin.setPorcentajeDanli(0);
+        gastoAdmin.setPorcentajeParaiso(0);
+        gastoAdmin.setMontoDanli(BigDecimal.ZERO);
+        gastoAdmin.setMontoParaiso(BigDecimal.ZERO);
         GastoAdmin gastoAdminSaved = gastoAdminRepository.save(gastoAdmin);
 
         // 2. Crear una transacción por cada local en la distribución

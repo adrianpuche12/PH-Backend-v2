@@ -28,26 +28,17 @@ public class GastoAdmin {
     @Column(name = "descripcion", nullable = false)
     private String descripcion;
     
-    @NotNull(message = "El porcentaje de Danli es obligatorio")
-    @Min(value = 0, message = "El porcentaje de Danli debe ser mayor o igual a 0")
-    @Max(value = 100, message = "El porcentaje de Danli debe ser menor o igual a 100")
-    @Column(name = "porcentaje_danli", nullable = false)
+    // Campos legacy V1 — opcionales en V2 (la distribución vive en transactions)
+    @Column(name = "porcentaje_danli")
     private Integer porcentajeDanli;
-    
-    @NotNull(message = "El porcentaje de El Paraíso es obligatorio")
-    @Min(value = 0, message = "El porcentaje de El Paraíso debe ser mayor o igual a 0")
-    @Max(value = 100, message = "El porcentaje de El Paraíso debe ser menor o igual a 100")
-    @Column(name = "porcentaje_paraiso", nullable = false)
+
+    @Column(name = "porcentaje_paraiso")
     private Integer porcentajeParaiso;
-    
-    @NotNull(message = "El monto de Danli es obligatorio")
-    @DecimalMin(value = "0.00", message = "El monto de Danli debe ser mayor o igual a 0")
-    @Column(name = "monto_danli", nullable = false, precision = 10, scale = 2)
+
+    @Column(name = "monto_danli", precision = 10, scale = 2)
     private BigDecimal montoDanli;
-    
-    @NotNull(message = "El monto de El Paraíso es obligatorio")
-    @DecimalMin(value = "0.00", message = "El monto de El Paraíso debe ser mayor o igual a 0")
-    @Column(name = "monto_paraiso", nullable = false, precision = 10, scale = 2)
+
+    @Column(name = "monto_paraiso", precision = 10, scale = 2)
     private BigDecimal montoParaiso;
     
     @Column(name = "username", nullable = false, length = 100)
