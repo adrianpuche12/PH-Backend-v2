@@ -46,11 +46,13 @@ public class DashboardService {
                 .toList();
 
         // Totales reales del día: todas las ventas de hoy (turno abierto O cerrado)
+        // Nota: findByStoreIdAndSaleDateOrderByCreatedAtDesc evita el problema de inferencia
+        // de tipos NULL en PostgreSQL que tiene findByStoreIdAndDateRange con parámetros opcionales
         long totalSalesToday = activeStores.stream()
-                .mapToLong(s -> saleRepository.findByStoreIdAndDateRange(s.getId(), today, today).size())
+                .mapToLong(s -> saleRepository.findByStoreIdAndSaleDateOrderByCreatedAtDesc(s.getId(), today).size())
                 .sum();
         BigDecimal totalAmountToday = activeStores.stream()
-                .flatMap(s -> saleRepository.findByStoreIdAndDateRange(s.getId(), today, today).stream())
+                .flatMap(s -> saleRepository.findByStoreIdAndSaleDateOrderByCreatedAtDesc(s.getId(), today).stream())
                 .map(Sale::getTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
