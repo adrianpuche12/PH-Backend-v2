@@ -27,7 +27,8 @@ import java.util.stream.Collectors;
 @Service
 public class SalesService {
 
-    private static final BigDecimal ISV_RATE = new BigDecimal("0.15");
+    // ISV deshabilitado por solicitud del cliente (no cobra impuesto desglosado)
+    private static final BigDecimal ISV_RATE = BigDecimal.ZERO;
 
     @Autowired private SaleRepository saleRepository;
     @Autowired private ShiftRepository shiftRepository;
