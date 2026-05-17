@@ -237,72 +237,35 @@ public class FormsService {
         }
         
         if (updatedDeposit.getDepositDate() != null) {
-            System.out.println("Actualizando depositDate a: " + updatedDeposit.getDepositDate());
             existingDeposit.setDepositDate(updatedDeposit.getDepositDate());
         }
-        
         if (updatedDeposit.getStore() != null) {
             existingDeposit.setStore(updatedDeposit.getStore());
         }
-        
-        ClosingDeposit saved = closingDepositRepository.save(existingDeposit);
-        System.out.println("ClosingDeposit guardado con depositDate: " + saved.getDepositDate());
-        return saved;
+        return closingDepositRepository.save(existingDeposit);
     }
 
     public SupplierPayment updateSupplierPayment(Long id, SupplierPayment updatedPayment) {
         SupplierPayment existingPayment = supplierPaymentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "SupplierPayment no encontrado con id " + id));
         existingPayment.setAmount(updatedPayment.getAmount());
-        //SexistingPayment.setDescription(updatedPayment.getDescription());
-
-        if (updatedPayment.getDescription() != null) {
-            existingPayment.setDescription(updatedPayment.getDescription());
-        }
-
-        existingPayment.setUsername(updatedPayment.getUsername());
-        
-        if (updatedPayment.getSupplier() != null) {
-            existingPayment.setSupplier(updatedPayment.getSupplier());
-        }
-        
-        if (updatedPayment.getPaymentDate() != null) {
-            System.out.println("Actualizando paymentDate a: " + updatedPayment.getPaymentDate());
-            existingPayment.setPaymentDate(updatedPayment.getPaymentDate());
-        }
-        
-        if (updatedPayment.getStore() != null) {
-            existingPayment.setStore(updatedPayment.getStore());
-        }
-        
-        SupplierPayment saved = supplierPaymentRepository.save(existingPayment);
-        System.out.println("SupplierPayment guardado con paymentDate: " + saved.getPaymentDate());
-        return saved;
+        if (updatedPayment.getDescription() != null)   existingPayment.setDescription(updatedPayment.getDescription());
+        if (updatedPayment.getUsername()    != null)   existingPayment.setUsername(updatedPayment.getUsername());
+        if (updatedPayment.getSupplier()    != null)   existingPayment.setSupplier(updatedPayment.getSupplier());
+        if (updatedPayment.getPaymentDate() != null)   existingPayment.setPaymentDate(updatedPayment.getPaymentDate());
+        if (updatedPayment.getStore()       != null)   existingPayment.setStore(updatedPayment.getStore());
+        return supplierPaymentRepository.save(existingPayment);
     }
 
     public SalaryPayment updateSalaryPayment(Long id, SalaryPayment updatedPayment) {
         SalaryPayment existingPayment = salaryPaymentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "SalaryPayment no encontrado con id " + id));
         existingPayment.setAmount(updatedPayment.getAmount());
-        
-        if (updatedPayment.getDescription() != null) {
-            existingPayment.setDescription(updatedPayment.getDescription());
-        }
-        
-        existingPayment.setUsername(updatedPayment.getUsername());
-        
-        if (updatedPayment.getSalaryDate() != null) {
-            System.out.println("Actualizando salaryDate a: " + updatedPayment.getSalaryDate());
-            existingPayment.setSalaryDate(updatedPayment.getSalaryDate());
-        }
-        
-        if (updatedPayment.getStore() != null) {
-            existingPayment.setStore(updatedPayment.getStore());
-        }
-       
-        SalaryPayment saved = salaryPaymentRepository.save(existingPayment);
-        System.out.println("SalaryPayment guardado con salaryDate: " + saved.getSalaryDate());
-        return saved;
+        if (updatedPayment.getDescription() != null) existingPayment.setDescription(updatedPayment.getDescription());
+        if (updatedPayment.getUsername()    != null) existingPayment.setUsername(updatedPayment.getUsername());
+        if (updatedPayment.getSalaryDate()  != null) existingPayment.setSalaryDate(updatedPayment.getSalaryDate());
+        if (updatedPayment.getStore()       != null) existingPayment.setStore(updatedPayment.getStore());
+        return salaryPaymentRepository.save(existingPayment);
     }
 
     // Métodos de eliminación (DELETE)
@@ -327,92 +290,81 @@ public class FormsService {
         salaryPaymentRepository.deleteById(id);
     }
 
+    public List<AllOperationsDTO> getOperationsByUsername(String username) {
+        List<AllOperationsDTO> result = new ArrayList<>();
+        closingDepositRepository.findByUsernameOrderByDepositDateDesc(username)
+                .stream().map(AllOperationsDTO::fromClosingDeposit).forEach(result::add);
+        supplierPaymentRepository.findByUsernameOrderByPaymentDateDesc(username)
+                .stream().map(AllOperationsDTO::fromSupplierPayment).forEach(result::add);
+        salaryPaymentRepository.findByUsernameOrderBySalaryDateDesc(username)
+                .stream().map(AllOperationsDTO::fromSalaryPayment).forEach(result::add);
+        result.sort((a, b) -> {
+            if (a.getDate() == null) return 1;
+            if (b.getDate() == null) return -1;
+            return b.getDate().compareTo(a.getDate());
+        });
+        return result;
+    }
+
     public GastoAdminResponseDTO saveGastoAdmin(GastoAdminRequestDTO request) {
-        // Validar que los porcentajes sumen 100%
-        if (!isValidPercentages(request.getPorcentajeDanli(), request.getPorcentajeParaiso())) {
+        // Validar que los porcentajes sumen exactamente 100%
+        if (!request.isValidPercentages()) {
             throw new IllegalArgumentException("Los porcentajes deben sumar exactamente 100%");
         }
 
         // 1. Guardar registro en tabla gasto_admin para auditoría
+        // Los campos legacy porcentajeDanli/Paraiso y montoDanli/Paraiso se guardan
+        // como 0 ya que en V2 la distribución real vive en las transacciones individuales
         GastoAdmin gastoAdmin = new GastoAdmin();
         gastoAdmin.setFecha(request.getFecha());
         gastoAdmin.setMonto(request.getMonto());
         gastoAdmin.setDescripcion(request.getDescripcion());
-        gastoAdmin.setPorcentajeDanli(request.getPorcentajeDanli());
-        gastoAdmin.setPorcentajeParaiso(request.getPorcentajeParaiso());
-        gastoAdmin.setUsername("admin_user"); // O username del contexto
-        
+        gastoAdmin.setUsername("admin_user");
+        gastoAdmin.setPorcentajeDanli(0);
+        gastoAdmin.setPorcentajeParaiso(0);
+        gastoAdmin.setMontoDanli(BigDecimal.ZERO);
+        gastoAdmin.setMontoParaiso(BigDecimal.ZERO);
         GastoAdmin gastoAdminSaved = gastoAdminRepository.save(gastoAdmin);
 
-        // 2. Crear transacciones individuales por local
+        // 2. Crear una transacción por cada local en la distribución
         List<GastoAdminResponseDTO.TransaccionCreada> transaccionesCreadas = new ArrayList<>();
-        int transaccionesCount = 0;
 
-        // Obtener stores (asumir ID 1=Danli, ID 2=El Paraíso)
-        Store storeDanli = storeRepository.findById(1L).orElseThrow(() -> 
-            new IllegalArgumentException("Store Danli no encontrado"));
-        Store storeParaiso = storeRepository.findById(2L).orElseThrow(() -> 
-            new IllegalArgumentException("Store El Paraíso no encontrado"));
+        for (GastoAdminRequestDTO.StoreDistribucion dist : request.getDistribuciones()) {
+            Store store = storeRepository.findById(dist.getStoreId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Local no encontrado con id: " + dist.getStoreId()));
 
-        // Crear transacción para Danli si el porcentaje > 0
-        if (request.getPorcentajeDanli() > 0) {
-            BigDecimal montoDanli = calcularMonto(request.getMonto(), request.getPorcentajeDanli());
-            
-            Transaction transactionDanli = new Transaction();
-            transactionDanli.setType(request.getTipo());
-            transactionDanli.setAmount(montoDanli);
-            transactionDanli.setDate(request.getFecha());
-            transactionDanli.setDescription(String.format("%s (Danli %d%%)", 
-                request.getDescripcion(), request.getPorcentajeDanli()));
-            transactionDanli.setStore(storeDanli);
-            
-            Transaction savedDanli = transactionRepository.save(transactionDanli);
-            transaccionesCount++;
-            
+            BigDecimal montoLocal = calcularMonto(request.getMonto(), dist.getPorcentaje());
+
+            Transaction tx = new Transaction();
+            tx.setType(request.getTipo());
+            tx.setAmount(montoLocal);
+            tx.setDate(request.getFecha());
+            tx.setDescription(String.format("%s (%s %d%%)",
+                    request.getDescripcion(), store.getName(), dist.getPorcentaje()));
+            tx.setStore(store);
+            tx.setGastoAdminId(gastoAdminSaved.getId());
+
+            Transaction saved = transactionRepository.save(tx);
+
             transaccionesCreadas.add(new GastoAdminResponseDTO.TransaccionCreada(
-                savedDanli.getId(),
-                savedDanli.getType(),
-                savedDanli.getAmount(),
-                savedDanli.getDate(),
-                savedDanli.getDescription(),
-                "Danli",
-                request.getPorcentajeDanli()
-            ));
-        }
-
-        // Crear transacción para El Paraíso si el porcentaje > 0
-        if (request.getPorcentajeParaiso() > 0) {
-            BigDecimal montoParaiso = calcularMonto(request.getMonto(), request.getPorcentajeParaiso());
-            
-            Transaction transactionParaiso = new Transaction();
-            transactionParaiso.setType(request.getTipo());
-            transactionParaiso.setAmount(montoParaiso);
-            transactionParaiso.setDate(request.getFecha());
-            transactionParaiso.setDescription(String.format("%s (El Paraíso %d%%)", 
-                request.getDescripcion(), request.getPorcentajeParaiso()));
-            transactionParaiso.setStore(storeParaiso);
-            
-            Transaction savedParaiso = transactionRepository.save(transactionParaiso);
-            transaccionesCount++;
-            
-            transaccionesCreadas.add(new GastoAdminResponseDTO.TransaccionCreada(
-                savedParaiso.getId(),
-                savedParaiso.getType(),
-                savedParaiso.getAmount(),
-                savedParaiso.getDate(),
-                savedParaiso.getDescription(),
-                "El Paraíso",
-                request.getPorcentajeParaiso()
+                    saved.getId(),
+                    saved.getType(),
+                    saved.getAmount(),
+                    saved.getDate(),
+                    saved.getDescription(),
+                    store.getName(),
+                    dist.getPorcentaje()
             ));
         }
 
         // 3. Construir respuesta
         return new GastoAdminResponseDTO(
-            "Gasto administrativo creado exitosamente. Se crearon " + transaccionesCount + " transacciones.",
-            transaccionesCount,
-            request.getMonto(),
-            transaccionesCreadas,
-            gastoAdminSaved.getId()
+                "Gasto administrativo creado exitosamente. Se crearon " + transaccionesCreadas.size() + " transacciones.",
+                transaccionesCreadas.size(),
+                request.getMonto(),
+                transaccionesCreadas,
+                gastoAdminSaved.getId()
         );
     }
 
@@ -449,8 +401,63 @@ public class FormsService {
         }
         
         GastoAdmin saved = gastoAdminRepository.save(existingGastoAdmin);
-        System.out.println("GastoAdmin actualizado con id: " + saved.getId());
         return saved;
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public GastoAdminResponseDTO updateGastoAdminV2(Long id, GastoAdminRequestDTO request) {
+        if (!request.isValidPercentages()) {
+            throw new IllegalArgumentException("Los porcentajes deben sumar exactamente 100%");
+        }
+
+        GastoAdmin existing = gastoAdminRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "GastoAdmin no encontrado con id " + id));
+
+        // 1. Eliminar transacciones derivadas anteriores
+        transactionRepository.deleteByGastoAdminId(id);
+
+        // 2. Actualizar el registro principal
+        existing.setFecha(request.getFecha());
+        existing.setMonto(request.getMonto());
+        existing.setDescripcion(request.getDescripcion());
+        gastoAdminRepository.save(existing);
+
+        // 3. Crear nuevas transacciones con la nueva distribución
+        List<GastoAdminResponseDTO.TransaccionCreada> transaccionesCreadas = new ArrayList<>();
+
+        for (GastoAdminRequestDTO.StoreDistribucion dist : request.getDistribuciones()) {
+            Store store = storeRepository.findById(dist.getStoreId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Local no encontrado con id: " + dist.getStoreId()));
+
+            BigDecimal montoLocal = calcularMonto(request.getMonto(), dist.getPorcentaje());
+
+            Transaction tx = new Transaction();
+            tx.setType(request.getTipo());
+            tx.setAmount(montoLocal);
+            tx.setDate(request.getFecha());
+            tx.setDescription(String.format("%s (%s %d%%)",
+                    request.getDescripcion(), store.getName(), dist.getPorcentaje()));
+            tx.setStore(store);
+            tx.setGastoAdminId(id);
+
+            Transaction saved = transactionRepository.save(tx);
+
+            transaccionesCreadas.add(new GastoAdminResponseDTO.TransaccionCreada(
+                    saved.getId(), saved.getType(), saved.getAmount(),
+                    saved.getDate(), saved.getDescription(),
+                    store.getName(), dist.getPorcentaje()
+            ));
+        }
+
+        return new GastoAdminResponseDTO(
+                "Gasto administrativo actualizado. Se recrearon " + transaccionesCreadas.size() + " transacciones.",
+                transaccionesCreadas.size(),
+                request.getMonto(),
+                transaccionesCreadas,
+                id
+        );
     }
 
     public void deleteGastoAdmin(Long id) {
@@ -461,13 +468,6 @@ public class FormsService {
         gastoAdminRepository.deleteById(id);
     }
 
-    private boolean isValidPercentages(Integer porcentajeDanli, Integer porcentajeParaiso) {
-        if (porcentajeDanli == null || porcentajeParaiso == null) {
-            return false;
-        }
-        return (porcentajeDanli + porcentajeParaiso) == 100;
-    }
-    
     private BigDecimal calcularMonto(BigDecimal montoTotal, Integer porcentaje) {
         return montoTotal.multiply(BigDecimal.valueOf(porcentaje))
                         .divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);

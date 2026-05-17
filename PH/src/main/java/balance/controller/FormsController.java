@@ -99,6 +99,13 @@ public class FormsController {
         return ResponseEntity.ok(formsService.saveGastoAdmin(request));
     }
 
+    @PutMapping("/gasto-admin/{id}")
+    public ResponseEntity<GastoAdminResponseDTO> updateGastoAdmin(
+            @PathVariable Long id,
+            @Valid @RequestBody GastoAdminRequestDTO request) {
+        return ResponseEntity.ok(formsService.updateGastoAdminV2(id, request));
+    }
+
     /**
      * Obtiene todos los gastos administrativos registrados.
      * 

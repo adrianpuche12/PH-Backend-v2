@@ -21,5 +21,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByDateBetween(LocalDate startDate, LocalDate endDate);
     List<Transaction> findByType(String type);
     List<Transaction> findByDateBetweenAndStoreId(LocalDate startDate, LocalDate endDate, Long storeId);
-    List<Transaction> findByStoreId(Long storeId); // Filtrado por local
+    List<Transaction> findByStoreId(Long storeId);
+    List<Transaction> findByGastoAdminId(Long gastoAdminId);
+    void deleteByGastoAdminId(Long gastoAdminId);
 }

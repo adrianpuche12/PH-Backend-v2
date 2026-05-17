@@ -44,23 +44,39 @@ public class OperationsController {
     public ResponseEntity<List<AllOperationsDTO>> getAllOperations(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Long storeId) {
+            @RequestParam(required = false) Long storeId,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "50") int size) {
+
+        List<AllOperationsDTO> result;
 
         if (startDate != null && endDate != null) {
-            if (storeId != null) {
-                // Filtrar por rango de fechas y storeId
-                return ResponseEntity.ok(formsService.getOperationsByDateRangeAndStore(startDate, endDate, storeId));
-            } else {
-                // Filtrar solo por rango de fechas
-                return ResponseEntity.ok(formsService.getOperationsByDateRange(startDate, endDate));
-            }
+            result = storeId != null
+                    ? formsService.getOperationsByDateRangeAndStore(startDate, endDate, storeId)
+                    : formsService.getOperationsByDateRange(startDate, endDate);
         } else if (storeId != null) {
-            // Filtrar solo por storeId
-            return ResponseEntity.ok(formsService.getOperationsByStore(storeId));
+            result = formsService.getOperationsByStore(storeId);
+        } else {
+            result = formsService.getAllOperations();
         }
-        
-        // Sin filtros, retornar todas las operaciones
-        return ResponseEntity.ok(formsService.getAllOperations());
+
+        // Paginación en memoria
+        int from = page * size;
+        if (from >= result.size()) return ResponseEntity.ok(List.of());
+        int to   = Math.min(from + size, result.size());
+        return ResponseEntity.ok(result.subList(from, to));
+    }
+
+    @GetMapping("/mine")
+    public ResponseEntity<List<AllOperationsDTO>> getMyOperations(
+            @RequestParam String username,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
+        List<AllOperationsDTO> result = formsService.getOperationsByUsername(username);
+        int from = page * size;
+        if (from >= result.size()) return ResponseEntity.ok(List.of());
+        int to   = Math.min(from + size, result.size());
+        return ResponseEntity.ok(result.subList(from, to));
     }
 
     /**
@@ -117,10 +133,8 @@ public class OperationsController {
                 closingDeposit.setPeriodEnd(dto.getPeriodEnd());
                 if (dto.getDepositDate() != null) {
                     closingDeposit.setDepositDate(dto.getDepositDate());
-                    System.out.println("Usando depositDate específico: " + dto.getDepositDate());
                 } else if (dto.getDate() != null) {
                     closingDeposit.setDepositDate(dto.getDate());
-                    System.out.println("Usando date genérico: " + dto.getDate());
                 }
                 
                 if (dto.getStoreId() != null) {
@@ -143,10 +157,8 @@ public class OperationsController {
                 supplierPayment.setSupplier(dto.getSupplier());
                 if (dto.getPaymentDate() != null) {
                     supplierPayment.setPaymentDate(dto.getPaymentDate());
-                    System.out.println("Usando paymentDate específico: " + dto.getPaymentDate());
                 } else if (dto.getDate() != null) {
                     supplierPayment.setPaymentDate(dto.getDate());
-                    System.out.println("Usando date genérico: " + dto.getDate());
                 }
                 
                 if (dto.getStoreId() != null) {
