@@ -20,11 +20,12 @@ import java.util.UUID;
 @Service
 public class R2StorageService {
 
-    @Value("${r2.access-key}")   private String accessKey;
-    @Value("${r2.secret-key}")   private String secretKey;
-    @Value("${r2.endpoint}")     private String endpoint;
-    @Value("${r2.bucket}")       private String bucket;
-    @Value("${r2.public-url}")   private String publicUrl;
+    @Value("${r2.access-key}")      private String accessKey;
+    @Value("${r2.secret-key}")      private String secretKey;
+    @Value("${r2.endpoint}")        private String endpoint;
+    @Value("${r2.bucket}")          private String bucket;
+    @Value("${r2.public-url}")      private String publicUrl;
+    @Value("${r2.folder-prefix:prod}") private String folderPrefix;
 
     private S3Client s3;
 
@@ -50,7 +51,7 @@ public class R2StorageService {
     public String upload(MultipartFile file, String folder) {
         try {
             String ext      = getExtension(file.getOriginalFilename());
-            String fileName = folder + "/" + Instant.now().toEpochMilli()
+            String fileName = folderPrefix + "/" + folder + "/" + Instant.now().toEpochMilli()
                               + "_" + UUID.randomUUID().toString().substring(0, 8) + ext;
 
             PutObjectRequest req = PutObjectRequest.builder()
