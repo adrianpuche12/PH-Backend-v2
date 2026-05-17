@@ -35,26 +35,29 @@ Incluye credenciales, URLs, configuraciones y registro de cambios realizados.
 ## 3. Base de datos — NeonDB (PostgreSQL)
 
 Proveedor: [neon.tech](https://neon.tech) — misma cuenta, distintos branches.
+Las credenciales completas están en los archivos `.env` del servidor (ver sección 6).
 
 ### DEV
 
 ```
-URL:      jdbc:postgresql://ep-red-water-ac3dna23-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require
-Usuario:  neondb_owner
-Password: npg_jYfKb0RcnV8P
-ddl-auto: update
+Host (branch): ep-red-water-ac3dna23
+URL:           jdbc:postgresql://ep-red-water-ac3dna23-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require
+Usuario:       neondb_owner
+Password:      [ver .env en servidor — NO commitear]
+ddl-auto:      update
 ```
 
 ### PROD
 
 ```
-URL:      jdbc:postgresql://ep-gentle-frog-acm7ltaw-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require
-Usuario:  neondb_owner
-Password: npg_jYfKb0RcnV8P
-ddl-auto: update
+Host (branch): ep-gentle-frog-acm7ltaw
+URL:           jdbc:postgresql://ep-gentle-frog-acm7ltaw-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require
+Usuario:       neondb_owner
+Password:      [ver .env en servidor — NO commitear]
+ddl-auto:      update
 ```
 
-> La misma contraseña aplica para ambos branches. Son bases de datos completamente aisladas — un cambio en DEV no afecta PROD.
+> Son bases de datos completamente aisladas — un cambio en DEV no afecta PROD.
 
 ---
 
@@ -64,8 +67,8 @@ Panel de administración: `http://62.171.160.238:8095`
 
 | Campo             | Valor                  |
 |-------------------|------------------------|
-| Usuario admin     | `admin`                |
-| Password admin    | `GeronimoAdmin2024!`   |
+| Usuario admin     | `admin`                           |
+| Password admin    | [ver .env en servidor — NO commitear] |
 | Cliente app       | `proyecto-h-client`    |
 | Tipo de cliente   | Público (sin secret)   |
 | Grant type        | `password` (Resource Owner) |
@@ -104,9 +107,9 @@ http://localhost:8081/*
 
 **Usuarios:**
 
-| Usuario    | Password       | Rol   | Descripción             |
-|------------|----------------|-------|-------------------------|
-| `ph-admin` | `PH@Admin2025!`| admin | Administrador principal |
+| Usuario    | Password                          | Rol   | Descripción             |
+|------------|-----------------------------------|-------|-------------------------|
+| `ph-admin` | [ver .env en servidor — NO commitear] | admin | Administrador principal |
 
 **Roles disponibles:** `admin`, `user`
 
@@ -139,12 +142,12 @@ Usado para guardar fotos de comprobantes de operaciones.
 
 | Campo          | Valor                                                                  |
 |----------------|------------------------------------------------------------------------|
-| Account ID     | `2ba39b159cf1f47b7cc930696337e7ad`                                     |
-| Access Key ID  | `3ec510ee84a7646caba1b9b9c08cdd4d`                                     |
-| Secret Key     | `e3fb7fdf59141f022ed554a2b5662c29804f2e2ffb455527a8d50ca4254fe89a`    |
-| Bucket         | `humberto-comprobantes`                                                |
-| Endpoint       | `https://2ba39b159cf1f47b7cc930696337e7ad.r2.cloudflarestorage.com`   |
-| URL pública    | `https://pub-7e31005d201d4d34894758b2b1d00d9a.r2.dev`                 |
+| Account ID     | [ver .env en servidor — NO commitear]  |
+| Access Key ID  | [ver .env en servidor — NO commitear]  |
+| Secret Key     | [ver .env en servidor — NO commitear]  |
+| Bucket         | `humberto-comprobantes`                |
+| Endpoint       | `https://{ACCOUNT_ID}.r2.cloudflarestorage.com` |
+| URL pública    | `https://pub-7e31005d201d4d34894758b2b1d00d9a.r2.dev` |
 
 **Separación por ambiente (carpetas dentro del mismo bucket):**
 
@@ -167,19 +170,19 @@ Endpoint del upload: `POST /api/v2/uploads/comprobante`
 ```env
 DB_URL=jdbc:postgresql://ep-red-water-ac3dna23-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require
 DB_USER=neondb_owner
-DB_PASSWORD=npg_jYfKb0RcnV8P
+DB_PASSWORD=<PASSWORD_NEONDB>
 SPRING_PROFILES_ACTIVE=dev
 SERVER_PORT=8080
 KEYCLOAK_URL=http://172.21.0.2:8080
 KEYCLOAK_REALM=proyecto-h-dev
 KEYCLOAK_ADMIN_USER=admin
-KEYCLOAK_ADMIN_PASSWORD=GeronimoAdmin2024!
+KEYCLOAK_ADMIN_PASSWORD=<PASSWORD_KEYCLOAK_ADMIN>
 KEYCLOAK_ISSUER_URL=http://62.171.160.238:8095
-R2_ACCOUNT_ID=2ba39b159cf1f47b7cc930696337e7ad
-R2_ACCESS_KEY_ID=3ec510ee84a7646caba1b9b9c08cdd4d
-R2_SECRET_ACCESS_KEY=e3fb7fdf59141f022ed554a2b5662c29804f2e2ffb455527a8d50ca4254fe89a
+R2_ACCOUNT_ID=<R2_ACCOUNT_ID>
+R2_ACCESS_KEY_ID=<R2_ACCESS_KEY_ID>
+R2_SECRET_ACCESS_KEY=<R2_SECRET_KEY>
 R2_BUCKET_NAME=humberto-comprobantes
-R2_ENDPOINT=https://2ba39b159cf1f47b7cc930696337e7ad.r2.cloudflarestorage.com
+R2_ENDPOINT=https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com
 R2_PUBLIC_URL=https://pub-7e31005d201d4d34894758b2b1d00d9a.r2.dev
 R2_FOLDER_PREFIX=dev
 ```
@@ -189,22 +192,24 @@ R2_FOLDER_PREFIX=dev
 ```env
 DB_URL=jdbc:postgresql://ep-gentle-frog-acm7ltaw-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require
 DB_USER=neondb_owner
-DB_PASSWORD=npg_jYfKb0RcnV8P
+DB_PASSWORD=<PASSWORD_NEONDB>
 SPRING_PROFILES_ACTIVE=prod
 SERVER_PORT=8080
 KEYCLOAK_URL=http://172.21.0.2:8080
 KEYCLOAK_REALM=proyecto-h-prod
 KEYCLOAK_ADMIN_USER=admin
-KEYCLOAK_ADMIN_PASSWORD=GeronimoAdmin2024!
+KEYCLOAK_ADMIN_PASSWORD=<PASSWORD_KEYCLOAK_ADMIN>
 KEYCLOAK_ISSUER_URL=http://62.171.160.238:8095
-R2_ACCOUNT_ID=2ba39b159cf1f47b7cc930696337e7ad
-R2_ACCESS_KEY_ID=3ec510ee84a7646caba1b9b9c08cdd4d
-R2_SECRET_ACCESS_KEY=e3fb7fdf59141f022ed554a2b5662c29804f2e2ffb455527a8d50ca4254fe89a
+R2_ACCOUNT_ID=<R2_ACCOUNT_ID>
+R2_ACCESS_KEY_ID=<R2_ACCESS_KEY_ID>
+R2_SECRET_ACCESS_KEY=<R2_SECRET_KEY>
 R2_BUCKET_NAME=humberto-comprobantes
-R2_ENDPOINT=https://2ba39b159cf1f47b7cc930696337e7ad.r2.cloudflarestorage.com
+R2_ENDPOINT=https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com
 R2_PUBLIC_URL=https://pub-7e31005d201d4d34894758b2b1d00d9a.r2.dev
 R2_FOLDER_PREFIX=prod
 ```
+
+> Los valores reales de todas las variables marcadas con `<...>` están únicamente en los archivos `.env` del servidor. Nunca deben commitearse al repositorio.
 
 ---
 
@@ -306,15 +311,15 @@ networks:
 
 **Secrets configurados en GitHub (ambos repos):**
 
-| Secret              | Valor real                        |
-|---------------------|-----------------------------------|
-| `DOCKER_USERNAME`   | `adrianpuche`                     |
-| `SERVER_HOST`       | `62.171.160.238`                  |
-| `SERVER_USER`       | `root`                            |
-| `SSH_PRIVATE_KEY`   | Contenido de `github_actions_key` |
-| `DB_URL_PROD`       | URL NeonDB PROD (ver sección 3)   |
-| `DB_URL_DEV`        | URL NeonDB DEV (ver sección 3)    |
-| `DOCKER_PASSWORD`   | Password Docker Hub (privado)     |
+| Secret              | Descripción                               |
+|---------------------|-------------------------------------------|
+| `DOCKER_USERNAME`   | Usuario Docker Hub                        |
+| `DOCKER_PASSWORD`   | Password Docker Hub                       |
+| `SERVER_HOST`       | IP del servidor                           |
+| `SERVER_USER`       | Usuario SSH del servidor                  |
+| `SSH_PRIVATE_KEY`   | Contenido de la clave privada SSH         |
+| `DB_URL_PROD`       | URL completa NeonDB PROD (ver sección 3)  |
+| `DB_URL_DEV`        | URL completa NeonDB DEV (ver sección 3)   |
 
 **Pasos del workflow (backend y frontend):**
 1. Checkout del código

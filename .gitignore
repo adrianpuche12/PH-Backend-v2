@@ -2,8 +2,16 @@
 target/
 **/target/
 
-# Credenciales locales (nunca subir a git)
+# Credenciales y variables de entorno — NUNCA subir a git
+.env
+.env.*
+*.env
 **/application-local.properties
+secrets/
+*.key
+*.pem
+*.p12
+*.jks
 !.mvn/wrapper/maven-wrapper.jar
 
 # IntelliJ IDEA
