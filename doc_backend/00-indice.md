@@ -22,6 +22,8 @@ Esta documentacion no modifica funcionalidades del backend. Solo describe el est
 | `12-fases-implementacion.md` | Fases sugeridas para implementar el nuevo sistema gradualmente. |
 | `13-decisiones-pendientes-cliente.md` | Preguntas que deben validarse con el cliente antes de cerrar diseno. |
 | `14-flujo-trabajo-claude-codex-obsidian.md` | Flujo de trabajo recomendado entre Obsidian, Claude Code y Codex. |
+| `15-guia-operativa-claude-code-codex.md` | Guia operativa detallada para Claude Code y Codex: prompts, ramas, revisión. |
+| `16-infraestructura-ambientes.md` | Servidor, puertos, NeonDB, Keycloak, R2, Docker, CI/CD — los tres ambientes (local, DEV, PROD). |
 
 ## Alcance
 
