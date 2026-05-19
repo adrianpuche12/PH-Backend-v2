@@ -24,6 +24,8 @@ Esta documentacion no modifica funcionalidades del backend. Solo describe el est
 | `14-flujo-trabajo-claude-codex-obsidian.md` | Flujo de trabajo recomendado entre Obsidian, Claude Code y Codex. |
 | `15-guia-operativa-claude-code-codex.md` | Guia operativa detallada para Claude Code y Codex: prompts, ramas, revisión. |
 | `16-infraestructura-ambientes.md` | Servidor, puertos, NeonDB, Keycloak, R2, Docker, CI/CD — los tres ambientes (local, DEV, PROD). |
+| `17-roadmap-saas.md` | Que se necesita para convertir el sistema en un SaaS vendible — 9 modulos con estimaciones. |
+| `18-modulo-depositos-bancarios.md` | Diseno completo del modulo de depositos bancarios — metodo de pago, cierres, reconciliacion efectivo vs tarjeta. |
 
 ## Alcance
 
