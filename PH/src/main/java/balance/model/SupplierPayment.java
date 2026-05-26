@@ -18,7 +18,7 @@ public class SupplierPayment {
     private String description;
 
     @NotNull(message = "El monto es obligatorio")
-    @DecimalMin(value = "0.0", message = "El monto debe ser mayor que 0")
+    @DecimalMin(value = "0.01", message = "El monto debe ser mayor a 0")
     @Column(nullable = false)
     private BigDecimal amount;
     
@@ -33,6 +33,9 @@ public class SupplierPayment {
     @ManyToOne
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
+
+    @Column(name = "image_uri", length = 512)
+    private String imageUri;
 
     // Getters y Setters
 
@@ -91,4 +94,7 @@ public class SupplierPayment {
     public void setStore(Store store) {
         this.store = store;
     }
+
+    public String getImageUri() { return imageUri; }
+    public void setImageUri(String imageUri) { this.imageUri = imageUri; }
 }

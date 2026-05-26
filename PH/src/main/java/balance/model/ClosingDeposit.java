@@ -16,7 +16,7 @@ public class ClosingDeposit {
     private Integer closingsCount;
     
     @NotNull(message = "El monto es obligatorio")
-    @DecimalMin(value = "0.0", message = "El monto debe ser mayor que 0")
+    @DecimalMin(value = "0.01", message = "El monto debe ser mayor a 0")
     @Column(nullable = false)
     private BigDecimal amount;
     
@@ -35,6 +35,9 @@ public class ClosingDeposit {
     @NotBlank(message = "El nombre de usuario es obligatorio")
     @Column(nullable = false)
     private String username;
+
+    @Column(name = "image_uri", length = 512)
+    private String imageUri;
 
     @ManyToOne
     @JoinColumn(name = "store_id", nullable = false)
@@ -108,5 +111,8 @@ public class ClosingDeposit {
     public void setStore(Store store) {
         this.store = store;
     }
+
+    public String getImageUri() { return imageUri; }
+    public void setImageUri(String imageUri) { this.imageUri = imageUri; }
 }
 
