@@ -10,7 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/stores")
-@CrossOrigin(origins = "*")
 public class StoreController {
 
      //PRUEBA ACTUALIZACION SERVIDOR
