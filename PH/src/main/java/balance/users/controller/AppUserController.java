@@ -2,7 +2,6 @@ package balance.users.controller;
 
 import balance.users.dto.AppUserRequestDTO;
 import balance.users.dto.AppUserResponseDTO;
-import balance.users.repository.AppUserRepository;
 import balance.users.service.AppUserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +16,7 @@ import java.util.Map;
 @RequestMapping("/api/v2/users")
 public class AppUserController {
 
-    @Autowired private AppUserService    userService;
-    @Autowired private AppUserRepository userRepository;
+    @Autowired private AppUserService userService;
 
     /** Lista todos los usuarios del sistema. */
     @GetMapping
@@ -53,19 +51,17 @@ public class AppUserController {
      */
     @GetMapping("/by-keycloak/{keycloakId}")
     public ResponseEntity<?> findByKeycloakId(@PathVariable String keycloakId) {
-        return userRepository.findByKeycloakId(keycloakId)
-                .map(u -> {
-                    AppUserResponseDTO dto = AppUserResponseDTO.from(u);
-                    if ("SUSPENDED".equals(dto.getStatus())) {
-                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                                .body((Object) Map.of(
-                                    "error",   "ACCOUNT_SUSPENDED",
-                                    "message", "Tu cuenta fue suspendida. Contacta al encargado."
-                                ));
-                    }
-                    return ResponseEntity.ok((Object) dto);
-                })
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            AppUserResponseDTO user = userService.findByKeycloakId(keycloakId);
+            if ("SUSPENDED".equals(user.getStatus())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "ACCOUNT_SUSPENDED",
+                                     "message", "Tu cuenta fue suspendida. Contacta al encargado."));
+            }
+            return ResponseEntity.ok(user);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     /** Lista usuarios por local. */
