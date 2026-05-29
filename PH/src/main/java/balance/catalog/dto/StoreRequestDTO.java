@@ -11,6 +11,9 @@ public class StoreRequestDTO {
 
     private String phone;
 
+    /** Si se informa, copia la estructura de categorías y productos del local indicado. */
+    private Long sourceStoreId;
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
@@ -19,4 +22,7 @@ public class StoreRequestDTO {
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
+
+    public Long getSourceStoreId() { return sourceStoreId; }
+    public void setSourceStoreId(Long sourceStoreId) { this.sourceStoreId = sourceStoreId; }
 }

@@ -72,6 +72,7 @@ public class AppUserService {
             throw new IllegalStateException("El usuario ya está suspendido");
         }
         keycloakAdmin.setUserEnabled(user.getKeycloakId(), false);
+        keycloakAdmin.logoutUser(user.getKeycloakId());   // termina sesiones activas
         user.setStatus("SUSPENDED");
         return AppUserResponseDTO.from(userRepository.save(user));
     }

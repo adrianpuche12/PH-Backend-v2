@@ -167,6 +167,29 @@ public class KeycloakAdminService {
         );
     }
 
+    // ── Terminar sesiones activas ─────────────────────────────────────────────
+
+    /**
+     * Termina todas las sesiones activas del usuario en Keycloak.
+     * Usar junto con setUserEnabled(false) al suspender un usuario.
+     */
+    public void logoutUser(String keycloakId) {
+        String token = getAdminToken();
+        String url   = keycloakUrl + "/admin/realms/" + realm + "/users/" + keycloakId + "/logout";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+
+        try {
+            restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(headers), Void.class);
+        } catch (HttpClientErrorException e) {
+            // Si no hay sesiones activas Keycloak puede devolver 404 — no es error
+            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
+                throw new RuntimeException("Error al cerrar sesiones de usuario en Keycloak: " + e.getMessage());
+            }
+        }
+    }
+
     // ── Eliminar usuario ──────────────────────────────────────────────────────
 
     /** Elimina permanentemente un usuario de Keycloak. */

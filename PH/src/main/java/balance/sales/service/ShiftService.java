@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ShiftService {
@@ -59,8 +60,15 @@ public class ShiftService {
                 .orElse(null);
     }
 
-    public List<ShiftResponseDTO> getShiftHistory(Long storeId, int page, int size) {
-        return shiftRepository.findByStoreIdOrderByOpenedAtDesc(storeId, PageRequest.of(page, size))
+    public List<ShiftResponseDTO> getShiftHistory(Long storeId, String username,
+                                                    LocalDate from, LocalDate to,
+                                                    int page, int size) {
+        var pageable  = PageRequest.of(page, size);
+        var fromDt    = from != null ? from.atStartOfDay()            : null;
+        var toDt      = to   != null ? to.atTime(LocalTime.MAX)       : null;
+        var usernameP = (username != null && !username.isBlank()) ? username : null;
+
+        return shiftRepository.findByFilters(storeId, usernameP, fromDt, toDt, pageable)
                 .stream().map(ShiftResponseDTO::from).toList();
     }
 

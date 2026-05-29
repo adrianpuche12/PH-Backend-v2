@@ -10,5 +10,6 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     List<AppUser> findByStoreIdOrderByFullNameAsc(Long storeId);
     List<AppUser> findAllByOrderByFullNameAsc();
     Optional<AppUser> findByUsername(String username);
+    Optional<AppUser> findByKeycloakId(String keycloakId);
     boolean existsByUsername(String username);
 }

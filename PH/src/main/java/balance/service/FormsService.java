@@ -168,6 +168,9 @@ public class FormsService {
 
     // Métodos para guardar operaciones
     public ClosingDeposit saveClosingDeposit(ClosingDeposit deposit) {
+        if (deposit.getImageUri() == null || deposit.getImageUri().isBlank()) {
+            throw new IllegalArgumentException("El comprobante bancario es obligatorio para el depósito de cierres");
+        }
         if (deposit.getDepositDate() == null) {
             deposit.setDepositDate(LocalDate.now());
         }
