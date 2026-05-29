@@ -49,14 +49,14 @@ class ShiftServiceTest {
 
     @Test
     void openShift_codeMatchesExpectedPattern() {
-        // Formato: T-YYYYMMDD-HHmm-DAN (máx 3 letras del nombre del local)
+        // Formato: T-YYYYMMDD-HHmmss-DAN (máx 3 letras del nombre del local, incluye segundos)
         when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
         when(shiftRepository.existsByStoreIdAndStatus(1L, "OPEN")).thenReturn(false);
         when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ShiftResponseDTO result = shiftService.openShift(1L, "cajero01");
 
-        assertThat(result.getCode()).matches("T-\\d{8}-\\d{4}-[A-Z]{1,3}");
+        assertThat(result.getCode()).matches("T-\\d{8}-\\d{6}-[A-Z]{1,3}");
     }
 
     @Test
