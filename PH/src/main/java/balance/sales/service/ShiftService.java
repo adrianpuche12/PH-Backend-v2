@@ -78,11 +78,11 @@ public class ShiftService {
                 .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
     }
 
-    /** Genera código único de turno: T-YYYYMMDD-HHmm-DAN
-     *  Incluye hora:minuto para permitir múltiples turnos por día. */
+    /** Genera código único de turno: T-YYYYMMDD-HHmmss-DAN
+     *  Incluye segundos para garantizar unicidad incluso con turnos consecutivos. */
     private String generateCode(Store store) {
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HHmm"));
+        String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
         String storePart = store.getName()
                 .replaceAll("[^a-zA-Z]", "")
                 .toUpperCase();

@@ -14,6 +14,8 @@ import balance.sales.model.Shift;
 import balance.sales.repository.SaleRepository;
 import balance.sales.repository.ShiftRepository;
 import balance.service.FormsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,7 @@ import java.util.stream.Collectors;
 @Service
 public class SalesService {
 
+    private static final Logger log = LoggerFactory.getLogger(SalesService.class);
     private static final ZoneId HONDURAS_TZ = ZoneId.of("America/Tegucigalpa");
 
     // ISV deshabilitado por solicitud del cliente (no cobra impuesto desglosado)
@@ -113,6 +116,10 @@ public class SalesService {
             case "MIXED":
                 BigDecimal cash = request.getCashAmount() != null ? request.getCashAmount() : BigDecimal.ZERO;
                 BigDecimal card = request.getCardAmount() != null ? request.getCardAmount() : BigDecimal.ZERO;
+                if (cash.add(card).compareTo(total) != 0) {
+                    throw new IllegalArgumentException(
+                        "En pago mixto, efectivo + tarjeta debe ser igual al total (" + total + ")");
+                }
                 sale.setCashAmount(cash);
                 sale.setCardAmount(card);
                 break;
@@ -358,18 +365,17 @@ public class SalesService {
 
     private void deductStock(Long storeId, List<SaleItem> items) {
         for (SaleItem item : items) {
-            if (item.getProduct() == null) continue;
-            try {
-                StockAdjustmentDTO adj = new StockAdjustmentDTO();
-                adj.setProductId(item.getProduct().getId());
-                adj.setType("SALIDA");
-                adj.setQuantity(item.getQuantity());
-                adj.setReason("Venta");
-                adj.setUsername("system");
-                inventoryService.adjustSilent(storeId, adj);
-            } catch (Exception ignored) {
-                // Stock insuficiente no bloquea la venta
+            if (item.getProduct() == null) {
+                log.warn("SaleItem sin producto asociado — se omite descuento de stock");
+                continue;
             }
+            StockAdjustmentDTO adj = new StockAdjustmentDTO();
+            adj.setProductId(item.getProduct().getId());
+            adj.setType("SALIDA");
+            adj.setQuantity(item.getQuantity());
+            adj.setReason("Venta");
+            adj.setUsername("system");
+            inventoryService.adjustSilent(storeId, adj); // logea si stock insuficiente
         }
     }
 

@@ -1,19 +1,26 @@
 package balance.config;
 
 import balance.users.repository.AppUserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.Base64;
+import java.util.Map;
 
 @Component
 public class UserStatusInterceptor implements HandlerInterceptor {
 
-    @Autowired
-    private AppUserRepository userRepository;
+    private static final Logger log = LoggerFactory.getLogger(UserStatusInterceptor.class);
+
+    @Autowired private AppUserRepository userRepository;
+
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     public boolean preHandle(HttpServletRequest request,
@@ -24,8 +31,7 @@ public class UserStatusInterceptor implements HandlerInterceptor {
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) return true;
 
-        String token = authHeader.substring(7);
-        String keycloakId = extractClaim(token, "sub");
+        String keycloakId = extractSub(authHeader.substring(7));
         if (keycloakId == null) return true;
 
         boolean suspended = userRepository.findByKeycloakId(keycloakId)
@@ -45,28 +51,22 @@ public class UserStatusInterceptor implements HandlerInterceptor {
         return true;
     }
 
-    private String extractClaim(String token, String claimName) {
+    @SuppressWarnings("unchecked")
+    private String extractSub(String token) {
         try {
             String[] parts = token.split("\\.");
             if (parts.length < 2) return null;
-            byte[] decoded = Base64.getUrlDecoder().decode(padBase64(parts[1]));
-            String payload = new String(decoded);
-            String key = "\"" + claimName + "\":\"";
-            int start = payload.indexOf(key);
-            if (start == -1) return null;
-            start += key.length();
-            int end = payload.indexOf('"', start);
-            return end > start ? payload.substring(start, end) : null;
+            String padded = parts[1];
+            int mod = padded.length() % 4;
+            if (mod == 2) padded += "==";
+            else if (mod == 3) padded += "=";
+            byte[] decoded = Base64.getUrlDecoder().decode(padded);
+            Map<String, Object> claims = mapper.readValue(decoded, Map.class);
+            Object sub = claims.get("sub");
+            return sub != null ? sub.toString() : null;
         } catch (Exception e) {
+            log.debug("No se pudo parsear JWT: {}", e.getMessage());
             return null;
         }
-    }
-
-    private String padBase64(String s) {
-        return switch (s.length() % 4) {
-            case 2 -> s + "==";
-            case 3 -> s + "=";
-            default -> s;
-        };
     }
 }

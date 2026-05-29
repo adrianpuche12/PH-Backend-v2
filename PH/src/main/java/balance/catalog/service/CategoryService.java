@@ -59,15 +59,23 @@ public class CategoryService {
         return roots;
     }
 
+    private static final int MAX_CATEGORY_DEPTH = 10;
+
     // toDTO para operaciones de una sola categoría (create, update, findById)
     private CategoryResponseDTO toDTO(Category category) {
+        return toDTO(category, 0);
+    }
+
+    private CategoryResponseDTO toDTO(Category category, int depth) {
         long productCount = categoryRepository.countProductsByCategoryId(category.getId());
         CategoryResponseDTO dto = CategoryResponseDTO.from(category, productCount);
-        List<CategoryResponseDTO> childDTOs = category.getChildren()
-                .stream()
-                .map(this::toDTO)
-                .toList();
-        dto.setChildren(childDTOs);
+        if (depth < MAX_CATEGORY_DEPTH) {
+            List<CategoryResponseDTO> childDTOs = category.getChildren()
+                    .stream()
+                    .map(c -> toDTO(c, depth + 1))
+                    .toList();
+            dto.setChildren(childDTOs);
+        }
         return dto;
     }
 
