@@ -191,8 +191,8 @@ public class SalesService {
             totalSubtotal = totalSubtotal.add(sale.getSubtotal());
             totalIsv      = totalIsv.add(sale.getIsv());
             totalAmount   = totalAmount.add(sale.getTotal());
-            totalCash     = totalCash.add(sale.getCashAmount());
-            totalCard     = totalCard.add(sale.getCardAmount());
+            totalCash     = totalCash.add(sale.getCashAmount() != null ? sale.getCashAmount() : BigDecimal.ZERO);
+            totalCard     = totalCard.add(sale.getCardAmount() != null ? sale.getCardAmount() : BigDecimal.ZERO);
             for (SaleItem item : sale.getItems()) {
                 String key = item.getProductNameSnapshot();
                 productQty.merge(key, new int[]{item.getQuantity()}, (a, b) -> new int[]{a[0] + b[0]});
@@ -237,8 +237,8 @@ public class SalesService {
             totalSubtotal = totalSubtotal.add(sale.getSubtotal());
             totalIsv      = totalIsv.add(sale.getIsv());
             totalAmount   = totalAmount.add(sale.getTotal());
-            totalCash     = totalCash.add(sale.getCashAmount());
-            totalCard     = totalCard.add(sale.getCardAmount());
+            totalCash     = totalCash.add(sale.getCashAmount() != null ? sale.getCashAmount() : BigDecimal.ZERO);
+            totalCard     = totalCard.add(sale.getCardAmount() != null ? sale.getCardAmount() : BigDecimal.ZERO);
 
             for (SaleItem item : sale.getItems()) {
                 String key = item.getProductNameSnapshot();
