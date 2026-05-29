@@ -16,7 +16,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v2/deposits")
-@CrossOrigin(origins = "*")
 public class BankDepositController {
 
     @Autowired private BankDepositService service;
