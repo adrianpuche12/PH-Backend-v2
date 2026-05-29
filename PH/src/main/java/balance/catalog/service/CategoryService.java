@@ -10,8 +10,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class CategoryService {
@@ -24,11 +28,38 @@ public class CategoryService {
 
     // Árbol completo de categorías raíz de un local (recursivo sin límite)
     public List<CategoryResponseDTO> getTree(Long storeId) {
-        List<Category> roots = categoryRepository.findRootsByStoreId(storeId);
-        return roots.stream().map(this::toDTO).toList();
+        // 1 query: todas las categorías del local
+        List<Category> all = categoryRepository.findAllByStoreId(storeId);
+
+        // 1 query: conteo de productos por categoría
+        List<Long> catIds = all.stream().map(Category::getId).collect(Collectors.toList());
+        Map<Long, Long> productCounts = new HashMap<>();
+        if (!catIds.isEmpty()) {
+            categoryRepository.countProductsByCategoryIds(catIds)
+                    .forEach(row -> productCounts.put((Long) row[0], (Long) row[1]));
+        }
+
+        // Construir árbol en memoria (sin más queries)
+        Map<Long, CategoryResponseDTO> dtoMap = new HashMap<>();
+        for (Category c : all) {
+            long count = productCounts.getOrDefault(c.getId(), 0L);
+            dtoMap.put(c.getId(), CategoryResponseDTO.from(c, count));
+        }
+
+        List<CategoryResponseDTO> roots = new ArrayList<>();
+        for (Category c : all) {
+            CategoryResponseDTO dto = dtoMap.get(c.getId());
+            if (c.getParent() == null) {
+                roots.add(dto);
+            } else {
+                CategoryResponseDTO parent = dtoMap.get(c.getParent().getId());
+                if (parent != null) parent.getChildren().add(dto);
+            }
+        }
+        return roots;
     }
 
-    // Convierte Category → DTO recursivamente (profundidad ilimitada)
+    // toDTO para operaciones de una sola categoría (create, update, findById)
     private CategoryResponseDTO toDTO(Category category) {
         long productCount = categoryRepository.countProductsByCategoryId(category.getId());
         CategoryResponseDTO dto = CategoryResponseDTO.from(category, productCount);

@@ -89,6 +89,20 @@ public class SalesController {
         }
     }
 
+    // Resumen de efectivo para reconciliación bancaria — usado en el formulario de cierre
+    // GET /api/v2/sales/cash-summary?storeId=1&from=2026-05-17&to=2026-05-20
+    @GetMapping("/sales/cash-summary")
+    public ResponseEntity<?> getCashSummary(
+            @RequestParam Long storeId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        try {
+            return ResponseEntity.ok(salesService.getCashSummary(storeId, from, to));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // Confirmar cierre de turno (integra con sistema V1)
     @PostMapping("/shifts/{shiftId}/closing")
     public ResponseEntity<?> closeShift(@PathVariable Long shiftId,

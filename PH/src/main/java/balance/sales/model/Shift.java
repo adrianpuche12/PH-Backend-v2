@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -36,6 +37,20 @@ public class Shift {
 
     private LocalDateTime closedAt;
 
+    // Totales de efectivo y tarjeta — calculados al cerrar el turno
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal totalCashSales = BigDecimal.ZERO;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal totalCardSales = BigDecimal.ZERO;
+
+    // Depósito bancario
+    @Column(nullable = false)
+    private Boolean deposited = false;
+
+    @Column(name = "deposit_id")
+    private Long depositId;
+
     public Long getId() { return id; }
 
     public String getCode() { return code; }
@@ -54,4 +69,16 @@ public class Shift {
 
     public LocalDateTime getClosedAt() { return closedAt; }
     public void setClosedAt(LocalDateTime closedAt) { this.closedAt = closedAt; }
+
+    public BigDecimal getTotalCashSales() { return totalCashSales; }
+    public void setTotalCashSales(BigDecimal totalCashSales) { this.totalCashSales = totalCashSales; }
+
+    public BigDecimal getTotalCardSales() { return totalCardSales; }
+    public void setTotalCardSales(BigDecimal totalCardSales) { this.totalCardSales = totalCardSales; }
+
+    public Boolean getDeposited() { return deposited; }
+    public void setDeposited(Boolean deposited) { this.deposited = deposited; }
+
+    public Long getDepositId() { return depositId; }
+    public void setDepositId(Long depositId) { this.depositId = depositId; }
 }

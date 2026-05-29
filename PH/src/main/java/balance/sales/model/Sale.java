@@ -48,6 +48,16 @@ public class Sale {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal total = BigDecimal.ZERO; // subtotal + isv
 
+    // Método de pago — CASH | CARD | MIXED
+    @Column(nullable = false, length = 10)
+    private String paymentMethod = "CASH";
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal cashAmount = BigDecimal.ZERO;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal cardAmount = BigDecimal.ZERO;
+
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SaleItem> items = new ArrayList<>();
 
@@ -84,4 +94,13 @@ public class Sale {
     public List<SaleItem> getItems() { return items; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public BigDecimal getCashAmount() { return cashAmount; }
+    public void setCashAmount(BigDecimal cashAmount) { this.cashAmount = cashAmount; }
+
+    public BigDecimal getCardAmount() { return cardAmount; }
+    public void setCardAmount(BigDecimal cardAmount) { this.cardAmount = cardAmount; }
 }

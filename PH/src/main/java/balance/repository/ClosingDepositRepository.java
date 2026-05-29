@@ -22,4 +22,11 @@ public interface ClosingDepositRepository extends JpaRepository<ClosingDeposit, 
     List<ClosingDeposit> findByStoreId(Long storeId);
     List<ClosingDeposit> findByDepositDateBetweenAndStoreId(LocalDate startDate, LocalDate endDate, Long storeId);
     List<ClosingDeposit> findByUsernameOrderByDepositDateDesc(String username);
+
+    // Cierres pendientes de depósito bancario — por local y rango de fechas
+    List<ClosingDeposit> findByStoreIdAndDepositStatusAndPeriodStartGreaterThanEqualAndPeriodEndLessThanEqualOrderByDepositDateDesc(
+            Long storeId, String depositStatus, LocalDate from, LocalDate to);
+
+    // Todos los pendientes de un local
+    List<ClosingDeposit> findByStoreIdAndDepositStatusOrderByDepositDateDesc(Long storeId, String depositStatus);
 }

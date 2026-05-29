@@ -12,12 +12,13 @@ import java.util.Optional;
 @Repository
 public interface InventoryStockRepository extends JpaRepository<InventoryStock, Long> {
 
-    List<InventoryStock> findByStoreIdOrderByProductNameAsc(Long storeId);
+    @Query("SELECT s FROM InventoryStock s JOIN FETCH s.product p JOIN FETCH s.store LEFT JOIN FETCH p.category c LEFT JOIN FETCH c.parent WHERE s.store.id = :storeId ORDER BY p.name ASC")
+    List<InventoryStock> findByStoreIdOrderByProductNameAsc(@Param("storeId") Long storeId);
 
     Optional<InventoryStock> findByProductIdAndStoreId(Long productId, Long storeId);
 
     // minStock > 0 evita falsos positivos cuando el producto no tiene mínimo definido
-    @Query("SELECT s FROM InventoryStock s WHERE s.store.id = :storeId AND s.product.minStock > 0 AND s.quantity <= s.product.minStock")
+    @Query("SELECT s FROM InventoryStock s JOIN FETCH s.product p JOIN FETCH s.store WHERE s.store.id = :storeId AND p.minStock > 0 AND s.quantity <= p.minStock")
     List<InventoryStock> findLowStockByStoreId(@Param("storeId") Long storeId);
 
     @Query("SELECT COUNT(s) FROM InventoryStock s WHERE s.store.id = :storeId AND s.product.minStock > 0 AND s.quantity <= s.product.minStock")

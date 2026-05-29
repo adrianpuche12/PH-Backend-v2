@@ -39,6 +39,14 @@ public class ClosingDeposit {
     @Column(name = "image_uri", length = 512)
     private String imageUri;
 
+    // PENDING = aún no depositado en banco | DEPOSITED = ya depositado
+    @Column(nullable = false, length = 20)
+    private String depositStatus = "PENDING";
+
+    // ID del depósito bancario que incluye este cierre (null si PENDING)
+    @Column(name = "bank_deposit_id")
+    private Long bankDepositId;
+
     @ManyToOne
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
@@ -114,5 +122,11 @@ public class ClosingDeposit {
 
     public String getImageUri() { return imageUri; }
     public void setImageUri(String imageUri) { this.imageUri = imageUri; }
+
+    public String getDepositStatus() { return depositStatus; }
+    public void setDepositStatus(String depositStatus) { this.depositStatus = depositStatus; }
+
+    public Long getBankDepositId() { return bankDepositId; }
+    public void setBankDepositId(Long bankDepositId) { this.bankDepositId = bankDepositId; }
 }
 

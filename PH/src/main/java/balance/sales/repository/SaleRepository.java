@@ -22,4 +22,7 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
 
     @Query("SELECT COUNT(s) FROM Sale s WHERE s.shift.id = :shiftId AND s.status = 'OPEN'")
     long countOpenByShiftId(@Param("shiftId") Long shiftId);
+
+    @Query("SELECT s FROM Sale s WHERE s.store.id = :storeId AND s.saleDate >= :from AND s.saleDate <= :to ORDER BY s.createdAt DESC")
+    List<Sale> findByStoreIdAndDateRangeStrict(@Param("storeId") Long storeId, @Param("from") LocalDate from, @Param("to") LocalDate to);
 }

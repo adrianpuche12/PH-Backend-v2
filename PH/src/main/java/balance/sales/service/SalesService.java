@@ -21,11 +21,16 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
+
+
 @Service
 public class SalesService {
+
+    private static final ZoneId HONDURAS_TZ = ZoneId.of("America/Tegucigalpa");
 
     // ISV deshabilitado por solicitud del cliente (no cobra impuesto desglosado)
     private static final BigDecimal ISV_RATE = BigDecimal.ZERO;
@@ -60,7 +65,7 @@ public class SalesService {
         sale.setShift(shift);
         sale.setStore(store);
         sale.setUsername(request.getUsername());
-        sale.setSaleDate(LocalDate.now());
+        sale.setSaleDate(LocalDate.now(HONDURAS_TZ));
         sale.setStatus("OPEN");
 
         BigDecimal subtotal = BigDecimal.ZERO;
@@ -95,6 +100,27 @@ public class SalesService {
         sale.setSubtotal(subtotal);
         sale.setIsv(isv);
         sale.setTotal(total);
+
+        // Método de pago
+        String paymentMethod = request.getPaymentMethod() != null ? request.getPaymentMethod() : "CASH";
+        sale.setPaymentMethod(paymentMethod);
+
+        switch (paymentMethod) {
+            case "CARD":
+                sale.setCashAmount(BigDecimal.ZERO);
+                sale.setCardAmount(total);
+                break;
+            case "MIXED":
+                BigDecimal cash = request.getCashAmount() != null ? request.getCashAmount() : BigDecimal.ZERO;
+                BigDecimal card = request.getCardAmount() != null ? request.getCardAmount() : BigDecimal.ZERO;
+                sale.setCashAmount(cash);
+                sale.setCardAmount(card);
+                break;
+            default: // CASH
+                sale.setCashAmount(total);
+                sale.setCardAmount(BigDecimal.ZERO);
+                break;
+        }
 
         saleRepository.save(sale);
 
@@ -154,6 +180,8 @@ public class SalesService {
         BigDecimal totalSubtotal = BigDecimal.ZERO;
         BigDecimal totalIsv      = BigDecimal.ZERO;
         BigDecimal totalAmount   = BigDecimal.ZERO;
+        BigDecimal totalCash     = BigDecimal.ZERO;
+        BigDecimal totalCard     = BigDecimal.ZERO;
 
         Map<String, int[]>        productQty = new LinkedHashMap<>();
         Map<String, BigDecimal>   productSub = new LinkedHashMap<>();
@@ -163,6 +191,8 @@ public class SalesService {
             totalSubtotal = totalSubtotal.add(sale.getSubtotal());
             totalIsv      = totalIsv.add(sale.getIsv());
             totalAmount   = totalAmount.add(sale.getTotal());
+            totalCash     = totalCash.add(sale.getCashAmount());
+            totalCard     = totalCard.add(sale.getCardAmount());
             for (SaleItem item : sale.getItems()) {
                 String key = item.getProductNameSnapshot();
                 productQty.merge(key, new int[]{item.getQuantity()}, (a, b) -> new int[]{a[0] + b[0]});
@@ -180,7 +210,7 @@ public class SalesService {
 
         LocalDate rangeDate = from != null ? from : LocalDate.now();
         return new DailySummaryDTO(rangeDate, store.getId(), store.getName(),
-                sales.size(), totalSubtotal, totalIsv, totalAmount, summary);
+                sales.size(), totalSubtotal, totalIsv, totalAmount, totalCash, totalCard, summary);
     }
 
     // ── Resumen diario ────────────────────────────────────────────────────────
@@ -196,6 +226,8 @@ public class SalesService {
         BigDecimal totalSubtotal = BigDecimal.ZERO;
         BigDecimal totalIsv      = BigDecimal.ZERO;
         BigDecimal totalAmount   = BigDecimal.ZERO;
+        BigDecimal totalCash     = BigDecimal.ZERO;
+        BigDecimal totalCard     = BigDecimal.ZERO;
 
         Map<String, int[]> productQty       = new LinkedHashMap<>();
         Map<String, BigDecimal> productSub  = new LinkedHashMap<>();
@@ -205,6 +237,8 @@ public class SalesService {
             totalSubtotal = totalSubtotal.add(sale.getSubtotal());
             totalIsv      = totalIsv.add(sale.getIsv());
             totalAmount   = totalAmount.add(sale.getTotal());
+            totalCash     = totalCash.add(sale.getCashAmount());
+            totalCard     = totalCard.add(sale.getCardAmount());
 
             for (SaleItem item : sale.getItems()) {
                 String key = item.getProductNameSnapshot();
@@ -231,7 +265,32 @@ public class SalesService {
                 totalSubtotal,
                 totalIsv,
                 totalAmount,
+                totalCash,
+                totalCard,
                 summary
+        );
+    }
+
+    // ── Resumen de efectivo para reconciliación bancaria ─────────────────────
+
+    public Map<String, Object> getCashSummary(Long storeId, LocalDate from, LocalDate to) {
+        storeRepository.findById(storeId)
+                .orElseThrow(() -> new IllegalArgumentException("Local no encontrado"));
+
+        List<Sale> sales = saleRepository.findByStoreIdAndDateRangeStrict(storeId, from, to);
+
+        BigDecimal totalCash  = sales.stream().map(Sale::getCashAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalCard  = sales.stream().map(Sale::getCardAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalSales = sales.stream().map(Sale::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return Map.of(
+                "storeId",     storeId,
+                "from",        from.toString(),
+                "to",          to.toString(),
+                "totalSales",  totalSales,
+                "totalCash",   totalCash,
+                "totalCard",   totalCard,
+                "saleCount",   sales.size()
         );
     }
 
