@@ -18,7 +18,8 @@ public class UserStatusInterceptor implements HandlerInterceptor {
 
     private static final Logger log = LoggerFactory.getLogger(UserStatusInterceptor.class);
 
-    @Autowired private AppUserRepository userRepository;
+    @Autowired(required = false)
+    private AppUserRepository userRepository;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -30,6 +31,8 @@ public class UserStatusInterceptor implements HandlerInterceptor {
 
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) return true;
+
+        if (userRepository == null) return true;  // contexto de test sin JPA
 
         String keycloakId = extractSub(authHeader.substring(7));
         if (keycloakId == null) return true;
