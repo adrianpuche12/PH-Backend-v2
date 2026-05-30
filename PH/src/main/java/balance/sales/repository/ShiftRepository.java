@@ -22,11 +22,15 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
      * Consulta unificada con filtros opcionales: username, rango de fechas (openedAt).
      * Pasar null para omitir cualquier filtro.
      */
-    @Query("SELECT s FROM Shift s WHERE s.store.id = :storeId " +
-           "AND (:username IS NULL OR s.username = :username) " +
-           "AND (:from IS NULL OR s.openedAt >= :from) " +
-           "AND (:to   IS NULL OR s.openedAt <= :to) " +
-           "ORDER BY s.openedAt DESC")
+    @Query(value = "SELECT s FROM Shift s WHERE s.store.id = :storeId " +
+                   "AND (:username IS NULL OR s.username = :username) " +
+                   "AND (:from IS NULL OR s.openedAt >= :from) " +
+                   "AND (:to   IS NULL OR s.openedAt <= :to) " +
+                   "ORDER BY s.openedAt DESC",
+           countQuery = "SELECT COUNT(s) FROM Shift s WHERE s.store.id = :storeId " +
+                        "AND (:username IS NULL OR s.username = :username) " +
+                        "AND (:from IS NULL OR s.openedAt >= :from) " +
+                        "AND (:to   IS NULL OR s.openedAt <= :to)")
     Page<Shift> findByFilters(
         @Param("storeId")  Long          storeId,
         @Param("username") String        username,
