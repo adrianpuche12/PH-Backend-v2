@@ -38,14 +38,13 @@ public class Shift {
     private LocalDateTime closedAt;
 
     // Totales de efectivo y tarjeta — calculados al cerrar el turno
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(precision = 12, scale = 2)
     private BigDecimal totalCashSales = BigDecimal.ZERO;
 
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(precision = 12, scale = 2)
     private BigDecimal totalCardSales = BigDecimal.ZERO;
 
     // Depósito bancario
-    @Column(nullable = false)
     private Boolean deposited = false;
 
     @Column(name = "deposit_id")
