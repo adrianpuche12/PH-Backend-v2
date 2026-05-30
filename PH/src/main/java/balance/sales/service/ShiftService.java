@@ -64,11 +64,25 @@ public class ShiftService {
                                                     LocalDate from, LocalDate to,
                                                     int page, int size) {
         var pageable  = PageRequest.of(page, size);
-        var fromDt    = from != null ? from.atStartOfDay()            : null;
-        var toDt      = to   != null ? to.atTime(LocalTime.MAX)       : null;
-        var usernameP = (username != null && !username.isBlank()) ? username : null;
+        boolean hasUsername = username != null && !username.isBlank();
+        boolean hasDates    = from != null || to != null;
 
-        return shiftRepository.findByFilters(storeId, usernameP, fromDt, toDt, pageable)
+        // Usar @Query solo cuando hay filtros de fecha (evita problemas con null params en Hibernate 6)
+        if (hasDates) {
+            var fromDt    = from != null ? from.atStartOfDay()      : null;
+            var toDt      = to   != null ? to.atTime(LocalTime.MAX) : null;
+            var usernameP = hasUsername ? username : null;
+            return shiftRepository.findByFilters(storeId, usernameP, fromDt, toDt, pageable)
+                    .stream().map(ShiftResponseDTO::from).toList();
+        }
+
+        // Sin fechas: queries derivadas simples (mas estables en Hibernate 6)
+        if (hasUsername) {
+            return shiftRepository.findByStoreIdAndUsernameOrderByOpenedAtDesc(storeId, username, pageable)
+                    .stream().map(ShiftResponseDTO::from).toList();
+        }
+
+        return shiftRepository.findByStoreIdOrderByOpenedAtDesc(storeId, pageable)
                 .stream().map(ShiftResponseDTO::from).toList();
     }
 
