@@ -10,6 +10,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Servicio que encapsula las llamadas al Keycloak Admin REST API.
@@ -32,6 +33,11 @@ public class KeycloakAdminService {
 
     private final RestTemplate restTemplate = buildRestTemplate();
 
+    // Cache simple del token admin — se renueva cada 50s (token dura 60s en Keycloak)
+    private volatile String cachedToken;
+    private volatile long   tokenExpiresAt = 0;
+    private static final long TOKEN_TTL_MS  = 50_000;
+
     /** RestTemplate con timeout de 5s conexión y 15s lectura para evitar bloqueos. */
     private static RestTemplate buildRestTemplate() {
         org.springframework.http.client.SimpleClientHttpRequestFactory factory =
@@ -43,8 +49,11 @@ public class KeycloakAdminService {
 
     // ── Obtener token de admin ────────────────────────────────────────────────
 
-    /** Obtiene un token de acceso del realm master para llamar al Admin API. */
-    private String getAdminToken() {
+    /** Obtiene el token admin de Keycloak con cache de 50s para evitar requests innecesarios. */
+    private synchronized String getAdminToken() {
+        if (cachedToken != null && System.currentTimeMillis() < tokenExpiresAt) {
+            return cachedToken;
+        }
         String tokenUrl = keycloakUrl + "/realms/master/protocol/openid-connect/token";
 
         HttpHeaders headers = new HttpHeaders();
@@ -62,7 +71,9 @@ public class KeycloakAdminService {
         if (response.getBody() == null || !response.getBody().containsKey("access_token")) {
             throw new RuntimeException("No se pudo obtener token de administrador de Keycloak");
         }
-        return (String) response.getBody().get("access_token");
+        cachedToken    = (String) response.getBody().get("access_token");
+        tokenExpiresAt = System.currentTimeMillis() + TOKEN_TTL_MS;
+        return cachedToken;
     }
 
     // ── Crear usuario ─────────────────────────────────────────────────────────
@@ -165,6 +176,29 @@ public class KeycloakAdminService {
             new HttpEntity<>(Map.of("enabled", enabled), headers),
             Void.class
         );
+    }
+
+    // ── Terminar sesiones activas ─────────────────────────────────────────────
+
+    /**
+     * Termina todas las sesiones activas del usuario en Keycloak.
+     * Usar junto con setUserEnabled(false) al suspender un usuario.
+     */
+    public void logoutUser(String keycloakId) {
+        String token = getAdminToken();
+        String url   = keycloakUrl + "/admin/realms/" + realm + "/users/" + keycloakId + "/logout";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+
+        try {
+            restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(headers), Void.class);
+        } catch (HttpClientErrorException e) {
+            // Si no hay sesiones activas Keycloak puede devolver 404 — no es error
+            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
+                throw new RuntimeException("Error al cerrar sesiones de usuario en Keycloak: " + e.getMessage());
+            }
+        }
     }
 
     // ── Eliminar usuario ──────────────────────────────────────────────────────

@@ -14,7 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v2")
-@CrossOrigin(origins = "*")
 public class SalesController {
 
     @Autowired
@@ -85,6 +84,20 @@ public class SalesController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         try {
             return ResponseEntity.ok(salesService.getSummaryByStore(storeId, from, to));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // Resumen de efectivo para reconciliación bancaria — usado en el formulario de cierre
+    // GET /api/v2/sales/cash-summary?storeId=1&from=2026-05-17&to=2026-05-20
+    @GetMapping("/sales/cash-summary")
+    public ResponseEntity<?> getCashSummary(
+            @RequestParam Long storeId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        try {
+            return ResponseEntity.ok(salesService.getCashSummary(storeId, from, to));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

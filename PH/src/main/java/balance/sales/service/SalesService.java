@@ -14,6 +14,8 @@ import balance.sales.model.Shift;
 import balance.sales.repository.SaleRepository;
 import balance.sales.repository.ShiftRepository;
 import balance.service.FormsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,11 +23,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
+
+
 @Service
 public class SalesService {
+
+    private static final Logger log = LoggerFactory.getLogger(SalesService.class);
+    private static final ZoneId HONDURAS_TZ = ZoneId.of("America/Tegucigalpa");
 
     // ISV deshabilitado por solicitud del cliente (no cobra impuesto desglosado)
     private static final BigDecimal ISV_RATE = BigDecimal.ZERO;
@@ -60,7 +68,7 @@ public class SalesService {
         sale.setShift(shift);
         sale.setStore(store);
         sale.setUsername(request.getUsername());
-        sale.setSaleDate(LocalDate.now());
+        sale.setSaleDate(LocalDate.now(HONDURAS_TZ));
         sale.setStatus("OPEN");
 
         BigDecimal subtotal = BigDecimal.ZERO;
@@ -95,6 +103,31 @@ public class SalesService {
         sale.setSubtotal(subtotal);
         sale.setIsv(isv);
         sale.setTotal(total);
+
+        // Método de pago
+        String paymentMethod = request.getPaymentMethod() != null ? request.getPaymentMethod() : "CASH";
+        sale.setPaymentMethod(paymentMethod);
+
+        switch (paymentMethod) {
+            case "CARD":
+                sale.setCashAmount(BigDecimal.ZERO);
+                sale.setCardAmount(total);
+                break;
+            case "MIXED":
+                BigDecimal cash = request.getCashAmount() != null ? request.getCashAmount() : BigDecimal.ZERO;
+                BigDecimal card = request.getCardAmount() != null ? request.getCardAmount() : BigDecimal.ZERO;
+                if (cash.add(card).compareTo(total) != 0) {
+                    throw new IllegalArgumentException(
+                        "En pago mixto, efectivo + tarjeta debe ser igual al total (" + total + ")");
+                }
+                sale.setCashAmount(cash);
+                sale.setCardAmount(card);
+                break;
+            default: // CASH
+                sale.setCashAmount(total);
+                sale.setCardAmount(BigDecimal.ZERO);
+                break;
+        }
 
         saleRepository.save(sale);
 
@@ -154,6 +187,8 @@ public class SalesService {
         BigDecimal totalSubtotal = BigDecimal.ZERO;
         BigDecimal totalIsv      = BigDecimal.ZERO;
         BigDecimal totalAmount   = BigDecimal.ZERO;
+        BigDecimal totalCash     = BigDecimal.ZERO;
+        BigDecimal totalCard     = BigDecimal.ZERO;
 
         Map<String, int[]>        productQty = new LinkedHashMap<>();
         Map<String, BigDecimal>   productSub = new LinkedHashMap<>();
@@ -163,6 +198,8 @@ public class SalesService {
             totalSubtotal = totalSubtotal.add(sale.getSubtotal());
             totalIsv      = totalIsv.add(sale.getIsv());
             totalAmount   = totalAmount.add(sale.getTotal());
+            totalCash     = totalCash.add(sale.getCashAmount() != null ? sale.getCashAmount() : BigDecimal.ZERO);
+            totalCard     = totalCard.add(sale.getCardAmount() != null ? sale.getCardAmount() : BigDecimal.ZERO);
             for (SaleItem item : sale.getItems()) {
                 String key = item.getProductNameSnapshot();
                 productQty.merge(key, new int[]{item.getQuantity()}, (a, b) -> new int[]{a[0] + b[0]});
@@ -180,7 +217,7 @@ public class SalesService {
 
         LocalDate rangeDate = from != null ? from : LocalDate.now();
         return new DailySummaryDTO(rangeDate, store.getId(), store.getName(),
-                sales.size(), totalSubtotal, totalIsv, totalAmount, summary);
+                sales.size(), totalSubtotal, totalIsv, totalAmount, totalCash, totalCard, summary);
     }
 
     // ── Resumen diario ────────────────────────────────────────────────────────
@@ -196,6 +233,8 @@ public class SalesService {
         BigDecimal totalSubtotal = BigDecimal.ZERO;
         BigDecimal totalIsv      = BigDecimal.ZERO;
         BigDecimal totalAmount   = BigDecimal.ZERO;
+        BigDecimal totalCash     = BigDecimal.ZERO;
+        BigDecimal totalCard     = BigDecimal.ZERO;
 
         Map<String, int[]> productQty       = new LinkedHashMap<>();
         Map<String, BigDecimal> productSub  = new LinkedHashMap<>();
@@ -205,6 +244,8 @@ public class SalesService {
             totalSubtotal = totalSubtotal.add(sale.getSubtotal());
             totalIsv      = totalIsv.add(sale.getIsv());
             totalAmount   = totalAmount.add(sale.getTotal());
+            totalCash     = totalCash.add(sale.getCashAmount() != null ? sale.getCashAmount() : BigDecimal.ZERO);
+            totalCard     = totalCard.add(sale.getCardAmount() != null ? sale.getCardAmount() : BigDecimal.ZERO);
 
             for (SaleItem item : sale.getItems()) {
                 String key = item.getProductNameSnapshot();
@@ -231,7 +272,32 @@ public class SalesService {
                 totalSubtotal,
                 totalIsv,
                 totalAmount,
+                totalCash,
+                totalCard,
                 summary
+        );
+    }
+
+    // ── Resumen de efectivo para reconciliación bancaria ─────────────────────
+
+    public Map<String, Object> getCashSummary(Long storeId, LocalDate from, LocalDate to) {
+        storeRepository.findById(storeId)
+                .orElseThrow(() -> new IllegalArgumentException("Local no encontrado"));
+
+        List<Sale> sales = saleRepository.findByStoreIdAndDateRangeStrict(storeId, from, to);
+
+        BigDecimal totalCash  = sales.stream().map(Sale::getCashAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalCard  = sales.stream().map(Sale::getCardAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalSales = sales.stream().map(Sale::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return Map.of(
+                "storeId",     storeId,
+                "from",        from.toString(),
+                "to",          to.toString(),
+                "totalSales",  totalSales,
+                "totalCash",   totalCash,
+                "totalCard",   totalCard,
+                "saleCount",   sales.size()
         );
     }
 
@@ -299,18 +365,17 @@ public class SalesService {
 
     private void deductStock(Long storeId, List<SaleItem> items) {
         for (SaleItem item : items) {
-            if (item.getProduct() == null) continue;
-            try {
-                StockAdjustmentDTO adj = new StockAdjustmentDTO();
-                adj.setProductId(item.getProduct().getId());
-                adj.setType("SALIDA");
-                adj.setQuantity(item.getQuantity());
-                adj.setReason("Venta");
-                adj.setUsername("system");
-                inventoryService.adjustSilent(storeId, adj);
-            } catch (Exception ignored) {
-                // Stock insuficiente no bloquea la venta
+            if (item.getProduct() == null) {
+                log.warn("SaleItem sin producto asociado — se omite descuento de stock");
+                continue;
             }
+            StockAdjustmentDTO adj = new StockAdjustmentDTO();
+            adj.setProductId(item.getProduct().getId());
+            adj.setType("SALIDA");
+            adj.setQuantity(item.getQuantity());
+            adj.setReason("Venta");
+            adj.setUsername("system");
+            inventoryService.adjustSilent(storeId, adj); // logea si stock insuficiente
         }
     }
 

@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ShiftService {
@@ -59,8 +60,29 @@ public class ShiftService {
                 .orElse(null);
     }
 
-    public List<ShiftResponseDTO> getShiftHistory(Long storeId, int page, int size) {
-        return shiftRepository.findByStoreIdOrderByOpenedAtDesc(storeId, PageRequest.of(page, size))
+    public List<ShiftResponseDTO> getShiftHistory(Long storeId, String username,
+                                                    LocalDate from, LocalDate to,
+                                                    int page, int size) {
+        var pageable  = PageRequest.of(page, size);
+        boolean hasUsername = username != null && !username.isBlank();
+        boolean hasDates    = from != null || to != null;
+
+        // Usar @Query solo cuando hay filtros de fecha (evita problemas con null params en Hibernate 6)
+        if (hasDates) {
+            var fromDt    = from != null ? from.atStartOfDay()      : null;
+            var toDt      = to   != null ? to.atTime(LocalTime.MAX) : null;
+            var usernameP = hasUsername ? username : null;
+            return shiftRepository.findByFilters(storeId, usernameP, fromDt, toDt, pageable)
+                    .stream().map(ShiftResponseDTO::from).toList();
+        }
+
+        // Sin fechas: queries derivadas simples (mas estables en Hibernate 6)
+        if (hasUsername) {
+            return shiftRepository.findByStoreIdAndUsernameOrderByOpenedAtDesc(storeId, username, pageable)
+                    .stream().map(ShiftResponseDTO::from).toList();
+        }
+
+        return shiftRepository.findByStoreIdOrderByOpenedAtDesc(storeId, pageable)
                 .stream().map(ShiftResponseDTO::from).toList();
     }
 
@@ -70,11 +92,11 @@ public class ShiftService {
                 .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
     }
 
-    /** Genera código único de turno: T-YYYYMMDD-HHmm-DAN
-     *  Incluye hora:minuto para permitir múltiples turnos por día. */
+    /** Genera código único de turno: T-YYYYMMDD-HHmmss-DAN
+     *  Incluye segundos para garantizar unicidad incluso con turnos consecutivos. */
     private String generateCode(Store store) {
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HHmm"));
+        String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
         String storePart = store.getName()
                 .replaceAll("[^a-zA-Z]", "")
                 .toUpperCase();

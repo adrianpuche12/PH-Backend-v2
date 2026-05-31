@@ -2,8 +2,11 @@ package balance.catalog.service;
 
 import balance.catalog.dto.StoreRequestDTO;
 import balance.catalog.dto.StoreResponseDTO;
+import balance.catalog.model.Category;
+import balance.catalog.model.Product;
 import balance.catalog.repository.CategoryRepository;
 import balance.catalog.repository.ProductRepository;
+import balance.inventory.model.InventoryStock;
 import balance.inventory.repository.InventoryMovementRepository;
 import balance.inventory.repository.InventoryStockRepository;
 import balance.model.Store;
@@ -16,7 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -53,7 +58,68 @@ public class StoreV2Service {
         store.setAddress(dto.getAddress());
         store.setPhone(dto.getPhone());
         store.setActive(true);
-        return StoreResponseDTO.from(storeRepository.save(store));
+        Store saved = storeRepository.save(store);
+
+        if (dto.getSourceStoreId() != null) {
+            cloneCatalog(dto.getSourceStoreId(), saved);
+        }
+
+        return StoreResponseDTO.from(saved);
+    }
+
+    /**
+     * Copia toda la estructura de categorías y productos del local origen al local destino.
+     * Los stocks se crean en cero — no se copian cantidades ni movimientos.
+     */
+    private void cloneCatalog(Long sourceStoreId, Store targetStore) {
+        // 1. Clonar árbol de categorías; construir mapa oldId → newCategory
+        Map<Long, Category> categoryMap = new HashMap<>();
+        List<Category> roots = categoryRepository.findRootsByStoreId(sourceStoreId);
+        for (Category root : roots) {
+            cloneCategoryTree(root, null, targetStore, categoryMap);
+        }
+
+        // 2. Clonar productos con stock inicial en cero
+        List<Product> sourceProducts = productRepository.findByStoreIdOrderByNameAsc(sourceStoreId);
+        for (Product src : sourceProducts) {
+            Product p = new Product();
+            p.setName(src.getName());
+            p.setSku(src.getSku());
+            p.setType(src.getType());
+            p.setPrice(src.getPrice());
+            p.setMinStock(src.getMinStock());
+            p.setActive(src.getActive());
+            p.setDescription(src.getDescription());
+            p.setStore(targetStore);
+            if (src.getCategory() != null) {
+                p.setCategory(categoryMap.get(src.getCategory().getId()));
+            }
+            Product savedProduct = productRepository.save(p);
+
+            InventoryStock stock = new InventoryStock();
+            stock.setProduct(savedProduct);
+            stock.setStore(targetStore);
+            stock.setQuantity(0);
+            inventoryStockRepository.save(stock);
+        }
+    }
+
+    /** Clona una categoría y sus hijos recursivamente; registra el mapeo oldId → newCategory. */
+    private void cloneCategoryTree(Category source, Category newParent, Store targetStore,
+                                   Map<Long, Category> categoryMap) {
+        Category c = new Category();
+        c.setName(source.getName());
+        c.setDescription(source.getDescription());
+        c.setActive(source.getActive());
+        c.setDisplayOrder(source.getDisplayOrder());
+        c.setParent(newParent);
+        c.setStore(targetStore);
+        Category saved = categoryRepository.save(c);
+        categoryMap.put(source.getId(), saved);
+
+        for (Category child : source.getChildren()) {
+            cloneCategoryTree(child, saved, targetStore, categoryMap);
+        }
     }
 
     @Transactional

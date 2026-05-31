@@ -10,6 +10,8 @@ import balance.inventory.repository.InventoryMovementRepository;
 import balance.inventory.repository.InventoryStockRepository;
 import balance.model.Store;
 import balance.repository.StoreRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,8 @@ import java.util.Optional;
 
 @Service
 public class InventoryService {
+
+    private static final Logger log = LoggerFactory.getLogger(InventoryService.class);
 
     @Autowired private InventoryStockRepository stockRepository;
     @Autowired private InventoryMovementRepository movementRepository;
@@ -34,25 +38,11 @@ public class InventoryService {
      * Si un producto no tiene registro de stock, lo crea automáticamente con quantity=0.
      */
     public List<StockItemDTO> getStock(Long storeId) {
-        Store store = storeRepository.findById(storeId).orElse(null);
-        if (store == null) return List.of();
-
-        // Trae TODOS los productos del local
-        List<Product> products = productRepository.findByStoreIdOrderByNameAsc(storeId);
-
-        return products.stream().map(product -> {
-            // Busca o crea el registro de stock en memoria (sin guardar)
-            InventoryStock stock = stockRepository
-                    .findByProductIdAndStoreId(product.getId(), storeId)
-                    .orElseGet(() -> {
-                        InventoryStock s = new InventoryStock();
-                        s.setProduct(product);
-                        s.setStore(store);
-                        s.setQuantity(0);
-                        return stockRepository.save(s); // auto-crear si falta
-                    });
-            return StockItemDTO.from(stock);
-        }).toList();
+        // Una sola query con JOIN — evita N+1 queries por producto
+        return stockRepository.findByStoreIdOrderByProductNameAsc(storeId)
+                .stream()
+                .map(StockItemDTO::from)
+                .toList();
     }
 
     public List<StockItemDTO> getLowStock(Long storeId) {
@@ -123,7 +113,12 @@ public class InventoryService {
 
     @Transactional
     public void adjustSilent(Long storeId, StockAdjustmentDTO dto) {
-        try { adjust(storeId, dto); } catch (IllegalArgumentException ignored) {}
+        try {
+            adjust(storeId, dto);
+        } catch (IllegalArgumentException e) {
+            log.warn("Stock insuficiente (storeId={}, productId={}, qty={}): {}",
+                    storeId, dto.getProductId(), dto.getQuantity(), e.getMessage());
+        }
     }
 
     // ── Movimientos ────────────────────────────────────────────────────────

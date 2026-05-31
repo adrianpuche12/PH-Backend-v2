@@ -72,6 +72,7 @@ public class AppUserService {
             throw new IllegalStateException("El usuario ya está suspendido");
         }
         keycloakAdmin.setUserEnabled(user.getKeycloakId(), false);
+        keycloakAdmin.logoutUser(user.getKeycloakId());   // termina sesiones activas
         user.setStatus("SUSPENDED");
         return AppUserResponseDTO.from(userRepository.save(user));
     }
@@ -121,11 +122,18 @@ public class AppUserService {
 
     // ── Buscar por username ────────────────────────────────────────────────────
 
-    /** Retorna el perfil del empleado según su username (igual al de Keycloak). */
+    /** Retorna el perfil del empleado por su username de Keycloak. */
     public AppUserResponseDTO findByUsername(String username) {
         return userRepository.findByUsername(username.toLowerCase())
                 .map(AppUserResponseDTO::from)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+    }
+
+    /** Retorna el perfil del empleado por su keycloakId (sub del JWT). */
+    public AppUserResponseDTO findByKeycloakId(String keycloakId) {
+        return userRepository.findByKeycloakId(keycloakId)
+                .map(AppUserResponseDTO::from)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────

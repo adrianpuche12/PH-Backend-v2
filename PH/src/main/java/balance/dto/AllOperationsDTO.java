@@ -37,6 +37,10 @@ public class AllOperationsDTO {
     // Comprobante (URL pública en Cloudflare R2)
     private String imageUri;
 
+    // Estado del depósito bancario (solo para CLOSING)
+    private String depositStatus;
+    private Long bankDepositId;
+
     // Constructores para cada tipo de operación
     public static AllOperationsDTO fromClosingDeposit(balance.model.ClosingDeposit deposit) {
         AllOperationsDTO dto = new AllOperationsDTO();
@@ -55,6 +59,8 @@ public class AllOperationsDTO {
         dto.setPeriodEnd(deposit.getPeriodEnd());
         dto.setDescription("Depósito de " + deposit.getClosingsCount() + " cierres");
         dto.setImageUri(deposit.getImageUri());
+        dto.setDepositStatus(deposit.getDepositStatus());
+        dto.setBankDepositId(deposit.getBankDepositId());
         return dto;
     }
 
@@ -221,6 +227,12 @@ public class AllOperationsDTO {
 
     public String getImageUri() { return imageUri; }
     public void setImageUri(String imageUri) { this.imageUri = imageUri; }
+
+    public String getDepositStatus() { return depositStatus; }
+    public void setDepositStatus(String depositStatus) { this.depositStatus = depositStatus; }
+
+    public Long getBankDepositId() { return bankDepositId; }
+    public void setBankDepositId(Long bankDepositId) { this.bankDepositId = bankDepositId; }
 
 
     // ================================================================

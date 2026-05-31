@@ -85,7 +85,7 @@ class SalesServiceTest {
 
     @Test
     void createSale_calculatesIsvCorrectly() {
-        // subtotal = 100 * 2 = 200.00 | ISV = 200 * 0.15 = 30.00 | total = 230.00
+        // ISV deshabilitado (ISV_RATE = 0) — subtotal = 100 * 2 = 200.00, ISV = 0.00, total = 200.00
         when(shiftRepository.findById(1L)).thenReturn(Optional.of(buildShift(1L, "OPEN")));
         when(productRepository.findById(1L)).thenReturn(Optional.of(buildProduct(1L, "Pollo", new BigDecimal("100.00"))));
         when(saleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -93,24 +93,21 @@ class SalesServiceTest {
         SaleResponseDTO result = salesService.createSale(1L, buildRequest("cajero01", 1L, 2));
 
         assertThat(result.getSubtotal()).isEqualByComparingTo("200.00");
-        assertThat(result.getIsv()).isEqualByComparingTo("30.00");
-        assertThat(result.getTotal()).isEqualByComparingTo("230.00");
+        assertThat(result.getIsv()).isEqualByComparingTo("0.00");
+        assertThat(result.getTotal()).isEqualByComparingTo("200.00");
     }
 
     @Test
-    void createSale_isvIsExactly15Percent() {
-        // Verifica que ISV = subtotal * 0.15 para precio fraccionario
-        // subtotal = 33.33 * 3 = 99.99 | ISV = 99.99 * 0.15 = 15.00 (redondeado HALF_UP)
+    void createSale_isvIsZeroWhenDisabled() {
+        // ISV deshabilitado por solicitud del cliente — siempre 0, total = subtotal
         when(shiftRepository.findById(1L)).thenReturn(Optional.of(buildShift(1L, "OPEN")));
         when(productRepository.findById(1L)).thenReturn(Optional.of(buildProduct(1L, "Ala", new BigDecimal("33.33"))));
         when(saleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         SaleResponseDTO result = salesService.createSale(1L, buildRequest("cajero01", 1L, 3));
 
-        BigDecimal expectedIsv = result.getSubtotal().multiply(new BigDecimal("0.15"))
-                .setScale(2, java.math.RoundingMode.HALF_UP);
-        assertThat(result.getIsv()).isEqualByComparingTo(expectedIsv);
-        assertThat(result.getTotal()).isEqualByComparingTo(result.getSubtotal().add(result.getIsv()));
+        assertThat(result.getIsv()).isEqualByComparingTo("0.00");
+        assertThat(result.getTotal()).isEqualByComparingTo(result.getSubtotal());
     }
 
     // ── createSale — snapshot de producto ─────────────────────────────────────
