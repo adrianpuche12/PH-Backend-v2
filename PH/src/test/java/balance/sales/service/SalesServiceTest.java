@@ -13,6 +13,7 @@ import balance.sales.model.Sale;
 import balance.sales.model.SaleItem;
 import balance.sales.model.Shift;
 import balance.sales.repository.SaleRepository;
+import balance.sales.repository.ShiftExpenseRepository;
 import balance.sales.repository.ShiftRepository;
 import balance.service.FormsService;
 import balance.model.ClosingDeposit;
@@ -37,12 +38,13 @@ class SalesServiceTest {
 
     @InjectMocks private SalesService salesService;
 
-    @Mock private SaleRepository      saleRepository;
-    @Mock private ShiftRepository     shiftRepository;
-    @Mock private ProductRepository   productRepository;
-    @Mock private StoreRepository     storeRepository;
-    @Mock private InventoryService    inventoryService;
-    @Mock private FormsService        formsService;
+    @Mock private SaleRepository           saleRepository;
+    @Mock private ShiftRepository          shiftRepository;
+    @Mock private ShiftExpenseRepository   shiftExpenseRepository;
+    @Mock private ProductRepository        productRepository;
+    @Mock private StoreRepository          storeRepository;
+    @Mock private InventoryService         inventoryService;
+    @Mock private FormsService             formsService;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -271,7 +273,7 @@ class SalesServiceTest {
     void closeShift_throwsWhenShiftAlreadyClosed() {
         when(shiftRepository.findById(1L)).thenReturn(Optional.of(buildShift(1L, "CLOSED")));
 
-        assertThatThrownBy(() -> salesService.closeShift(1L, "admin"))
+        assertThatThrownBy(() -> salesService.closeShift(1L, "admin", null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("turno ya está cerrado");
     }
@@ -281,7 +283,7 @@ class SalesServiceTest {
         when(shiftRepository.findById(1L)).thenReturn(Optional.of(buildShift(1L, "OPEN")));
         when(saleRepository.findOpenByShiftId(1L)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> salesService.closeShift(1L, "admin"))
+        assertThatThrownBy(() -> salesService.closeShift(1L, "admin", null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("No hay ventas abiertas");
     }
@@ -301,11 +303,12 @@ class SalesServiceTest {
 
         when(shiftRepository.findById(1L)).thenReturn(Optional.of(shift));
         when(saleRepository.findOpenByShiftId(1L)).thenReturn(List.of(sale1, sale2));
+        when(shiftExpenseRepository.sumAmountByShiftId(1L)).thenReturn(BigDecimal.ZERO);
         when(formsService.saveClosingDeposit(any())).thenReturn(deposit);
         when(saleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        salesService.closeShift(1L, "admin");
+        salesService.closeShift(1L, "admin", null);
 
         assertThat(sale1.getStatus()).isEqualTo("CONFIRMED");
         assertThat(sale2.getStatus()).isEqualTo("CONFIRMED");

@@ -11,7 +11,11 @@ import balance.sales.dto.*;
 import balance.sales.model.Sale;
 import balance.sales.model.SaleItem;
 import balance.sales.model.Shift;
+import balance.sales.dto.ShiftExpenseRequestDTO;
+import balance.sales.dto.ShiftExpenseResponseDTO;
+import balance.sales.model.ShiftExpense;
 import balance.sales.repository.SaleRepository;
+import balance.sales.repository.ShiftExpenseRepository;
 import balance.sales.repository.ShiftRepository;
 import balance.service.FormsService;
 import org.slf4j.Logger;
@@ -40,6 +44,7 @@ public class SalesService {
 
     @Autowired private SaleRepository saleRepository;
     @Autowired private ShiftRepository shiftRepository;
+    @Autowired private ShiftExpenseRepository shiftExpenseRepository;
     @Autowired private ProductRepository productRepository;
     @Autowired private StoreRepository storeRepository;
     @Autowired private InventoryService inventoryService;
@@ -217,7 +222,8 @@ public class SalesService {
 
         LocalDate rangeDate = from != null ? from : LocalDate.now();
         return new DailySummaryDTO(rangeDate, store.getId(), store.getName(),
-                sales.size(), totalSubtotal, totalIsv, totalAmount, totalCash, totalCard, summary);
+                sales.size(), totalSubtotal, totalIsv, totalAmount,
+                BigDecimal.ZERO, totalCash, totalCard, BigDecimal.ZERO, summary);
     }
 
     // ── Resumen diario ────────────────────────────────────────────────────────
@@ -264,6 +270,9 @@ public class SalesService {
                 .sorted(Comparator.comparing(DailySummaryDTO.ProductSummaryItem::getSubtotal).reversed())
                 .toList();
 
+        BigDecimal openingCash    = shift.getOpeningCashAmount() != null ? shift.getOpeningCashAmount() : BigDecimal.ZERO;
+        BigDecimal shiftExpenses  = shiftExpenseRepository.sumAmountByShiftId(shiftId);
+
         return new DailySummaryDTO(
                 LocalDate.now(),
                 shift.getStore().getId(),
@@ -272,10 +281,38 @@ public class SalesService {
                 totalSubtotal,
                 totalIsv,
                 totalAmount,
+                openingCash,
                 totalCash,
                 totalCard,
+                shiftExpenses,
                 summary
         );
+    }
+
+    // ── Egresos del turno ─────────────────────────────────────────────────────
+
+    @Transactional
+    public ShiftExpenseResponseDTO addExpense(Long shiftId, ShiftExpenseRequestDTO request) {
+        Shift shift = shiftRepository.findById(shiftId)
+                .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
+
+        if ("CLOSED".equals(shift.getStatus())) {
+            throw new IllegalStateException("No se pueden agregar egresos a un turno cerrado");
+        }
+
+        ShiftExpense expense = new ShiftExpense();
+        expense.setShift(shift);
+        expense.setDescription(request.getDescription());
+        expense.setAmount(request.getAmount());
+        expense.setUsername(request.getUsername() != null ? request.getUsername() : "unknown");
+
+        shiftExpenseRepository.save(expense);
+        return ShiftExpenseResponseDTO.from(expense);
+    }
+
+    public List<ShiftExpenseResponseDTO> getExpenses(Long shiftId) {
+        return shiftExpenseRepository.findByShiftIdOrderByCreatedAtAsc(shiftId)
+                .stream().map(ShiftExpenseResponseDTO::from).toList();
     }
 
     // ── Resumen de efectivo para reconciliación bancaria ─────────────────────
@@ -309,7 +346,7 @@ public class SalesService {
      * @throws IllegalStateException si el turno ya está cerrado o no hay ventas
      */
     @Transactional
-    public DailyClosingResponseDTO closeShift(Long shiftId, String username) {
+    public DailyClosingResponseDTO closeShift(Long shiftId, String username, BigDecimal declaredCashAmount) {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
 
@@ -323,11 +360,25 @@ public class SalesService {
             throw new IllegalStateException("No hay ventas abiertas para cerrar en este turno");
         }
 
-        BigDecimal totalAmount = openSales.stream()
-                .map(Sale::getTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // Calcular totales por método de pago
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        BigDecimal totalCash   = BigDecimal.ZERO;
+        BigDecimal totalCard   = BigDecimal.ZERO;
 
-        // Crear ClosingDeposit en sistema V1
+        for (Sale sale : openSales) {
+            totalAmount = totalAmount.add(sale.getTotal());
+            totalCash   = totalCash.add(sale.getCashAmount()  != null ? sale.getCashAmount()  : BigDecimal.ZERO);
+            totalCard   = totalCard.add(sale.getCardAmount() != null ? sale.getCardAmount() : BigDecimal.ZERO);
+        }
+
+        // Reconciliación: efectivo esperado = fondo inicial + ventas en efectivo - egresos del turno
+        BigDecimal opening    = shift.getOpeningCashAmount() != null ? shift.getOpeningCashAmount() : BigDecimal.ZERO;
+        BigDecimal declared   = declaredCashAmount != null ? declaredCashAmount : BigDecimal.ZERO;
+        BigDecimal expenses   = shiftExpenseRepository.sumAmountByShiftId(shiftId);
+        BigDecimal expected   = opening.add(totalCash).subtract(expenses);
+        BigDecimal difference = declared.subtract(expected).setScale(2, RoundingMode.HALF_UP);
+
+        // Crear ClosingDeposit en sistema V1 vinculado a este turno
         ClosingDeposit deposit = new ClosingDeposit();
         deposit.setAmount(totalAmount);
         deposit.setClosingsCount(openSales.size());
@@ -336,6 +387,7 @@ public class SalesService {
         deposit.setPeriodEnd(LocalDate.now());
         deposit.setUsername(username);
         deposit.setStore(shift.getStore());
+        deposit.setShiftId(shiftId);
         ClosingDeposit saved = formsService.saveClosingDeposit(deposit);
 
         // Marcar ventas como CONFIRMED
@@ -344,9 +396,14 @@ public class SalesService {
             saleRepository.save(sale);
         });
 
-        // Cerrar el turno y registrar hora de cierre
+        // Cerrar el turno con todos los datos de reconciliación
         shift.setStatus("CLOSED");
         shift.setClosedAt(java.time.LocalDateTime.now());
+        shift.setTotalCashSales(totalCash);
+        shift.setTotalCardSales(totalCard);
+        shift.setTotalShiftExpenses(expenses);
+        shift.setDeclaredCashAmount(declared);
+        shift.setCashDifference(difference);
         shiftRepository.save(shift);
 
         return new DailyClosingResponseDTO(
@@ -357,6 +414,12 @@ public class SalesService {
                 shift.getStore().getName(),
                 openSales.size(),
                 totalAmount,
+                opening,
+                totalCash,
+                expenses,
+                totalCard,
+                declared,
+                difference,
                 saved.getId()
         );
     }

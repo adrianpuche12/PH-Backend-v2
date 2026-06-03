@@ -3,6 +3,7 @@ package balance.sales.service;
 import balance.model.Store;
 import balance.repository.StoreRepository;
 import balance.sales.dto.ShiftResponseDTO;
+import java.math.BigDecimal;
 import balance.sales.model.Shift;
 import balance.sales.repository.ShiftRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +25,7 @@ public class ShiftService {
     @Autowired private StoreRepository storeRepository;
 
     @Transactional
-    public ShiftResponseDTO openShift(Long storeId, String username) {
+    public ShiftResponseDTO openShift(Long storeId, String username, BigDecimal openingCashAmount) {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new IllegalArgumentException("Local no encontrado"));
 
@@ -37,6 +38,7 @@ public class ShiftService {
         shift.setUsername(username);
         shift.setStatus("OPEN");
         shift.setCode(generateCode(store));
+        shift.setOpeningCashAmount(openingCashAmount != null ? openingCashAmount : BigDecimal.ZERO);
         shiftRepository.save(shift);
         return ShiftResponseDTO.from(shift);
     }

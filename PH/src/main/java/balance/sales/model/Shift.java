@@ -37,12 +37,26 @@ public class Shift {
 
     private LocalDateTime closedAt;
 
-    // Totales de efectivo y tarjeta — calculados al cerrar el turno
+    // Totales calculados al cerrar el turno
     @Column(precision = 12, scale = 2)
     private BigDecimal totalCashSales = BigDecimal.ZERO;
 
     @Column(precision = 12, scale = 2)
     private BigDecimal totalCardSales = BigDecimal.ZERO;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal totalShiftExpenses = BigDecimal.ZERO;
+
+    // Fondo inicial registrado al abrir el turno
+    @Column(precision = 12, scale = 2)
+    private BigDecimal openingCashAmount = BigDecimal.ZERO;
+
+    // Reconciliación de caja al cierre
+    @Column(precision = 12, scale = 2)
+    private BigDecimal declaredCashAmount;   // efectivo real que contó la empleada al cerrar
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal cashDifference;       // declaredCashAmount - (openingCashAmount + totalCashSales)
 
     // Depósito bancario
     private Boolean deposited = false;
@@ -74,6 +88,18 @@ public class Shift {
 
     public BigDecimal getTotalCardSales() { return totalCardSales; }
     public void setTotalCardSales(BigDecimal totalCardSales) { this.totalCardSales = totalCardSales; }
+
+    public BigDecimal getTotalShiftExpenses() { return totalShiftExpenses; }
+    public void setTotalShiftExpenses(BigDecimal totalShiftExpenses) { this.totalShiftExpenses = totalShiftExpenses; }
+
+    public BigDecimal getOpeningCashAmount() { return openingCashAmount; }
+    public void setOpeningCashAmount(BigDecimal openingCashAmount) { this.openingCashAmount = openingCashAmount; }
+
+    public BigDecimal getDeclaredCashAmount() { return declaredCashAmount; }
+    public void setDeclaredCashAmount(BigDecimal declaredCashAmount) { this.declaredCashAmount = declaredCashAmount; }
+
+    public BigDecimal getCashDifference() { return cashDifference; }
+    public void setCashDifference(BigDecimal cashDifference) { this.cashDifference = cashDifference; }
 
     public Boolean getDeposited() { return deposited; }
     public void setDeposited(Boolean deposited) { this.deposited = deposited; }

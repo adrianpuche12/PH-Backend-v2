@@ -23,10 +23,14 @@ public class ShiftController {
     // Abrir turno
     @PostMapping("/stores/{storeId}/shifts")
     public ResponseEntity<?> openShift(@PathVariable Long storeId,
-                                        @RequestBody Map<String, String> body) {
+                                        @RequestBody Map<String, Object> body) {
         try {
-            String username = body.getOrDefault("username", "unknown");
-            return ResponseEntity.ok(shiftService.openShift(storeId, username));
+            String username = body.getOrDefault("username", "unknown").toString();
+            java.math.BigDecimal openingCash = null;
+            if (body.get("openingCashAmount") != null) {
+                openingCash = new java.math.BigDecimal(body.get("openingCashAmount").toString());
+            }
+            return ResponseEntity.ok(shiftService.openShift(storeId, username, openingCash));
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {

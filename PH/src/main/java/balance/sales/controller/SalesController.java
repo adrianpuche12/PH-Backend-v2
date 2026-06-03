@@ -1,6 +1,8 @@
 package balance.sales.controller;
 
 import balance.sales.dto.*;
+import balance.sales.dto.ShiftExpenseRequestDTO;
+import balance.sales.dto.ShiftExpenseResponseDTO;
 import balance.sales.service.SalesService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +10,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -103,13 +106,36 @@ public class SalesController {
         }
     }
 
+    // ── Egresos del turno ────────────────────────────────────────────────────
+
+    // Registrar egreso en efectivo durante el turno
+    @PostMapping("/shifts/{shiftId}/expenses")
+    public ResponseEntity<?> addExpense(@PathVariable Long shiftId,
+                                         @Valid @RequestBody ShiftExpenseRequestDTO request) {
+        try {
+            return ResponseEntity.ok(salesService.addExpense(shiftId, request));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // Listar egresos de un turno
+    @GetMapping("/shifts/{shiftId}/expenses")
+    public ResponseEntity<List<ShiftExpenseResponseDTO>> getExpenses(@PathVariable Long shiftId) {
+        return ResponseEntity.ok(salesService.getExpenses(shiftId));
+    }
+
     // Confirmar cierre de turno (integra con sistema V1)
     @PostMapping("/shifts/{shiftId}/closing")
     public ResponseEntity<?> closeShift(@PathVariable Long shiftId,
-                                         @RequestBody Map<String, String> body) {
+                                         @RequestBody Map<String, Object> body) {
         try {
-            String username = body.getOrDefault("username", "unknown");
-            return ResponseEntity.ok(salesService.closeShift(shiftId, username));
+            String username = body.getOrDefault("username", "unknown").toString();
+            BigDecimal declaredCash = null;
+            if (body.get("declaredCashAmount") != null) {
+                declaredCash = new java.math.BigDecimal(body.get("declaredCashAmount").toString());
+            }
+            return ResponseEntity.ok(salesService.closeShift(shiftId, username, declaredCash));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

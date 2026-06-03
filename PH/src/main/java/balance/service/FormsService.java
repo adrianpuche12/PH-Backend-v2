@@ -28,6 +28,9 @@ import balance.model.Transaction;
 import balance.repository.GastoAdminRepository;
 import balance.repository.TransactionRepository;
 import balance.repository.StoreRepository;
+import balance.sales.model.Shift;
+import balance.sales.repository.ShiftRepository;
+import balance.sales.repository.SaleRepository;
 
 
 @Service
@@ -52,6 +55,26 @@ public class FormsService {
     @Autowired
     private SalaryPaymentRepository salaryPaymentRepository;
 
+    @Autowired
+    private ShiftRepository shiftRepository;
+
+    @Autowired
+    private SaleRepository saleRepository;
+
+    // ── Helper: enriquece los CLOSING DTOs con datos del turno vinculado ────────
+
+    private void enrichClosingDTOs(List<AllOperationsDTO> dtos) {
+        dtos.stream()
+            .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getClosingShiftId() != null)
+            .forEach(dto -> {
+                // Busca el Shift por el shiftId guardado en ClosingDeposit
+                shiftRepository.findById(dto.getClosingShiftId()).ifPresent(shift -> {
+                    int salesCount = (int) saleRepository.countByShiftId(shift.getId());
+                    dto.enrichWithShift(shift, salesCount);
+                });
+            });
+    }
+
     // Métodos para obtener operaciones
     public List<AllOperationsDTO> getAllOperations() {
         List<AllOperationsDTO> allOperations = new ArrayList<>();
@@ -74,6 +97,7 @@ public class FormsService {
                         .collect(Collectors.toList())
         );
 
+        enrichClosingDTOs(allOperations);
         allOperations.sort((t1, t2) -> {
             if (t1.getDate() == null) return 1;
             if (t2.getDate() == null) return -1;
@@ -101,6 +125,7 @@ public class FormsService {
                 .map(AllOperationsDTO::fromSalaryPayment)
                 .forEach(allOperations::add);
 
+        enrichClosingDTOs(allOperations);
         allOperations.sort((o1, o2) -> {
             if (o1.getDate() == null) return 1;
             if (o2.getDate() == null) return -1;
@@ -129,6 +154,7 @@ public class FormsService {
                 .map(AllOperationsDTO::fromSalaryPayment)
                 .forEach(allOperations::add);
 
+        enrichClosingDTOs(allOperations);
         allOperations.sort((o1, o2) -> {
             if (o1.getDate() == null) return 1;
             if (o2.getDate() == null) return -1;
@@ -157,6 +183,7 @@ public class FormsService {
                 .map(AllOperationsDTO::fromSalaryPayment)
                 .forEach(allOperations::add);
 
+        enrichClosingDTOs(allOperations);
         allOperations.sort((o1, o2) -> {
             if (o1.getDate() == null) return 1;
             if (o2.getDate() == null) return -1;

@@ -175,7 +175,9 @@ class SalesControllerTest {
                 LocalDate.now(), 1L, "Danli", 5,
                 new BigDecimal("1000.00"), new BigDecimal("0.00"),
                 new BigDecimal("1000.00"),
+                new BigDecimal("0.00"),
                 new BigDecimal("800.00"), new BigDecimal("200.00"),
+                new BigDecimal("0.00"),
                 List.of()
         );
         when(salesService.getDailySummary(1L)).thenReturn(summary);
@@ -199,7 +201,7 @@ class SalesControllerTest {
 
     @Test
     void closeShift_returns400WhenNoOpenSales() throws Exception {
-        when(salesService.closeShift(eq(1L), any()))
+        when(salesService.closeShift(eq(1L), any(), any()))
                 .thenThrow(new IllegalStateException("No hay ventas abiertas para cerrar en este turno"));
 
         String body = objectMapper.writeValueAsString(Map.of("username", "admin"));
