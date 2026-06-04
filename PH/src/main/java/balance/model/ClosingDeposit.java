@@ -47,6 +47,10 @@ public class ClosingDeposit {
     @Column(name = "bank_deposit_id")
     private Long bankDepositId;
 
+    // Turno de ventas que generó este cierre (null en cierres manuales legacy)
+    @Column(name = "shift_id")
+    private Long shiftId;
+
     @ManyToOne
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
@@ -128,5 +132,8 @@ public class ClosingDeposit {
 
     public Long getBankDepositId() { return bankDepositId; }
     public void setBankDepositId(Long bankDepositId) { this.bankDepositId = bankDepositId; }
+
+    public Long getShiftId() { return shiftId; }
+    public void setShiftId(Long shiftId) { this.shiftId = shiftId; }
 }
 

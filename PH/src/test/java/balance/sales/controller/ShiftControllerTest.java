@@ -32,7 +32,7 @@ class ShiftControllerTest {
 
     @Test
     void openShift_returns200WhenSuccessful() throws Exception {
-        when(shiftService.openShift(eq(1L), any())).thenReturn(buildShiftResponse("OPEN"));
+        when(shiftService.openShift(eq(1L), any(), any())).thenReturn(buildShiftResponse("OPEN"));
 
         mockMvc.perform(post("/api/v2/stores/1/shifts")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -43,7 +43,7 @@ class ShiftControllerTest {
 
     @Test
     void openShift_returns400WhenShiftAlreadyOpen() throws Exception {
-        when(shiftService.openShift(eq(1L), any()))
+        when(shiftService.openShift(eq(1L), any(), any()))
                 .thenThrow(new IllegalStateException("Ya existe un turno abierto para este local"));
 
         mockMvc.perform(post("/api/v2/stores/1/shifts")
@@ -55,7 +55,7 @@ class ShiftControllerTest {
 
     @Test
     void openShift_returns400WhenStoreNotFound() throws Exception {
-        when(shiftService.openShift(eq(99L), any()))
+        when(shiftService.openShift(eq(99L), any(), any()))
                 .thenThrow(new IllegalArgumentException("Local no encontrado"));
 
         mockMvc.perform(post("/api/v2/stores/99/shifts")
@@ -67,14 +67,14 @@ class ShiftControllerTest {
 
     @Test
     void openShift_usesDefaultUsernameWhenNotProvided() throws Exception {
-        when(shiftService.openShift(eq(1L), eq("unknown"))).thenReturn(buildShiftResponse("OPEN"));
+        when(shiftService.openShift(eq(1L), eq("unknown"), any())).thenReturn(buildShiftResponse("OPEN"));
 
         mockMvc.perform(post("/api/v2/stores/1/shifts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk());
 
-        verify(shiftService).openShift(1L, "unknown");
+        verify(shiftService).openShift(eq(1L), eq("unknown"), any());
     }
 
     // â”€â”€ PUT /api/v2/shifts/{shiftId}/close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

@@ -18,6 +18,7 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
     Page<Shift> findByStoreIdAndUsernameOrderByOpenedAtDesc(Long storeId, String username, Pageable pageable);
     boolean existsByStoreIdAndStatus(Long storeId, String status);
 
+
     /**
      * Consulta unificada con filtros opcionales: username, rango de fechas (openedAt).
      * Pasar null para omitir cualquier filtro.

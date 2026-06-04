@@ -54,7 +54,7 @@ class ShiftServiceTest {
         when(shiftRepository.existsByStoreIdAndStatus(1L, "OPEN")).thenReturn(false);
         when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        ShiftResponseDTO result = shiftService.openShift(1L, "cajero01");
+        ShiftResponseDTO result = shiftService.openShift(1L, "cajero01", null);
 
         assertThat(result.getCode()).matches("T-\\d{8}-\\d{6}-[A-Z]{1,3}");
     }
@@ -66,7 +66,7 @@ class ShiftServiceTest {
         when(shiftRepository.existsByStoreIdAndStatus(1L, "OPEN")).thenReturn(false);
         when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        ShiftResponseDTO result = shiftService.openShift(1L, "cajero01");
+        ShiftResponseDTO result = shiftService.openShift(1L, "cajero01", null);
 
         assertThat(result.getCode()).endsWith("-DAN");
     }
@@ -78,7 +78,7 @@ class ShiftServiceTest {
         when(shiftRepository.existsByStoreIdAndStatus(2L, "OPEN")).thenReturn(false);
         when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        ShiftResponseDTO result = shiftService.openShift(2L, "cajero02");
+        ShiftResponseDTO result = shiftService.openShift(2L, "cajero02", null);
 
         assertThat(result.getCode()).endsWith("-ELP");
     }
@@ -92,7 +92,7 @@ class ShiftServiceTest {
         when(shiftRepository.existsByStoreIdAndStatus(1L, "OPEN")).thenReturn(false);
         when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        ShiftResponseDTO result = shiftService.openShift(1L, "cajero01");
+        ShiftResponseDTO result = shiftService.openShift(1L, "cajero01", null);
 
         assertThat(result.getCode()).contains(todayStr);
     }
@@ -105,7 +105,7 @@ class ShiftServiceTest {
         when(shiftRepository.existsByStoreIdAndStatus(1L, "OPEN")).thenReturn(false);
         when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        ShiftResponseDTO result = shiftService.openShift(1L, "cajero01");
+        ShiftResponseDTO result = shiftService.openShift(1L, "cajero01", null);
 
         assertThat(result.getStatus()).isEqualTo("OPEN");
         assertThat(result.getUsername()).isEqualTo("cajero01");
@@ -117,7 +117,7 @@ class ShiftServiceTest {
     void openShift_throwsWhenStoreNotFound() {
         when(storeRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> shiftService.openShift(99L, "cajero"))
+        assertThatThrownBy(() -> shiftService.openShift(99L, "cajero01", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Local no encontrado");
     }
@@ -127,7 +127,7 @@ class ShiftServiceTest {
         when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
         when(shiftRepository.existsByStoreIdAndStatus(1L, "OPEN")).thenReturn(true);
 
-        assertThatThrownBy(() -> shiftService.openShift(1L, "cajero01"))
+        assertThatThrownBy(() -> shiftService.openShift(1L, "cajero01", null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Ya existe un turno abierto");
     }

@@ -41,6 +41,22 @@ public class AllOperationsDTO {
     private String depositStatus;
     private Long bankDepositId;
 
+    // shiftId guardado en ClosingDeposit — usado internamente por enrichClosingDTOs
+    private Long closingShiftId;
+
+    // Datos del turno de ventas vinculado (solo para CLOSING generado por POS)
+    private Long shiftId;
+    private String shiftCode;
+    private java.time.LocalDateTime shiftOpenedAt;
+    private java.time.LocalDateTime shiftClosedAt;
+    private Integer salesCount;
+    private java.math.BigDecimal openingCashAmount;
+    private java.math.BigDecimal totalCashSales;
+    private java.math.BigDecimal totalCardSales;
+    private java.math.BigDecimal totalShiftExpenses;
+    private java.math.BigDecimal declaredCashAmount;
+    private java.math.BigDecimal cashDifference;
+
     // Constructores para cada tipo de operación
     public static AllOperationsDTO fromClosingDeposit(balance.model.ClosingDeposit deposit) {
         AllOperationsDTO dto = new AllOperationsDTO();
@@ -61,6 +77,7 @@ public class AllOperationsDTO {
         dto.setImageUri(deposit.getImageUri());
         dto.setDepositStatus(deposit.getDepositStatus());
         dto.setBankDepositId(deposit.getBankDepositId());
+        dto.setClosingShiftId(deposit.getShiftId());   // link al turno que generó este cierre
         return dto;
     }
 
@@ -233,6 +250,58 @@ public class AllOperationsDTO {
 
     public Long getBankDepositId() { return bankDepositId; }
     public void setBankDepositId(Long bankDepositId) { this.bankDepositId = bankDepositId; }
+
+    public Long getClosingShiftId() { return closingShiftId; }
+    public void setClosingShiftId(Long closingShiftId) { this.closingShiftId = closingShiftId; }
+
+    // Datos del turno vinculado
+    public Long getShiftId() { return shiftId; }
+    public void setShiftId(Long shiftId) { this.shiftId = shiftId; }
+
+    public String getShiftCode() { return shiftCode; }
+    public void setShiftCode(String shiftCode) { this.shiftCode = shiftCode; }
+
+    public java.time.LocalDateTime getShiftOpenedAt() { return shiftOpenedAt; }
+    public void setShiftOpenedAt(java.time.LocalDateTime shiftOpenedAt) { this.shiftOpenedAt = shiftOpenedAt; }
+
+    public java.time.LocalDateTime getShiftClosedAt() { return shiftClosedAt; }
+    public void setShiftClosedAt(java.time.LocalDateTime shiftClosedAt) { this.shiftClosedAt = shiftClosedAt; }
+
+    public Integer getSalesCount() { return salesCount; }
+    public void setSalesCount(Integer salesCount) { this.salesCount = salesCount; }
+
+    public java.math.BigDecimal getOpeningCashAmount() { return openingCashAmount; }
+    public void setOpeningCashAmount(java.math.BigDecimal openingCashAmount) { this.openingCashAmount = openingCashAmount; }
+
+    public java.math.BigDecimal getTotalCashSales() { return totalCashSales; }
+    public void setTotalCashSales(java.math.BigDecimal totalCashSales) { this.totalCashSales = totalCashSales; }
+
+    public java.math.BigDecimal getTotalCardSales() { return totalCardSales; }
+    public void setTotalCardSales(java.math.BigDecimal totalCardSales) { this.totalCardSales = totalCardSales; }
+
+    public java.math.BigDecimal getTotalShiftExpenses() { return totalShiftExpenses; }
+    public void setTotalShiftExpenses(java.math.BigDecimal totalShiftExpenses) { this.totalShiftExpenses = totalShiftExpenses; }
+
+    public java.math.BigDecimal getDeclaredCashAmount() { return declaredCashAmount; }
+    public void setDeclaredCashAmount(java.math.BigDecimal declaredCashAmount) { this.declaredCashAmount = declaredCashAmount; }
+
+    public java.math.BigDecimal getCashDifference() { return cashDifference; }
+    public void setCashDifference(java.math.BigDecimal cashDifference) { this.cashDifference = cashDifference; }
+
+    /** Enriquece el DTO con los datos del turno vinculado. Solo aplica a tipo CLOSING. */
+    public void enrichWithShift(balance.sales.model.Shift shift, int salesCount) {
+        this.shiftId             = shift.getId();
+        this.shiftCode           = shift.getCode();
+        this.shiftOpenedAt       = shift.getOpenedAt();
+        this.shiftClosedAt       = shift.getClosedAt();
+        this.salesCount          = salesCount;
+        this.openingCashAmount   = shift.getOpeningCashAmount();
+        this.totalCashSales      = shift.getTotalCashSales();
+        this.totalCardSales      = shift.getTotalCardSales();
+        this.totalShiftExpenses  = shift.getTotalShiftExpenses();
+        this.declaredCashAmount  = shift.getDeclaredCashAmount();
+        this.cashDifference      = shift.getCashDifference();
+    }
 
 
     // ================================================================
