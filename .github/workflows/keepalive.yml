@@ -1,0 +1,29 @@
+name: Keepalive — Railway services
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # cada 10 minutos
+  workflow_dispatch:           # permite ejecutar manualmente
+
+jobs:
+  ping:
+    name: Ping Railway services
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend DEV
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            "https://ph-backend-dev-staging.up.railway.app/api/v2/stores/active")
+          echo "Backend DEV: HTTP $STATUS"
+
+      - name: Ping backend PROD
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            "${{ secrets.RAILWAY_PROD_URL }}/api/v2/stores/active" 2>/dev/null || echo "0")
+          echo "Backend PROD: HTTP $STATUS"
+
+      - name: Ping Keycloak
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            "https://keycloak.belopia.app/realms/proyecto-h-prod/.well-known/openid-configuration")
+          echo "Keycloak: HTTP $STATUS"
