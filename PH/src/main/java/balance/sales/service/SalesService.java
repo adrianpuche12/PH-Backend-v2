@@ -49,6 +49,7 @@ public class SalesService {
     @Autowired private StoreRepository storeRepository;
     @Autowired private InventoryService inventoryService;
     @Autowired private FormsService formsService;
+    @Autowired private balance.inventory.repository.InventoryStockRepository inventoryStockRepository;
 
     // ── Crear venta ──────────────────────────────────────────────────────────
 
@@ -68,6 +69,20 @@ public class SalesService {
         }
 
         Store store = shift.getStore();
+
+        // Validar stock disponible para todos los ítems antes de crear la venta
+        for (SaleItemRequestDTO itemReq : request.getItems()) {
+            Product product = productRepository.findById(itemReq.getProductId())
+                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + itemReq.getProductId()));
+            inventoryStockRepository.findByProductIdAndStoreId(itemReq.getProductId(), store.getId())
+                    .ifPresent(stock -> {
+                        if (stock.getQuantity() < itemReq.getQuantity()) {
+                            throw new IllegalStateException(
+                                "Stock insuficiente para \"" + product.getName() + "\". " +
+                                "Disponible: " + stock.getQuantity() + ", solicitado: " + itemReq.getQuantity());
+                        }
+                    });
+        }
 
         Sale sale = new Sale();
         sale.setShift(shift);
@@ -355,10 +370,7 @@ public class SalesService {
         }
 
         List<Sale> openSales = saleRepository.findOpenByShiftId(shiftId);
-
-        if (openSales.isEmpty()) {
-            throw new IllegalStateException("No hay ventas abiertas para cerrar en este turno");
-        }
+        // Turno sin ventas es válido (cajero abrió pero no hubo clientes)
 
         // Calcular totales por método de pago
         BigDecimal totalAmount = BigDecimal.ZERO;

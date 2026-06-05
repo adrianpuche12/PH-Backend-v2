@@ -45,6 +45,7 @@ class SalesServiceTest {
     @Mock private StoreRepository          storeRepository;
     @Mock private InventoryService         inventoryService;
     @Mock private FormsService             formsService;
+    @Mock private balance.inventory.repository.InventoryStockRepository inventoryStockRepository;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -279,13 +280,20 @@ class SalesServiceTest {
     }
 
     @Test
-    void closeShift_throwsWhenNoOpenSales() {
-        when(shiftRepository.findById(1L)).thenReturn(Optional.of(buildShift(1L, "OPEN")));
+    void closeShift_succeedsWithZeroSales() {
+        // Un turno sin ventas es valido (cajero abrio pero no hubo clientes)
+        Shift shift = buildShift(1L, "OPEN");
+        when(shiftRepository.findById(1L)).thenReturn(Optional.of(shift));
         when(saleRepository.findOpenByShiftId(1L)).thenReturn(List.of());
+        when(shiftExpenseRepository.sumAmountByShiftId(1L)).thenReturn(BigDecimal.ZERO);
+        ClosingDeposit deposit = new ClosingDeposit();
+        org.springframework.test.util.ReflectionTestUtils.setField(deposit, "id", 1L);
+        when(formsService.saveClosingDeposit(any())).thenReturn(deposit);
+        when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        assertThatThrownBy(() -> salesService.closeShift(1L, "admin", null))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("No hay ventas abiertas");
+        // No debe lanzar excepcion
+        assertThatCode(() -> salesService.closeShift(1L, "admin", BigDecimal.ZERO))
+                .doesNotThrowAnyException();
     }
 
     @Test
