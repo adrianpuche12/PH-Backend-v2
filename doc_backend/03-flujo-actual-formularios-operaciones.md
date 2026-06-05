@@ -1,176 +1,94 @@
-# Flujo actual de formularios y operaciones
+# Flujo de formularios y operaciones — V2
 
-## Resumen
+> **Actualizado:** 05-Jun-2026 — refleja implementación V2 real.
 
-El flujo actual se divide en dos grandes grupos:
+---
 
-- Carga operativa desde formularios frontend.
-- Consulta y correccion administrativa desde endpoints agregados.
+## 1. Flujo POS (Ventas del día)
 
-El backend guarda algunas operaciones en tablas propias y otras como `Transaction`. En el caso especial de `GastoAdmin`, guarda en tabla propia y tambien genera transacciones financieras.
+```
+Admin/Cajero → Abrir turno (openingCash=1000 default)
+    → Registrar ventas (CASH/CARD/MIXED)
+    → [Opcional] Registrar egresos del turno
+    → Cerrar turno → declarar efectivo en mano
+         → Sistema calcula:
+              esperado = openingCash + ventas_efectivo - egresos
+              diferencia = declarado - esperado
+         → Crea ClosingDeposit (status=PENDING)
+         → Admin ve flag "Sin depositar" en Operaciones
+    → Admin hace depósito bancario (bank-deposit)
+         → Selecciona cierres PENDING
+         → Declara monto + comprobante (imagen obligatoria)
+         → Sistema marca ClosingDeposits como DEPOSITED
+         → Admin ve flag "Depositado" en Operaciones
+```
 
-## Flujo de carga desde frontend
+### Entidades involucradas
+- `Shift` → `Sale` → `SaleItem` → `InventoryMovement`
+- `ShiftExpense` (egresos)
+- `ClosingDeposit` (creado al cerrar turno)
+- `BankDeposit` (creado al depositar)
 
-### 1. Frontend consulta stores
+---
 
-Endpoint probable:
+## 2. Flujo de operaciones administrativas (legado V1 activo)
 
-- `GET /api/stores`
+Los formularios de empleados crean registros en estas tablas:
 
-Uso:
+| Tipo de operación | Tabla | Endpoint |
+|-------------------|-------|---------|
+| Cierre de caja | `closing_deposits` | `POST /api/closing-deposits` |
+| Pago proveedor | `supplier_payments` | `POST /api/supplier-payments` |
+| Pago salario | `salary_payments` | `POST /api/salary-payments` |
+| Gasto administrativo | `gasto_admin` + `transactions` | `POST /api/admin-expenses` |
+| Depósito bancario | `bank_deposits` | `POST /api/v2/deposits` |
 
-- Obtener locales disponibles.
-- Permitir que la empleada seleccione o trabaje sobre un local.
-- Asociar formularios a `store_id`.
+### Vista admin — Operaciones
+El admin ve todas las operaciones en `GET /api/operations/all`:
+- Combina: `closing_deposits` + `supplier_payments` + `salary_payments` + `gasto_admin`
+- Filtros: por fecha (startDate/endDate) y por local (storeId)
+- Cada CLOSING muestra badge: "Depositado" (verde) o "Sin depositar" (amarillo)
 
-### 2. Empleadas/locales cargan formularios
+---
 
-Endpoints principales:
+## 3. Reconciliación al cierre de turno
 
-- `POST /api/forms/closing-deposits`
-- `POST /api/forms/supplier-payments`
-- `POST /api/forms/salary-payments`
+```
+expected = openingCashAmount + totalCashSales - totalShiftExpenses
+declared = lo que el cajero cuenta en mano
+difference = declared - expected
 
-Datos esperados:
+difference > 0 → sobra dinero (positivo)
+difference < 0 → falta dinero (negativo)
+difference = 0 → caja cuadrada
+```
 
-- Monto.
-- Fecha.
-- Usuario o nombre de quien carga.
-- Store/local.
-- Campos especificos segun tipo de operacion.
+**Tarjeta:** no entra en la reconciliación física pero se muestra como información separada.
 
-### 3. Backend guarda operaciones
+---
 
-Cada formulario guarda una entidad JPA:
+## 4. GastoAdmin — distribución multi-local
 
-| Formulario | Entidad | Tabla |
-|---|---|---|
-| Deposito de cierre | `ClosingDeposit` | `closing_deposits` |
-| Pago a proveedor | `SupplierPayment` | `supplier_payments` |
-| Pago de salario | `SalaryPayment` | `salary_payments` |
+Al crear un Gasto Administrativo:
+1. Se guarda registro en `gasto_admin`
+2. Se crea 1 `Transaction` por cada local con monto proporcional al porcentaje
+3. Los porcentajes deben sumar exactamente 100%
 
-Estas operaciones no parecen generar `Transaction` automaticamente.
+```
+GastoAdmin $1000:
+  Danli (60%) → Transaction expense $600
+  El Paraíso (40%) → Transaction expense $400
+```
 
-### 4. Admin consulta operaciones
+---
 
-Endpoint principal:
+## 5. Depósito bancario — flujo detallado
 
-- `GET /api/operations/all`
-
-El backend usa `FormsService` para consultar varias tablas y convertirlas a `AllOperationsDTO`.
-
-Operaciones incluidas actualmente en la vista unificada:
-
-- `CLOSING`
-- `SUPPLIER`
-- `SALARY`
-
-`GASTO_ADMIN` tiene constructor `fromGastoAdmin` en `AllOperationsDTO` y casos en update/delete, pero no se observa incluido en `FormsService.getAllOperations()`.
-
-## GastoAdmin
-
-Endpoint:
-
-- `POST /api/forms/gasto-admin`
-
-Flujo:
-
-1. Recibe `GastoAdminRequestDTO`.
-2. Valida que `porcentajeDanli + porcentajeParaiso = 100`.
-3. Guarda un registro en `gasto_admin`.
-4. Busca stores con IDs fijos:
-   - `1L`: Danli.
-   - `2L`: El Paraiso.
-5. Divide el monto segun porcentajes.
-6. Crea una `Transaction` por local si el porcentaje es mayor que cero.
-7. Devuelve `GastoAdminResponseDTO` con las transacciones creadas.
-
-Importante:
-
-- No se detecta relacion directa FK entre `GastoAdmin` y las `Transaction` generadas.
-- Editar o borrar un `GastoAdmin` no parece recalcular ni revertir automaticamente esas transacciones.
-
-## OperationsController
-
-Responsabilidad:
-
-- Consultar todas las operaciones.
-- Filtrar por fecha.
-- Filtrar por store.
-- Editar por tipo.
-- Borrar por tipo.
-
-Tipos soportados en update/delete:
-
-- `CLOSING`
-- `SUPPLIER`
-- `SALARY`
-- `GASTO_ADMIN`
-
-DTO usado:
-
-- `AllOperationsDTO`
-
-Campos importantes del DTO:
-
-- `id`
-- `type`
-- `amount`
-- `date`
-- `depositDate`
-- `paymentDate`
-- `salaryDate`
-- `description`
-- `username`
-- `storeId`
-- `storeName`
-- `closingsCount`
-- `periodStart`
-- `periodEnd`
-- `supplier`
-
-## Transaction y balance financiero
-
-La entidad `Transaction` se usa para movimientos financieros directos:
-
-- `type`: `income` o `expense`.
-- `amount`
-- `date`
-- `description`
-- `store`
-
-Endpoints principales:
-
-- `POST /transactions`
-- `GET /transactions`
-- `GET /transactions/balance?startDate&endDate`
-- `PUT /transactions/{id}`
-- `DELETE /transactions/{id}`
-- `GET /api/transactions/store/{storeId}`
-- `GET /api/transactions/date-range-store?startDate&endDate&storeId`
-
-El balance se calcula como:
-
-- suma de `income`
-- menos suma de `expense`
-
-## Separacion actual por uso
-
-### Uso probable por empleadas
-
-- `GET /api/stores`
-- `POST /api/forms/closing-deposits`
-- `POST /api/forms/supplier-payments`
-- `POST /api/forms/salary-payments`
-
-### Uso probable por admin
-
-- `GET /api/operations/all`
-- `PUT /api/operations/{type}/{id}`
-- `DELETE /api/operations/{type}/{id}`
-- `GET /transactions`
-- `GET /transactions/balance`
-- CRUD de `/api/stores`
-- Endpoints de filtros por store o fecha.
-
-Esta separacion es inferida del codigo y debe validarse con el cliente y/o frontend.
+1. Cajero busca cierres PENDING de un local en un período
+2. Ve lista de cierres con montos de efectivo acumulado
+3. Ingresa monto que va a depositar + fecha + comprobante (foto)
+4. Sistema crea `BankDeposit`:
+   - `expectedCash` = suma montos de los cierres
+   - `status` = CONFIRMED si no hay diferencia, DISCREPANCY si hay
+5. Todos los `ClosingDeposit` incluidos pasan a `depositStatus=DEPOSITED`
+6. En caso de DISCREPANCY, admin puede confirmar manualmente

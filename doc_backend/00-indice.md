@@ -26,6 +26,7 @@ Esta documentacion no modifica funcionalidades del backend. Solo describe el est
 | `16-infraestructura-ambientes.md` | Servidor, puertos, NeonDB, Keycloak, R2, Docker, CI/CD — los tres ambientes (local, DEV, PROD). |
 | `17-roadmap-saas.md` | Que se necesita para convertir el sistema en un SaaS vendible — multi-tenant, SAR, mobile nativo, billing, 9 modulos con estimaciones. |
 | `18-modulo-depositos-bancarios.md` | Diseno completo del modulo de depositos bancarios — metodo de pago, cierres, reconciliacion efectivo vs tarjeta. |
+| `19-estado-actual-post-golive.md` | **Estado actual (Jun 2026)** — funcionalidades en PROD, pendientes, changelog v2.0→v2.2, credenciales admin cliente. |
 
 ## Alcance
 
