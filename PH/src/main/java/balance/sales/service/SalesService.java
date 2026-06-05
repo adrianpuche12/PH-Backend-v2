@@ -374,8 +374,9 @@ public class SalesService {
         // Reconciliación: efectivo esperado = fondo inicial + ventas en efectivo - egresos del turno
         BigDecimal opening    = shift.getOpeningCashAmount() != null ? shift.getOpeningCashAmount() : BigDecimal.ZERO;
         BigDecimal declared   = declaredCashAmount != null ? declaredCashAmount : BigDecimal.ZERO;
-        BigDecimal expenses   = shiftExpenseRepository.sumAmountByShiftId(shiftId);
-        BigDecimal expected   = opening.add(totalCash).subtract(expenses);
+        BigDecimal expensesRaw = shiftExpenseRepository.sumAmountByShiftId(shiftId);
+        BigDecimal expenses    = expensesRaw != null ? expensesRaw : BigDecimal.ZERO;
+        BigDecimal expected    = opening.add(totalCash).subtract(expenses);
         BigDecimal difference = declared.subtract(expected).setScale(2, RoundingMode.HALF_UP);
 
         // Crear ClosingDeposit en sistema V1 vinculado a este turno
