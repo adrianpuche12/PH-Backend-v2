@@ -92,6 +92,12 @@ public class ShiftService {
                 .stream().map(ShiftResponseDTO::from).toList();
     }
 
+    public List<ShiftResponseDTO> getShiftsByUsername(String username, int page, int size) {
+        var pageable = PageRequest.of(page, size);
+        return shiftRepository.findByUsernameOrderByOpenedAtDesc(username, pageable)
+                .stream().map(ShiftResponseDTO::from).toList();
+    }
+
     public ShiftResponseDTO getById(Long shiftId) {
         return shiftRepository.findById(shiftId)
                 .map(ShiftResponseDTO::from)

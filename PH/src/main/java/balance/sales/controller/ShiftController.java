@@ -68,6 +68,15 @@ public class ShiftController {
         return ResponseEntity.ok(shiftService.getShiftHistory(storeId, username, from, to, page, size));
     }
 
+    // "Mis ventas": historial de un usuario en todos los locales
+    @GetMapping("/shifts")
+    public ResponseEntity<List<ShiftResponseDTO>> getByUsername(
+            @RequestParam String username,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(shiftService.getShiftsByUsername(username, page, size));
+    }
+
     // Detalle de un turno
     @GetMapping("/shifts/{shiftId}")
     public ResponseEntity<?> getById(@PathVariable Long shiftId) {
