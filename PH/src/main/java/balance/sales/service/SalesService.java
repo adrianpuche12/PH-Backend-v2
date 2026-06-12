@@ -248,10 +248,12 @@ public class SalesService {
                 .sorted(Comparator.comparing(DailySummaryDTO.ProductSummaryItem::getSubtotal).reversed())
                 .toList();
 
+        BigDecimal totalCardSurcharge = totalAmount.subtract(totalSubtotal).subtract(totalIsv);
+
         LocalDate rangeDate = from != null ? from : LocalDate.now();
         return new DailySummaryDTO(rangeDate, store.getId(), store.getName(),
                 sales.size(), totalSubtotal, totalIsv, totalAmount,
-                BigDecimal.ZERO, totalCash, totalCard, BigDecimal.ZERO, summary);
+                BigDecimal.ZERO, totalCash, totalCard, totalCardSurcharge, BigDecimal.ZERO, summary);
     }
 
     // ── Resumen diario ────────────────────────────────────────────────────────
@@ -300,6 +302,7 @@ public class SalesService {
 
         BigDecimal openingCash    = shift.getOpeningCashAmount() != null ? shift.getOpeningCashAmount() : BigDecimal.ZERO;
         BigDecimal shiftExpenses  = shiftExpenseRepository.sumAmountByShiftId(shiftId);
+        BigDecimal totalCardSurcharge = totalAmount.subtract(totalSubtotal).subtract(totalIsv);
 
         return new DailySummaryDTO(
                 LocalDate.now(),
@@ -312,6 +315,7 @@ public class SalesService {
                 openingCash,
                 totalCash,
                 totalCard,
+                totalCardSurcharge,
                 shiftExpenses,
                 summary
         );
@@ -386,15 +390,21 @@ public class SalesService {
         // Turno sin ventas es válido (cajero abrió pero no hubo clientes)
 
         // Calcular totales por método de pago
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        BigDecimal totalCash   = BigDecimal.ZERO;
-        BigDecimal totalCard   = BigDecimal.ZERO;
+        BigDecimal totalAmount   = BigDecimal.ZERO;
+        BigDecimal totalCash     = BigDecimal.ZERO;
+        BigDecimal totalCard     = BigDecimal.ZERO;
+        BigDecimal totalSubtotal = BigDecimal.ZERO;
+        BigDecimal totalIsv      = BigDecimal.ZERO;
 
         for (Sale sale : openSales) {
-            totalAmount = totalAmount.add(sale.getTotal());
-            totalCash   = totalCash.add(sale.getCashAmount()  != null ? sale.getCashAmount()  : BigDecimal.ZERO);
-            totalCard   = totalCard.add(sale.getCardAmount() != null ? sale.getCardAmount() : BigDecimal.ZERO);
+            totalAmount   = totalAmount.add(sale.getTotal());
+            totalCash     = totalCash.add(sale.getCashAmount()  != null ? sale.getCashAmount()  : BigDecimal.ZERO);
+            totalCard     = totalCard.add(sale.getCardAmount() != null ? sale.getCardAmount() : BigDecimal.ZERO);
+            totalSubtotal = totalSubtotal.add(sale.getSubtotal() != null ? sale.getSubtotal() : BigDecimal.ZERO);
+            totalIsv      = totalIsv.add(sale.getIsv() != null ? sale.getIsv() : BigDecimal.ZERO);
         }
+
+        BigDecimal totalCardSurcharge = totalAmount.subtract(totalSubtotal).subtract(totalIsv);
 
         // Reconciliación: efectivo esperado = fondo inicial + ventas en efectivo - egresos del turno
         BigDecimal opening    = shift.getOpeningCashAmount() != null ? shift.getOpeningCashAmount() : BigDecimal.ZERO;
@@ -448,6 +458,7 @@ public class SalesService {
                 totalCash,
                 expenses,
                 totalCard,
+                totalCardSurcharge,
                 declared,
                 difference,
                 saved != null ? saved.getId() : null

@@ -177,7 +177,7 @@ class SalesControllerTest {
                 new BigDecimal("1000.00"),
                 new BigDecimal("0.00"),
                 new BigDecimal("800.00"), new BigDecimal("200.00"),
-                new BigDecimal("0.00"),
+                new BigDecimal("0.00"), new BigDecimal("0.00"),
                 List.of()
         );
         when(salesService.getDailySummary(1L)).thenReturn(summary);

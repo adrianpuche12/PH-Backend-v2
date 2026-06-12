@@ -15,6 +15,7 @@ public class DailySummaryDTO {
     private BigDecimal openingCashAmount;
     private BigDecimal totalCashSales;
     private BigDecimal totalCardSales;
+    private BigDecimal totalCardSurcharge;
     private BigDecimal totalShiftExpenses;
     private List<ProductSummaryItem> productSummary;
 
@@ -22,7 +23,8 @@ public class DailySummaryDTO {
                            long totalSales, BigDecimal totalSubtotal, BigDecimal totalIsv,
                            BigDecimal totalAmount, BigDecimal openingCashAmount,
                            BigDecimal totalCashSales, BigDecimal totalCardSales,
-                           BigDecimal totalShiftExpenses, List<ProductSummaryItem> productSummary) {
+                           BigDecimal totalCardSurcharge, BigDecimal totalShiftExpenses,
+                           List<ProductSummaryItem> productSummary) {
         this.date                = date;
         this.storeId             = storeId;
         this.storeName           = storeName;
@@ -33,6 +35,7 @@ public class DailySummaryDTO {
         this.openingCashAmount   = openingCashAmount;
         this.totalCashSales      = totalCashSales;
         this.totalCardSales      = totalCardSales;
+        this.totalCardSurcharge  = totalCardSurcharge;
         this.totalShiftExpenses  = totalShiftExpenses;
         this.productSummary      = productSummary;
     }
@@ -66,6 +69,7 @@ public class DailySummaryDTO {
     public BigDecimal getOpeningCashAmount() { return openingCashAmount; }
     public BigDecimal getTotalCashSales() { return totalCashSales; }
     public BigDecimal getTotalCardSales() { return totalCardSales; }
+    public BigDecimal getTotalCardSurcharge() { return totalCardSurcharge; }
     public BigDecimal getTotalShiftExpenses() { return totalShiftExpenses; }
     public List<ProductSummaryItem> getProductSummary() { return productSummary; }
 }

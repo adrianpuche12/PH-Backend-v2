@@ -16,6 +16,7 @@ public class DailyClosingResponseDTO {
     private BigDecimal totalShiftExpenses;
     private BigDecimal expectedCashAmount;   // openingCashAmount + totalCashSales - totalShiftExpenses
     private BigDecimal totalCardSales;
+    private BigDecimal totalCardSurcharge;
     private BigDecimal declaredCashAmount;
     private BigDecimal cashDifference;
     private Long closingDepositId;
@@ -25,7 +26,8 @@ public class DailyClosingResponseDTO {
                                    Long storeId, String storeName, long salesConfirmed,
                                    BigDecimal totalAmount, BigDecimal openingCashAmount,
                                    BigDecimal totalCashSales, BigDecimal totalShiftExpenses,
-                                   BigDecimal totalCardSales, BigDecimal declaredCashAmount,
+                                   BigDecimal totalCardSales, BigDecimal totalCardSurcharge,
+                                   BigDecimal declaredCashAmount,
                                    BigDecimal cashDifference, Long closingDepositId) {
         this.shiftId             = shiftId;
         this.shiftCode           = shiftCode;
@@ -39,6 +41,7 @@ public class DailyClosingResponseDTO {
         this.totalShiftExpenses  = totalShiftExpenses;
         this.expectedCashAmount  = openingCashAmount.add(totalCashSales).subtract(totalShiftExpenses);
         this.totalCardSales      = totalCardSales;
+        this.totalCardSurcharge  = totalCardSurcharge;
         this.declaredCashAmount  = declaredCashAmount;
         this.cashDifference      = cashDifference;
         this.closingDepositId    = closingDepositId;
@@ -57,6 +60,7 @@ public class DailyClosingResponseDTO {
     public BigDecimal getTotalShiftExpenses() { return totalShiftExpenses; }
     public BigDecimal getExpectedCashAmount() { return expectedCashAmount; }
     public BigDecimal getTotalCardSales() { return totalCardSales; }
+    public BigDecimal getTotalCardSurcharge() { return totalCardSurcharge; }
     public BigDecimal getDeclaredCashAmount() { return declaredCashAmount; }
     public BigDecimal getCashDifference() { return cashDifference; }
     public Long getClosingDepositId() { return closingDepositId; }
