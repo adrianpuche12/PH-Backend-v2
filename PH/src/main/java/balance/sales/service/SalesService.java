@@ -392,16 +392,20 @@ public class SalesService {
         BigDecimal difference = declared.subtract(expected).setScale(2, RoundingMode.HALF_UP);
 
         // Crear ClosingDeposit en sistema V1 vinculado a este turno
-        ClosingDeposit deposit = new ClosingDeposit();
-        deposit.setAmount(totalAmount);
-        deposit.setClosingsCount(openSales.size());
-        deposit.setDepositDate(LocalDate.now());
-        deposit.setPeriodStart(LocalDate.now());
-        deposit.setPeriodEnd(LocalDate.now());
-        deposit.setUsername(username);
-        deposit.setStore(shift.getStore());
-        deposit.setShiftId(shiftId);
-        ClosingDeposit saved = formsService.saveClosingDeposit(deposit);
+        // (solo si hubo ventas: ClosingDeposit exige amount >= 0.01 y closingsCount >= 1)
+        ClosingDeposit saved = null;
+        if (!openSales.isEmpty()) {
+            ClosingDeposit deposit = new ClosingDeposit();
+            deposit.setAmount(totalAmount);
+            deposit.setClosingsCount(openSales.size());
+            deposit.setDepositDate(LocalDate.now());
+            deposit.setPeriodStart(LocalDate.now());
+            deposit.setPeriodEnd(LocalDate.now());
+            deposit.setUsername(username);
+            deposit.setStore(shift.getStore());
+            deposit.setShiftId(shiftId);
+            saved = formsService.saveClosingDeposit(deposit);
+        }
 
         // Marcar ventas como CONFIRMED
         openSales.forEach(sale -> {
@@ -433,7 +437,7 @@ public class SalesService {
                 totalCard,
                 declared,
                 difference,
-                saved.getId()
+                saved != null ? saved.getId() : null
         );
     }
 

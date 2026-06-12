@@ -286,14 +286,15 @@ class SalesServiceTest {
         when(shiftRepository.findById(1L)).thenReturn(Optional.of(shift));
         when(saleRepository.findOpenByShiftId(1L)).thenReturn(List.of());
         when(shiftExpenseRepository.sumAmountByShiftId(1L)).thenReturn(BigDecimal.ZERO);
-        ClosingDeposit deposit = new ClosingDeposit();
-        org.springframework.test.util.ReflectionTestUtils.setField(deposit, "id", 1L);
-        when(formsService.saveClosingDeposit(any())).thenReturn(deposit);
         when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        // No debe lanzar excepcion
-        assertThatCode(() -> salesService.closeShift(1L, "admin", BigDecimal.ZERO))
-                .doesNotThrowAnyException();
+        // No debe lanzar excepcion, no debe crear ClosingDeposit (amount/closingsCount serian 0,
+        // lo que violaria @DecimalMin/@Min en ClosingDeposit) y closingDepositId queda null
+        var result = salesService.closeShift(1L, "admin", BigDecimal.ZERO);
+
+        verify(formsService, never()).saveClosingDeposit(any());
+        assertThat(result.getClosingDepositId()).isNull();
+        assertThat(shift.getStatus()).isEqualTo("CLOSED");
     }
 
     @Test
