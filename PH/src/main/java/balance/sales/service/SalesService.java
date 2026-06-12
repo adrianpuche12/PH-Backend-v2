@@ -42,6 +42,9 @@ public class SalesService {
     // ISV deshabilitado por solicitud del cliente (no cobra impuesto desglosado)
     private static final BigDecimal ISV_RATE = BigDecimal.ZERO;
 
+    // Recargo por pago con tarjeta de crédito/débito (solicitud del cliente)
+    private static final BigDecimal CARD_SURCHARGE_RATE = new BigDecimal("0.03");
+
     @Autowired private SaleRepository saleRepository;
     @Autowired private ShiftRepository shiftRepository;
     @Autowired private ShiftExpenseRepository shiftExpenseRepository;
@@ -117,37 +120,47 @@ public class SalesService {
             subtotal = subtotal.add(itemSubtotal);
         }
 
-        BigDecimal isv   = subtotal.multiply(ISV_RATE).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal total = subtotal.add(isv);
+        BigDecimal isv       = subtotal.multiply(ISV_RATE).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal baseTotal = subtotal.add(isv);
 
         sale.setSubtotal(subtotal);
         sale.setIsv(isv);
-        sale.setTotal(total);
 
         // Método de pago
         String paymentMethod = request.getPaymentMethod() != null ? request.getPaymentMethod() : "CASH";
         sale.setPaymentMethod(paymentMethod);
 
+        // Recargo del 3% sobre el monto pagado con tarjeta (CARD o porción tarjeta de MIXED)
+        BigDecimal total;
         switch (paymentMethod) {
-            case "CARD":
+            case "CARD": {
+                BigDecimal surcharge = baseTotal.multiply(CARD_SURCHARGE_RATE).setScale(2, RoundingMode.HALF_UP);
+                total = baseTotal.add(surcharge);
                 sale.setCashAmount(BigDecimal.ZERO);
                 sale.setCardAmount(total);
                 break;
-            case "MIXED":
+            }
+            case "MIXED": {
                 BigDecimal cash = request.getCashAmount() != null ? request.getCashAmount() : BigDecimal.ZERO;
                 BigDecimal card = request.getCardAmount() != null ? request.getCardAmount() : BigDecimal.ZERO;
-                if (cash.add(card).compareTo(total) != 0) {
+                if (cash.add(card).compareTo(baseTotal) != 0) {
                     throw new IllegalArgumentException(
-                        "En pago mixto, efectivo + tarjeta debe ser igual al total (" + total + ")");
+                        "En pago mixto, efectivo + tarjeta debe ser igual al total (" + baseTotal + ")");
                 }
+                BigDecimal surcharge = card.multiply(CARD_SURCHARGE_RATE).setScale(2, RoundingMode.HALF_UP);
+                total = baseTotal.add(surcharge);
                 sale.setCashAmount(cash);
-                sale.setCardAmount(card);
+                sale.setCardAmount(card.add(surcharge));
                 break;
+            }
             default: // CASH
+                total = baseTotal;
                 sale.setCashAmount(total);
                 sale.setCardAmount(BigDecimal.ZERO);
                 break;
         }
+
+        sale.setTotal(total);
 
         saleRepository.save(sale);
 

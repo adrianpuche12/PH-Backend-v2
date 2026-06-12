@@ -113,6 +113,64 @@ class SalesServiceTest {
         assertThat(result.getTotal()).isEqualByComparingTo(result.getSubtotal());
     }
 
+    // ── createSale — recargo 3% por pago con tarjeta ───────────────────────────
+
+    @Test
+    void createSale_appliesCardSurchargeForCardPayment() {
+        // Pago con tarjeta: recargo del 3% sobre el total base -> 100.00 * 1.03 = 103.00
+        when(shiftRepository.findById(1L)).thenReturn(Optional.of(buildShift(1L, "OPEN")));
+        when(productRepository.findById(1L)).thenReturn(Optional.of(buildProduct(1L, "Pollo", new BigDecimal("100.00"))));
+        ArgumentCaptor<Sale> captor = ArgumentCaptor.forClass(Sale.class);
+        when(saleRepository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+        SaleRequestDTO req = buildRequest("cajero01", 1L, 1);
+        req.setPaymentMethod("CARD");
+
+        SaleResponseDTO result = salesService.createSale(1L, req);
+
+        assertThat(result.getSubtotal()).isEqualByComparingTo("100.00");
+        assertThat(result.getTotal()).isEqualByComparingTo("103.00");
+        assertThat(captor.getValue().getCardAmount()).isEqualByComparingTo("103.00");
+        assertThat(captor.getValue().getCashAmount()).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void createSale_appliesCardSurchargeOnlyToCardPortionInMixedPayment() {
+        // Total base = 100.00. Split: efectivo 60, tarjeta 40 -> recargo 3% de 40 = 1.20
+        // total final = 101.20, cardAmount = 41.20, cashAmount = 60.00
+        when(shiftRepository.findById(1L)).thenReturn(Optional.of(buildShift(1L, "OPEN")));
+        when(productRepository.findById(1L)).thenReturn(Optional.of(buildProduct(1L, "Pollo", new BigDecimal("100.00"))));
+        ArgumentCaptor<Sale> captor = ArgumentCaptor.forClass(Sale.class);
+        when(saleRepository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+        SaleRequestDTO req = buildRequest("cajero01", 1L, 1);
+        req.setPaymentMethod("MIXED");
+        req.setCashAmount(new BigDecimal("60.00"));
+        req.setCardAmount(new BigDecimal("40.00"));
+
+        SaleResponseDTO result = salesService.createSale(1L, req);
+
+        assertThat(result.getTotal()).isEqualByComparingTo("101.20");
+        assertThat(captor.getValue().getCashAmount()).isEqualByComparingTo("60.00");
+        assertThat(captor.getValue().getCardAmount()).isEqualByComparingTo("41.20");
+    }
+
+    @Test
+    void createSale_mixedValidatesAgainstBaseTotalNotFinalTotal() {
+        // efectivo + tarjeta deben sumar el total BASE (100.00), no el total con recargo ya incluido
+        when(shiftRepository.findById(1L)).thenReturn(Optional.of(buildShift(1L, "OPEN")));
+        when(productRepository.findById(1L)).thenReturn(Optional.of(buildProduct(1L, "Pollo", new BigDecimal("100.00"))));
+
+        SaleRequestDTO req = buildRequest("cajero01", 1L, 1);
+        req.setPaymentMethod("MIXED");
+        req.setCashAmount(new BigDecimal("60.00"));
+        req.setCardAmount(new BigDecimal("41.20")); // ya incluiría el recargo -> no coincide con el total base (100.00)
+
+        assertThatThrownBy(() -> salesService.createSale(1L, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("efectivo + tarjeta debe ser igual al total");
+    }
+
     // ── createSale — snapshot de producto ─────────────────────────────────────
 
     @Test
