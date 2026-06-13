@@ -125,6 +125,28 @@ public class SalesController {
         return ResponseEntity.ok(salesService.getExpenses(shiftId));
     }
 
+    // Editar egreso (solo permitido si el turno sigue abierto)
+    @PutMapping("/expenses/{expenseId}")
+    public ResponseEntity<?> updateExpense(@PathVariable Long expenseId,
+                                            @Valid @RequestBody ShiftExpenseRequestDTO request) {
+        try {
+            return ResponseEntity.ok(salesService.updateExpense(expenseId, request));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // Eliminar egreso (solo permitido si el turno sigue abierto)
+    @DeleteMapping("/expenses/{expenseId}")
+    public ResponseEntity<?> deleteExpense(@PathVariable Long expenseId) {
+        try {
+            salesService.deleteExpense(expenseId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // Confirmar cierre de turno (integra con sistema V1)
     @PostMapping("/shifts/{shiftId}/closing")
     public ResponseEntity<?> closeShift(@PathVariable Long shiftId,

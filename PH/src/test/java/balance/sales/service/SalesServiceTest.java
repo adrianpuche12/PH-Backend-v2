@@ -9,9 +9,11 @@ import balance.repository.StoreRepository;
 import balance.sales.dto.SaleItemRequestDTO;
 import balance.sales.dto.SaleRequestDTO;
 import balance.sales.dto.SaleResponseDTO;
+import balance.sales.dto.ShiftExpenseRequestDTO;
 import balance.sales.model.Sale;
 import balance.sales.model.SaleItem;
 import balance.sales.model.Shift;
+import balance.sales.model.ShiftExpense;
 import balance.sales.repository.SaleRepository;
 import balance.sales.repository.ShiftExpenseRepository;
 import balance.sales.repository.ShiftRepository;
@@ -381,5 +383,95 @@ class SalesServiceTest {
         assertThat(sale2.getStatus()).isEqualTo("CONFIRMED");
         assertThat(shift.getStatus()).isEqualTo("CLOSED");
         assertThat(shift.getClosedAt()).isNotNull();
+    }
+
+    // ── updateExpense / deleteExpense ──────────────────────────────────────────
+
+    private ShiftExpense buildExpense(Shift shift, String description, BigDecimal amount) {
+        ShiftExpense expense = new ShiftExpense();
+        expense.setShift(shift);
+        expense.setDescription(description);
+        expense.setAmount(amount);
+        expense.setUsername("cajero01");
+        return expense;
+    }
+
+    private ShiftExpenseRequestDTO buildExpenseRequest(String description, BigDecimal amount) {
+        ShiftExpenseRequestDTO dto = new ShiftExpenseRequestDTO();
+        dto.setDescription(description);
+        dto.setAmount(amount);
+        return dto;
+    }
+
+    @Test
+    void updateExpense_updatesDescriptionAndAmountWhenShiftOpen() {
+        Shift shift = buildShift(1L, "OPEN");
+        ShiftExpense expense = buildExpense(shift, "Tortillas maíz", new BigDecimal("50.00"));
+
+        when(shiftExpenseRepository.findById(1L)).thenReturn(Optional.of(expense));
+        when(shiftExpenseRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        var result = salesService.updateExpense(1L, buildExpenseRequest("Gas", new BigDecimal("75.00")));
+
+        assertThat(expense.getDescription()).isEqualTo("Gas");
+        assertThat(expense.getAmount()).isEqualByComparingTo("75.00");
+        assertThat(result.getDescription()).isEqualTo("Gas");
+        assertThat(result.getAmount()).isEqualByComparingTo("75.00");
+    }
+
+    @Test
+    void updateExpense_throwsWhenExpenseNotFound() {
+        when(shiftExpenseRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> salesService.updateExpense(99L, buildExpenseRequest("Gas", new BigDecimal("75.00"))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Egreso no encontrado");
+    }
+
+    @Test
+    void updateExpense_throwsWhenShiftIsClosed() {
+        Shift shift = buildShift(1L, "CLOSED");
+        ShiftExpense expense = buildExpense(shift, "Tortillas maíz", new BigDecimal("50.00"));
+
+        when(shiftExpenseRepository.findById(1L)).thenReturn(Optional.of(expense));
+
+        assertThatThrownBy(() -> salesService.updateExpense(1L, buildExpenseRequest("Gas", new BigDecimal("75.00"))))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No se puede editar");
+    }
+
+    @Test
+    void deleteExpense_deletesWhenShiftOpen() {
+        Shift shift = buildShift(1L, "OPEN");
+        ShiftExpense expense = buildExpense(shift, "Tortillas maíz", new BigDecimal("50.00"));
+
+        when(shiftExpenseRepository.findById(1L)).thenReturn(Optional.of(expense));
+
+        salesService.deleteExpense(1L);
+
+        verify(shiftExpenseRepository).delete(expense);
+    }
+
+    @Test
+    void deleteExpense_throwsWhenExpenseNotFound() {
+        when(shiftExpenseRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> salesService.deleteExpense(99L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Egreso no encontrado");
+    }
+
+    @Test
+    void deleteExpense_throwsWhenShiftIsClosed() {
+        Shift shift = buildShift(1L, "CLOSED");
+        ShiftExpense expense = buildExpense(shift, "Tortillas maíz", new BigDecimal("50.00"));
+
+        when(shiftExpenseRepository.findById(1L)).thenReturn(Optional.of(expense));
+
+        assertThatThrownBy(() -> salesService.deleteExpense(1L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No se puede eliminar");
+
+        verify(shiftExpenseRepository, never()).delete(any());
     }
 }

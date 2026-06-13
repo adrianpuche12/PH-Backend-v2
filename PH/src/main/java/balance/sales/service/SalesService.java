@@ -347,6 +347,44 @@ public class SalesService {
                 .stream().map(ShiftExpenseResponseDTO::from).toList();
     }
 
+    /**
+     * Edita un egreso. Solo permitido si el turno al que pertenece sigue OPEN.
+     * @throws IllegalArgumentException si el egreso no existe
+     * @throws IllegalStateException    si el turno ya está cerrado
+     */
+    @Transactional
+    public ShiftExpenseResponseDTO updateExpense(Long expenseId, ShiftExpenseRequestDTO request) {
+        ShiftExpense expense = shiftExpenseRepository.findById(expenseId)
+                .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado"));
+
+        if ("CLOSED".equals(expense.getShift().getStatus())) {
+            throw new IllegalStateException("No se puede editar un egreso de un turno cerrado");
+        }
+
+        expense.setDescription(request.getDescription());
+        expense.setAmount(request.getAmount());
+
+        shiftExpenseRepository.save(expense);
+        return ShiftExpenseResponseDTO.from(expense);
+    }
+
+    /**
+     * Elimina un egreso. Solo permitido si el turno al que pertenece sigue OPEN.
+     * @throws IllegalArgumentException si el egreso no existe
+     * @throws IllegalStateException    si el turno ya está cerrado
+     */
+    @Transactional
+    public void deleteExpense(Long expenseId) {
+        ShiftExpense expense = shiftExpenseRepository.findById(expenseId)
+                .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado"));
+
+        if ("CLOSED".equals(expense.getShift().getStatus())) {
+            throw new IllegalStateException("No se puede eliminar un egreso de un turno cerrado");
+        }
+
+        shiftExpenseRepository.delete(expense);
+    }
+
     // ── Resumen de efectivo para reconciliación bancaria ─────────────────────
 
     public Map<String, Object> getCashSummary(Long storeId, LocalDate from, LocalDate to) {
