@@ -12,11 +12,16 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ShiftRepository extends JpaRepository<Shift, Long> {
-    Optional<Shift> findByStoreIdAndStatus(Long storeId, String status);
+    // Turnos abiertos de un local — puede haber varios (uno por cajero)
+    List<Shift> findByStoreIdAndStatusOrderByOpenedAtDesc(Long storeId, String status);
+
+    // Turno abierto de un usuario puntual en un local (uno por usuario)
+    Optional<Shift> findByStoreIdAndUsernameAndStatus(Long storeId, String username, String status);
+    boolean existsByStoreIdAndUsernameAndStatus(Long storeId, String username, String status);
+
     List<Shift> findByStoreIdOrderByOpenedAtDesc(Long storeId);
     Page<Shift> findByStoreIdOrderByOpenedAtDesc(Long storeId, Pageable pageable);
     Page<Shift> findByStoreIdAndUsernameOrderByOpenedAtDesc(Long storeId, String username, Pageable pageable);
-    boolean existsByStoreIdAndStatus(Long storeId, String status);
 
     // Queries para filtro de fechas — sin null params (Hibernate 6 compatible)
     Page<Shift> findByStoreIdAndOpenedAtBetweenOrderByOpenedAtDesc(Long storeId, LocalDateTime from, LocalDateTime to, Pageable pageable);

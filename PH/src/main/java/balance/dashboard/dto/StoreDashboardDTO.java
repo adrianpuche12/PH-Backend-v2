@@ -2,6 +2,7 @@ package balance.dashboard.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /** Vista resumida de un local para el dashboard del admin. */
 public class StoreDashboardDTO {
@@ -9,11 +10,9 @@ public class StoreDashboardDTO {
     private Long    storeId;
     private String  storeName;
 
-    // Turno activo (null si no hay turno abierto)
+    // Turnos abiertos (puede haber 0, 1 o varios — uno por cajero)
     private boolean hasActiveShift;
-    private String  shiftCode;
-    private String  shiftUsername;
-    private LocalDateTime shiftOpenedAt;
+    private List<ActiveShiftDTO> activeShifts;
     private long    shiftSalesCount;
     private BigDecimal shiftSalesTotal;
 
@@ -35,14 +34,8 @@ public class StoreDashboardDTO {
     public boolean isHasActiveShift()         { return hasActiveShift; }
     public void setHasActiveShift(boolean v)  { this.hasActiveShift = v; }
 
-    public String getShiftCode()              { return shiftCode; }
-    public void setShiftCode(String v)        { this.shiftCode = v; }
-
-    public String getShiftUsername()          { return shiftUsername; }
-    public void setShiftUsername(String v)    { this.shiftUsername = v; }
-
-    public LocalDateTime getShiftOpenedAt()   { return shiftOpenedAt; }
-    public void setShiftOpenedAt(LocalDateTime v) { this.shiftOpenedAt = v; }
+    public List<ActiveShiftDTO> getActiveShifts()       { return activeShifts; }
+    public void setActiveShifts(List<ActiveShiftDTO> v) { this.activeShifts = v; }
 
     public long getShiftSalesCount()          { return shiftSalesCount; }
     public void setShiftSalesCount(long v)    { this.shiftSalesCount = v; }
@@ -58,4 +51,39 @@ public class StoreDashboardDTO {
 
     public BigDecimal getEstimatedValue()     { return estimatedValue; }
     public void setEstimatedValue(BigDecimal v) { this.estimatedValue = v; }
+
+    /** Resumen de un turno abierto individual (un cajero). */
+    public static class ActiveShiftDTO {
+        private String code;
+        private String username;
+        private LocalDateTime openedAt;
+        private long salesCount;
+        private BigDecimal salesTotal;
+
+        public ActiveShiftDTO() {}
+
+        public ActiveShiftDTO(String code, String username, LocalDateTime openedAt,
+                               long salesCount, BigDecimal salesTotal) {
+            this.code = code;
+            this.username = username;
+            this.openedAt = openedAt;
+            this.salesCount = salesCount;
+            this.salesTotal = salesTotal;
+        }
+
+        public String getCode()                  { return code; }
+        public void setCode(String v)            { this.code = v; }
+
+        public String getUsername()              { return username; }
+        public void setUsername(String v)        { this.username = v; }
+
+        public LocalDateTime getOpenedAt()       { return openedAt; }
+        public void setOpenedAt(LocalDateTime v) { this.openedAt = v; }
+
+        public long getSalesCount()              { return salesCount; }
+        public void setSalesCount(long v)        { this.salesCount = v; }
+
+        public BigDecimal getSalesTotal()        { return salesTotal; }
+        public void setSalesTotal(BigDecimal v)  { this.salesTotal = v; }
+    }
 }

@@ -48,10 +48,11 @@ public class ShiftController {
         }
     }
 
-    // Turno activo de un local
+    // Turno activo de un usuario en un local
     @GetMapping("/shifts/active/{storeId}")
-    public ResponseEntity<?> getActiveShift(@PathVariable Long storeId) {
-        ShiftResponseDTO dto = shiftService.getActiveShift(storeId);
+    public ResponseEntity<?> getActiveShift(@PathVariable Long storeId,
+                                             @RequestParam String username) {
+        ShiftResponseDTO dto = shiftService.getActiveShift(storeId, username);
         if (dto == null) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(dto);
     }

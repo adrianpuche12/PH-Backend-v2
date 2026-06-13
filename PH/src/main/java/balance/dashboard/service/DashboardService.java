@@ -16,8 +16,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class DashboardService {
@@ -64,26 +64,29 @@ public class DashboardService {
         dto.setStoreId(store.getId());
         dto.setStoreName(store.getName());
 
-        // Turno activo
-        Optional<Shift> activeShift = shiftRepository.findByStoreIdAndStatus(store.getId(), "OPEN");
-        if (activeShift.isPresent()) {
-            Shift shift = activeShift.get();
-            dto.setHasActiveShift(true);
-            dto.setShiftCode(shift.getCode());
-            dto.setShiftUsername(shift.getUsername());
-            dto.setShiftOpenedAt(shift.getOpenedAt());
+        // Turnos abiertos (puede haber varios, uno por cajero)
+        List<Shift> openShifts = shiftRepository.findByStoreIdAndStatusOrderByOpenedAtDesc(store.getId(), "OPEN");
+        dto.setHasActiveShift(!openShifts.isEmpty());
 
-            // Ventas del turno activo
+        List<StoreDashboardDTO.ActiveShiftDTO> activeShifts = new ArrayList<>();
+        long totalSalesCount = 0;
+        BigDecimal totalSalesAmount = BigDecimal.ZERO;
+        for (Shift shift : openShifts) {
             List<Sale> sales = saleRepository.findOpenByShiftId(shift.getId());
-            dto.setShiftSalesCount(sales.size());
-            BigDecimal total = sales.stream()
+            long salesCount = sales.size();
+            BigDecimal salesTotal = sales.stream()
                     .map(Sale::getTotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
-            dto.setShiftSalesTotal(total);
-        } else {
-            dto.setHasActiveShift(false);
-            dto.setShiftSalesTotal(BigDecimal.ZERO);
+
+            activeShifts.add(new StoreDashboardDTO.ActiveShiftDTO(
+                    shift.getCode(), shift.getUsername(), shift.getOpenedAt(), salesCount, salesTotal));
+
+            totalSalesCount += salesCount;
+            totalSalesAmount = totalSalesAmount.add(salesTotal);
         }
+        dto.setActiveShifts(activeShifts);
+        dto.setShiftSalesCount(totalSalesCount);
+        dto.setShiftSalesTotal(totalSalesAmount);
 
         // Inventario
         long lowStock = stockRepository.countLowStockByStoreId(store.getId());

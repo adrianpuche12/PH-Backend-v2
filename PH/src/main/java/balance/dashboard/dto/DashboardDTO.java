@@ -14,7 +14,7 @@ public class DashboardDTO {
 
     public DashboardDTO(List<StoreDashboardDTO> stores, long totalSalesToday, BigDecimal totalAmountToday) {
         this.stores              = stores;
-        this.totalActiveShifts   = stores.stream().filter(StoreDashboardDTO::isHasActiveShift).count();
+        this.totalActiveShifts   = stores.stream().mapToLong(s -> s.getActiveShifts().size()).sum();
         this.totalSalesToday     = totalSalesToday;
         this.totalAmountToday    = totalAmountToday != null ? totalAmountToday : BigDecimal.ZERO;
         this.totalLowStockAlerts = stores.stream().mapToLong(StoreDashboardDTO::getLowStockCount).sum();

@@ -48,77 +48,124 @@ class ShiftRepositoryIT {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private Shift saveShift(String status, String code) {
+        return saveShift(status, code, "cajero01");
+    }
+
+    private Shift saveShift(String status, String code, String username) {
         Shift shift = new Shift();
         shift.setStore(store);
-        shift.setUsername("cajero01");
+        shift.setUsername(username);
         shift.setStatus(status);
         shift.setCode(code);
         return shiftRepository.save(shift);
     }
 
-    // ── existsByStoreIdAndStatus ───────────────────────────────────────────────
+    // ── existsByStoreIdAndUsernameAndStatus ───────────────────────────────────
 
     @Test
-    void existsByStoreIdAndStatus_returnsTrueWhenOpenShiftExists() {
-        saveShift("OPEN", "T-20260514-0900-DAN");
+    void existsByStoreIdAndUsernameAndStatus_returnsTrueWhenUserHasOpenShift() {
+        saveShift("OPEN", "T-20260514-0900-DAN", "cajero01");
 
-        boolean exists = shiftRepository.existsByStoreIdAndStatus(store.getId(), "OPEN");
+        boolean exists = shiftRepository.existsByStoreIdAndUsernameAndStatus(store.getId(), "cajero01", "OPEN");
 
         assertThat(exists).isTrue();
     }
 
     @Test
-    void existsByStoreIdAndStatus_returnsFalseWhenNoOpenShift() {
-        saveShift("CLOSED", "T-20260514-0900-DAN");
+    void existsByStoreIdAndUsernameAndStatus_returnsFalseWhenUserShiftIsClosed() {
+        saveShift("CLOSED", "T-20260514-0900-DAN", "cajero01");
 
-        boolean exists = shiftRepository.existsByStoreIdAndStatus(store.getId(), "OPEN");
-
-        assertThat(exists).isFalse();
-    }
-
-    @Test
-    void existsByStoreIdAndStatus_returnsFalseWhenStoreHasNoShifts() {
-        boolean exists = shiftRepository.existsByStoreIdAndStatus(store.getId(), "OPEN");
+        boolean exists = shiftRepository.existsByStoreIdAndUsernameAndStatus(store.getId(), "cajero01", "OPEN");
 
         assertThat(exists).isFalse();
     }
 
     @Test
-    void existsByStoreIdAndStatus_returnsFalseForDifferentStore() {
+    void existsByStoreIdAndUsernameAndStatus_returnsFalseWhenStoreHasNoShifts() {
+        boolean exists = shiftRepository.existsByStoreIdAndUsernameAndStatus(store.getId(), "cajero01", "OPEN");
+
+        assertThat(exists).isFalse();
+    }
+
+    @Test
+    void existsByStoreIdAndUsernameAndStatus_returnsFalseForDifferentUser_evenWithOpenShiftInSameStore() {
+        // cajero01 tiene turno abierto, pero cajero02 no — debe poder abrir el suyo
+        saveShift("OPEN", "T-20260514-0900-DAN", "cajero01");
+
+        boolean exists = shiftRepository.existsByStoreIdAndUsernameAndStatus(store.getId(), "cajero02", "OPEN");
+
+        assertThat(exists).isFalse();
+    }
+
+    @Test
+    void existsByStoreIdAndUsernameAndStatus_returnsFalseForDifferentStore() {
         Store otraStore = new Store();
         otraStore.setName("El Paraíso");
         otraStore = storeRepository.save(otraStore);
 
         Shift shift = new Shift();
         shift.setStore(otraStore);
-        shift.setUsername("cajero02");
+        shift.setUsername("cajero01");
         shift.setStatus("OPEN");
         shift.setCode("T-20260514-0900-ELP");
         shiftRepository.save(shift);
 
-        // El local principal no tiene turno abierto
-        boolean exists = shiftRepository.existsByStoreIdAndStatus(store.getId(), "OPEN");
+        // El local principal no tiene turno abierto para cajero01
+        boolean exists = shiftRepository.existsByStoreIdAndUsernameAndStatus(store.getId(), "cajero01", "OPEN");
 
         assertThat(exists).isFalse();
     }
 
-    // ── findByStoreIdAndStatus ─────────────────────────────────────────────────
+    // ── findByStoreIdAndUsernameAndStatus ─────────────────────────────────────
 
     @Test
-    void findByStoreIdAndStatus_returnsOpenShift() {
-        Shift saved = saveShift("OPEN", "T-20260514-0900-DAN");
+    void findByStoreIdAndUsernameAndStatus_returnsOpenShiftOfThatUser() {
+        saveShift("OPEN", "T-20260514-0900-DAN", "cajero01");
 
-        Optional<Shift> result = shiftRepository.findByStoreIdAndStatus(store.getId(), "OPEN");
+        Optional<Shift> result = shiftRepository.findByStoreIdAndUsernameAndStatus(store.getId(), "cajero01", "OPEN");
 
         assertThat(result).isPresent();
         assertThat(result.get().getCode()).isEqualTo("T-20260514-0900-DAN");
     }
 
     @Test
-    void findByStoreIdAndStatus_returnsEmptyWhenShiftIsClosed() {
-        saveShift("CLOSED", "T-20260514-0900-DAN");
+    void findByStoreIdAndUsernameAndStatus_returnsEmptyWhenShiftIsClosed() {
+        saveShift("CLOSED", "T-20260514-0900-DAN", "cajero01");
 
-        Optional<Shift> result = shiftRepository.findByStoreIdAndStatus(store.getId(), "OPEN");
+        Optional<Shift> result = shiftRepository.findByStoreIdAndUsernameAndStatus(store.getId(), "cajero01", "OPEN");
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void findByStoreIdAndUsernameAndStatus_doesNotReturnAnotherUsersOpenShift() {
+        // cajero01 abre turno; cajero02 consulta el suyo y no debe ver el de cajero01
+        saveShift("OPEN", "T-20260514-0900-DAN", "cajero01");
+
+        Optional<Shift> result = shiftRepository.findByStoreIdAndUsernameAndStatus(store.getId(), "cajero02", "OPEN");
+
+        assertThat(result).isEmpty();
+    }
+
+    // ── findByStoreIdAndStatusOrderByOpenedAtDesc (multi-turno por local) ─────
+
+    @Test
+    void findByStoreIdAndStatusOrderByOpenedAtDesc_returnsAllOpenShiftsForMultipleCashiers() throws InterruptedException {
+        saveShift("OPEN", "T-20260514-0900-DAN", "cajero01");
+        Thread.sleep(10);
+        saveShift("OPEN", "T-20260514-0910-DAN", "cajero02");
+
+        List<Shift> result = shiftRepository.findByStoreIdAndStatusOrderByOpenedAtDesc(store.getId(), "OPEN");
+
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(Shift::getUsername).containsExactlyInAnyOrder("cajero01", "cajero02");
+    }
+
+    @Test
+    void findByStoreIdAndStatusOrderByOpenedAtDesc_returnsEmptyWhenNoOpenShifts() {
+        saveShift("CLOSED", "T-20260514-0900-DAN", "cajero01");
+
+        List<Shift> result = shiftRepository.findByStoreIdAndStatusOrderByOpenedAtDesc(store.getId(), "OPEN");
 
         assertThat(result).isEmpty();
     }

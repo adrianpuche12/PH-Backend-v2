@@ -2,6 +2,7 @@ package balance.dashboard.service;
 
 import balance.catalog.repository.ProductRepository;
 import balance.dashboard.dto.DashboardDTO;
+import balance.dashboard.dto.StoreDashboardDTO;
 import balance.inventory.repository.InventoryStockRepository;
 import balance.model.Store;
 import balance.repository.StoreRepository;
@@ -20,7 +21,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -81,7 +81,7 @@ class DashboardServiceTest {
     void getDashboard_buildsDTOForStoreWithoutActiveShift() {
         Store store = buildStore(1L, "Danlí");
         when(storeRepository.findAll()).thenReturn(List.of(store));
-        when(shiftRepository.findByStoreIdAndStatus(1L, "OPEN")).thenReturn(Optional.empty());
+        when(shiftRepository.findByStoreIdAndStatusOrderByOpenedAtDesc(1L, "OPEN")).thenReturn(List.of());
         when(saleRepository.findByStoreIdAndSaleDateOrderByCreatedAtDesc(eq(1L), any(LocalDate.class)))
                 .thenReturn(List.of());
         when(stockRepository.countLowStockByStoreId(1L)).thenReturn(2L);
@@ -92,6 +92,7 @@ class DashboardServiceTest {
 
         assertThat(result.getStores()).hasSize(1);
         assertThat(result.getStores().get(0).isHasActiveShift()).isFalse();
+        assertThat(result.getStores().get(0).getActiveShifts()).isEmpty();
         assertThat(result.getStores().get(0).getLowStockCount()).isEqualTo(2L);
     }
 
@@ -105,7 +106,7 @@ class DashboardServiceTest {
         Sale sale = buildSale(new BigDecimal("90.00"));
 
         when(storeRepository.findAll()).thenReturn(List.of(store));
-        when(shiftRepository.findByStoreIdAndStatus(1L, "OPEN")).thenReturn(Optional.of(shift));
+        when(shiftRepository.findByStoreIdAndStatusOrderByOpenedAtDesc(1L, "OPEN")).thenReturn(List.of(shift));
         when(saleRepository.findOpenByShiftId(10L)).thenReturn(List.of(sale));
         when(saleRepository.findByStoreIdAndSaleDateOrderByCreatedAtDesc(eq(1L), any(LocalDate.class)))
                 .thenReturn(List.of(sale));
@@ -116,9 +117,48 @@ class DashboardServiceTest {
         DashboardDTO result = service.getDashboard();
 
         assertThat(result.getStores().get(0).isHasActiveShift()).isTrue();
-        assertThat(result.getStores().get(0).getShiftCode()).isEqualTo("T-20260603-0900-DAN");
+        assertThat(result.getStores().get(0).getActiveShifts()).hasSize(1);
+        assertThat(result.getStores().get(0).getActiveShifts().get(0).getCode()).isEqualTo("T-20260603-0900-DAN");
         assertThat(result.getStores().get(0).getShiftSalesCount()).isEqualTo(1L);
         assertThat(result.getStores().get(0).getShiftSalesTotal()).isEqualByComparingTo("90.00");
+    }
+
+    // ── getDashboard — múltiples turnos abiertos en el mismo local ────────────
+
+    @Test
+    void getDashboard_handlesMultipleActiveShiftsForSameStore() {
+        Store store = buildStore(1L, "Danlí");
+        Shift shift1 = buildShift("T-20260603-0900-DAN");
+        ReflectionTestUtils.setField(shift1, "id", 10L);
+        shift1.setUsername("cajero01");
+        Shift shift2 = buildShift("T-20260603-0905-DAN");
+        ReflectionTestUtils.setField(shift2, "id", 11L);
+        shift2.setUsername("cajero02");
+
+        Sale sale1 = buildSale(new BigDecimal("50.00"));
+        Sale sale2 = buildSale(new BigDecimal("30.00"));
+
+        when(storeRepository.findAll()).thenReturn(List.of(store));
+        when(shiftRepository.findByStoreIdAndStatusOrderByOpenedAtDesc(1L, "OPEN")).thenReturn(List.of(shift1, shift2));
+        when(saleRepository.findOpenByShiftId(10L)).thenReturn(List.of(sale1));
+        when(saleRepository.findOpenByShiftId(11L)).thenReturn(List.of(sale2));
+        when(saleRepository.findByStoreIdAndSaleDateOrderByCreatedAtDesc(eq(1L), any(LocalDate.class)))
+                .thenReturn(List.of(sale1, sale2));
+        when(stockRepository.countLowStockByStoreId(1L)).thenReturn(0L);
+        when(productRepository.findByStoreIdOrderByNameAsc(1L)).thenReturn(List.of());
+        when(stockRepository.findByStoreIdOrderByProductNameAsc(1L)).thenReturn(List.of());
+
+        DashboardDTO result = service.getDashboard();
+
+        StoreDashboardDTO storeDto = result.getStores().get(0);
+        assertThat(storeDto.isHasActiveShift()).isTrue();
+        assertThat(storeDto.getActiveShifts()).hasSize(2);
+        assertThat(storeDto.getActiveShifts())
+                .extracting(StoreDashboardDTO.ActiveShiftDTO::getUsername)
+                .containsExactlyInAnyOrder("cajero01", "cajero02");
+        assertThat(storeDto.getShiftSalesCount()).isEqualTo(2L);
+        assertThat(storeDto.getShiftSalesTotal()).isEqualByComparingTo("80.00");
+        assertThat(result.getTotalActiveShifts()).isEqualTo(2L);
     }
 
     // ── getDashboard — múltiples tiendas ──────────────────────────────────────
@@ -131,7 +171,7 @@ class DashboardServiceTest {
         Sale sale2 = buildSale(new BigDecimal("50.00"));
 
         when(storeRepository.findAll()).thenReturn(List.of(s1, s2));
-        when(shiftRepository.findByStoreIdAndStatus(anyLong(), anyString())).thenReturn(Optional.empty());
+        when(shiftRepository.findByStoreIdAndStatusOrderByOpenedAtDesc(anyLong(), anyString())).thenReturn(List.of());
         when(saleRepository.findByStoreIdAndSaleDateOrderByCreatedAtDesc(eq(1L), any())).thenReturn(List.of(sale1));
         when(saleRepository.findByStoreIdAndSaleDateOrderByCreatedAtDesc(eq(2L), any())).thenReturn(List.of(sale2));
         when(stockRepository.countLowStockByStoreId(anyLong())).thenReturn(0L);
@@ -153,7 +193,7 @@ class DashboardServiceTest {
         inactive.setActive(false);
 
         when(storeRepository.findAll()).thenReturn(List.of(active, inactive));
-        when(shiftRepository.findByStoreIdAndStatus(1L, "OPEN")).thenReturn(Optional.empty());
+        when(shiftRepository.findByStoreIdAndStatusOrderByOpenedAtDesc(1L, "OPEN")).thenReturn(List.of());
         when(saleRepository.findByStoreIdAndSaleDateOrderByCreatedAtDesc(eq(1L), any())).thenReturn(List.of());
         when(stockRepository.countLowStockByStoreId(1L)).thenReturn(0L);
         when(productRepository.findByStoreIdOrderByNameAsc(1L)).thenReturn(List.of());

@@ -29,8 +29,8 @@ public class ShiftService {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new IllegalArgumentException("Local no encontrado"));
 
-        if (shiftRepository.existsByStoreIdAndStatus(storeId, "OPEN")) {
-            throw new IllegalStateException("Ya existe un turno abierto para este local");
+        if (shiftRepository.existsByStoreIdAndUsernameAndStatus(storeId, username, "OPEN")) {
+            throw new IllegalStateException("Ya tenés un turno abierto en este local");
         }
 
         Shift shift = new Shift();
@@ -56,8 +56,8 @@ public class ShiftService {
         return ShiftResponseDTO.from(shift);
     }
 
-    public ShiftResponseDTO getActiveShift(Long storeId) {
-        return shiftRepository.findByStoreIdAndStatus(storeId, "OPEN")
+    public ShiftResponseDTO getActiveShift(Long storeId, String username) {
+        return shiftRepository.findByStoreIdAndUsernameAndStatus(storeId, username, "OPEN")
                 .map(ShiftResponseDTO::from)
                 .orElse(null);
     }

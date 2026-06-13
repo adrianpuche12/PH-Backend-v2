@@ -102,18 +102,18 @@ class ShiftControllerTest {
 
     @Test
     void getActiveShift_returns200WhenShiftExists() throws Exception {
-        when(shiftService.getActiveShift(1L)).thenReturn(buildShiftResponse("OPEN"));
+        when(shiftService.getActiveShift(1L, "cajero01")).thenReturn(buildShiftResponse("OPEN"));
 
-        mockMvc.perform(get("/api/v2/shifts/active/1"))
+        mockMvc.perform(get("/api/v2/shifts/active/1").param("username", "cajero01"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("OPEN"));
     }
 
     @Test
     void getActiveShift_returns204WhenNoActiveShift() throws Exception {
-        when(shiftService.getActiveShift(1L)).thenReturn(null);
+        when(shiftService.getActiveShift(1L, "cajero01")).thenReturn(null);
 
-        mockMvc.perform(get("/api/v2/shifts/active/1"))
+        mockMvc.perform(get("/api/v2/shifts/active/1").param("username", "cajero01"))
                 .andExpect(status().isNoContent());
     }
 
