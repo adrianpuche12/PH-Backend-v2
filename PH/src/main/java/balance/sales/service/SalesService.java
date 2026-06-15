@@ -476,7 +476,7 @@ public class SalesService {
 
         // Cerrar el turno con todos los datos de reconciliación
         shift.setStatus("CLOSED");
-        shift.setClosedAt(java.time.LocalDateTime.now());
+        shift.setClosedAt(java.time.LocalDateTime.now(HONDURAS_TZ));
         shift.setTotalCashSales(totalCash);
         shift.setTotalCardSales(totalCard);
         shift.setTotalShiftExpenses(expenses);

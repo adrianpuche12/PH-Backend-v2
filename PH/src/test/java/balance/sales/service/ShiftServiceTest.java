@@ -12,6 +12,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +24,8 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ShiftServiceTest {
+
+    private static final ZoneId HONDURAS_TZ = ZoneId.of("America/Tegucigalpa");
 
     @InjectMocks private ShiftService shiftService;
 
@@ -85,7 +90,8 @@ class ShiftServiceTest {
 
     @Test
     void openShift_codeContainsTodayDate() {
-        String todayStr = java.time.LocalDate.now()
+        // El código se genera con la fecha de Honduras (America/Tegucigalpa), no la del servidor.
+        String todayStr = java.time.LocalDate.now(HONDURAS_TZ)
                 .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
 
         when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
@@ -95,6 +101,20 @@ class ShiftServiceTest {
         ShiftResponseDTO result = shiftService.openShift(1L, "cajero01", null);
 
         assertThat(result.getCode()).contains(todayStr);
+    }
+
+    @Test
+    void openShift_setsOpenedAtInHondurasTime() {
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
+        when(shiftRepository.existsByStoreIdAndUsernameAndStatus(1L, "cajero01", "OPEN")).thenReturn(false);
+        when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ShiftResponseDTO result = shiftService.openShift(1L, "cajero01", null);
+
+        LocalDateTime expectedNow = LocalDateTime.now(HONDURAS_TZ);
+        assertThat(result.getOpenedAt()).isNotNull();
+        assertThat(Duration.between(result.getOpenedAt(), expectedNow).abs())
+                .isLessThan(Duration.ofMinutes(1));
     }
 
     // ── openShift — estado inicial ────────────────────────────────────────────
@@ -146,6 +166,11 @@ class ShiftServiceTest {
 
         assertThat(result.getStatus()).isEqualTo("CLOSED");
         assertThat(shift.getClosedAt()).isNotNull();
+
+        // closedAt debe registrarse en hora de Honduras (America/Tegucigalpa)
+        LocalDateTime expectedNow = LocalDateTime.now(HONDURAS_TZ);
+        assertThat(Duration.between(shift.getClosedAt(), expectedNow).abs())
+                .isLessThan(Duration.ofMinutes(1));
     }
 
     @Test
