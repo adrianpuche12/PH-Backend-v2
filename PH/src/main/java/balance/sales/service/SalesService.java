@@ -444,12 +444,14 @@ public class SalesService {
 
         BigDecimal totalCardSurcharge = totalAmount.subtract(totalSubtotal).subtract(totalIsv);
 
-        // Reconciliación: efectivo esperado = fondo inicial + ventas en efectivo - egresos del turno
+        // Reconciliación: efectivo esperado = ventas en efectivo - egresos del turno.
+        // El fondo inicial NO se cuenta: la cajera solo declara el efectivo de ventas,
+        // el fondo queda en caja para el siguiente turno y nunca se deposita.
         BigDecimal opening    = shift.getOpeningCashAmount() != null ? shift.getOpeningCashAmount() : BigDecimal.ZERO;
         BigDecimal declared   = declaredCashAmount != null ? declaredCashAmount : BigDecimal.ZERO;
         BigDecimal expensesRaw = shiftExpenseRepository.sumAmountByShiftId(shiftId);
         BigDecimal expenses    = expensesRaw != null ? expensesRaw : BigDecimal.ZERO;
-        BigDecimal expected    = opening.add(totalCash).subtract(expenses);
+        BigDecimal expected    = totalCash.subtract(expenses);
         BigDecimal difference = declared.subtract(expected).setScale(2, RoundingMode.HALF_UP);
 
         // Crear ClosingDeposit en sistema V1 vinculado a este turno

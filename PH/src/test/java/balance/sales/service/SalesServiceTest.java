@@ -385,6 +385,38 @@ class SalesServiceTest {
         assertThat(shift.getClosedAt()).isNotNull();
     }
 
+    @Test
+    void closeShift_cashDifferenceExcludesFondoInicial() {
+        // El fondo inicial (L 1000) NO debe sumarse al esperado.
+        // Cajera con L 1000 fondo + L 20 ventas efectivo declara solo L 20 → caja cuadrada.
+        Shift shift = buildShift(1L, "OPEN");
+        shift.setOpeningCashAmount(new BigDecimal("1000.00"));
+
+        Sale sale = new Sale();
+        sale.setStatus("OPEN");
+        sale.setTotal(new BigDecimal("20.00"));
+        sale.setCashAmount(new BigDecimal("20.00"));
+        sale.setCardAmount(BigDecimal.ZERO);
+        sale.setSubtotal(new BigDecimal("20.00"));
+        sale.setIsv(BigDecimal.ZERO);
+        sale.setStore(buildStore(1L, "Danli"));
+
+        ClosingDeposit deposit = new ClosingDeposit(); deposit.setId(1L);
+
+        when(shiftRepository.findById(1L)).thenReturn(Optional.of(shift));
+        when(saleRepository.findOpenByShiftId(1L)).thenReturn(List.of(sale));
+        when(shiftExpenseRepository.sumAmountByShiftId(1L)).thenReturn(BigDecimal.ZERO);
+        when(formsService.saveClosingDeposit(any())).thenReturn(deposit);
+        when(saleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // La cajera declara L 20 (solo ventas, sin contar el fondo)
+        var result = salesService.closeShift(1L, "admin", new BigDecimal("20.00"));
+
+        assertThat(result.getExpectedCashAmount()).isEqualByComparingTo("20.00");
+        assertThat(result.getCashDifference()).isEqualByComparingTo("0.00");
+    }
+
     // ── updateExpense / deleteExpense ──────────────────────────────────────────
 
     private ShiftExpense buildExpense(Shift shift, String description, BigDecimal amount) {

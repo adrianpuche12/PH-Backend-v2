@@ -14,7 +14,7 @@ public class DailyClosingResponseDTO {
     private BigDecimal openingCashAmount;
     private BigDecimal totalCashSales;
     private BigDecimal totalShiftExpenses;
-    private BigDecimal expectedCashAmount;   // openingCashAmount + totalCashSales - totalShiftExpenses
+    private BigDecimal expectedCashAmount;   // totalCashSales - totalShiftExpenses (fondo excluido)
     private BigDecimal totalCardSales;
     private BigDecimal totalCardSurcharge;
     private BigDecimal declaredCashAmount;
@@ -39,7 +39,7 @@ public class DailyClosingResponseDTO {
         this.openingCashAmount   = openingCashAmount;
         this.totalCashSales      = totalCashSales;
         this.totalShiftExpenses  = totalShiftExpenses;
-        this.expectedCashAmount  = openingCashAmount.add(totalCashSales).subtract(totalShiftExpenses);
+        this.expectedCashAmount  = totalCashSales.subtract(totalShiftExpenses);
         this.totalCardSales      = totalCardSales;
         this.totalCardSurcharge  = totalCardSurcharge;
         this.declaredCashAmount  = declaredCashAmount;
