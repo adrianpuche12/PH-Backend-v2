@@ -49,6 +49,17 @@ public class SalesController {
         }
     }
 
+    // Editar venta (solo permitido si el turno sigue abierto y el username coincide con el dueño)
+    @PutMapping("/sales/{saleId}")
+    public ResponseEntity<?> updateSale(@PathVariable Long saleId,
+                                         @Valid @RequestBody SaleRequestDTO request) {
+        try {
+            return ResponseEntity.ok(salesService.updateSale(saleId, request));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // Cancelar venta (revierte stock)
     @DeleteMapping("/sales/{saleId}")
     public ResponseEntity<?> cancelSale(@PathVariable Long saleId) {

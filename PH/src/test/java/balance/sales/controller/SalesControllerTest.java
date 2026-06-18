@@ -138,7 +138,75 @@ class SalesControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // â”€â”€ DELETE /api/v2/sales/{saleId} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── PUT /api/v2/sales/{saleId} ───────────────────────────────────────────
+
+    @Test
+    void updateSale_returns200WhenSuccessful() throws Exception {
+        SaleResponseDTO response = buildSaleResponse();
+        when(salesService.updateSale(eq(1L), any())).thenReturn(response);
+
+        String body = objectMapper.writeValueAsString(Map.of(
+                "username", "cajero01",
+                "items", List.of(Map.of("productId", 1, "quantity", 2))
+        ));
+
+        mockMvc.perform(put("/api/v2/sales/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void updateSale_returns400WhenShiftClosed() throws Exception {
+        when(salesService.updateSale(eq(1L), any()))
+                .thenThrow(new IllegalStateException("No se puede editar una venta de un turno cerrado"));
+
+        String body = objectMapper.writeValueAsString(Map.of(
+                "username", "cajero01",
+                "items", List.of(Map.of("productId", 1, "quantity", 1))
+        ));
+
+        mockMvc.perform(put("/api/v2/sales/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").exists());
+    }
+
+    @Test
+    void updateSale_returns400WhenUsernameMismatch() throws Exception {
+        when(salesService.updateSale(eq(1L), any()))
+                .thenThrow(new IllegalStateException("No podés editar una venta registrada por otro usuario"));
+
+        String body = objectMapper.writeValueAsString(Map.of(
+                "username", "otraCajera",
+                "items", List.of(Map.of("productId", 1, "quantity", 1))
+        ));
+
+        mockMvc.perform(put("/api/v2/sales/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").exists());
+    }
+
+    @Test
+    void updateSale_returns400WhenSaleNotFound() throws Exception {
+        when(salesService.updateSale(eq(99L), any()))
+                .thenThrow(new IllegalArgumentException("Venta no encontrada"));
+
+        String body = objectMapper.writeValueAsString(Map.of(
+                "username", "cajero01",
+                "items", List.of(Map.of("productId", 1, "quantity", 1))
+        ));
+
+        mockMvc.perform(put("/api/v2/sales/99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    // ── DELETE /api/v2/sales/{saleId} ────────────────────────────────────────
 
     @Test
     void cancelSale_returns204WhenSuccessful() throws Exception {

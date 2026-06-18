@@ -73,8 +73,76 @@ public class SalesService {
 
         Store store = shift.getStore();
 
-        // Validar stock disponible para todos los ítems antes de crear la venta
-        for (SaleItemRequestDTO itemReq : request.getItems()) {
+        validateStockAvailable(store, request.getItems());
+
+        Sale sale = new Sale();
+        sale.setShift(shift);
+        sale.setStore(store);
+        sale.setUsername(request.getUsername());
+        sale.setSaleDate(LocalDate.now(HONDURAS_TZ));
+        sale.setStatus("OPEN");
+
+        applyItemsAndPayment(sale, request);
+
+        saleRepository.save(sale);
+
+        // Descontar stock de cada producto vendido
+        deductStock(store.getId(), sale.getItems());
+
+        return SaleResponseDTO.from(sale);
+    }
+
+    // ── Editar venta ─────────────────────────────────────────────────────────
+
+    /**
+     * Edita una venta existente mientras el turno sigue abierto.
+     * Revierte el stock de los ítems anteriores y descuenta el de los nuevos.
+     * Marca la venta como editada (edited=true, editedAt=ahora).
+     * @throws IllegalArgumentException si la venta o algún producto no existe
+     * @throws IllegalStateException     si el turno está cerrado, la venta ya está confirmada,
+     *                                    si el usuario no es el dueño de la venta, o si no hay stock
+     */
+    @Transactional
+    public SaleResponseDTO updateSale(Long saleId, SaleRequestDTO request) {
+        Sale sale = saleRepository.findById(saleId)
+                .orElseThrow(() -> new IllegalArgumentException("Venta no encontrada"));
+
+        Shift shift = sale.getShift();
+        if ("CLOSED".equals(shift.getStatus())) {
+            throw new IllegalStateException("No se puede editar una venta de un turno cerrado");
+        }
+        if ("CONFIRMED".equals(sale.getStatus())) {
+            throw new IllegalStateException("No se puede editar una venta ya confirmada");
+        }
+        if (!sale.getUsername().equals(request.getUsername())) {
+            throw new IllegalStateException("No podés editar una venta registrada por otro usuario");
+        }
+
+        Store store = shift.getStore();
+
+        // Revertir el stock de los ítems actuales antes de validar/aplicar los nuevos
+        revertStock(store.getId(), sale.getItems());
+
+        validateStockAvailable(store, request.getItems());
+
+        sale.getItems().clear();
+        applyItemsAndPayment(sale, request);
+
+        sale.setEdited(true);
+        sale.setEditedAt(java.time.LocalDateTime.now(HONDURAS_TZ));
+
+        saleRepository.save(sale);
+
+        deductStock(store.getId(), sale.getItems());
+
+        return SaleResponseDTO.from(sale);
+    }
+
+    // ── Helpers compartidos por createSale / updateSale ─────────────────────
+
+    /** Valida que haya stock suficiente para cada ítem solicitado. */
+    private void validateStockAvailable(Store store, List<SaleItemRequestDTO> items) {
+        for (SaleItemRequestDTO itemReq : items) {
             Product product = productRepository.findById(itemReq.getProductId())
                     .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + itemReq.getProductId()));
             inventoryStockRepository.findByProductIdAndStoreId(itemReq.getProductId(), store.getId())
@@ -86,14 +154,13 @@ public class SalesService {
                         }
                     });
         }
+    }
 
-        Sale sale = new Sale();
-        sale.setShift(shift);
-        sale.setStore(store);
-        sale.setUsername(request.getUsername());
-        sale.setSaleDate(LocalDate.now(HONDURAS_TZ));
-        sale.setStatus("OPEN");
-
+    /**
+     * Construye los SaleItem a partir del request, calcula subtotal/ISV/recargo de tarjeta
+     * y deja la venta lista para persistir. Asume que sale.getItems() está vacío al entrar.
+     */
+    private void applyItemsAndPayment(Sale sale, SaleRequestDTO request) {
         BigDecimal subtotal = BigDecimal.ZERO;
 
         for (SaleItemRequestDTO itemReq : request.getItems()) {
@@ -161,13 +228,6 @@ public class SalesService {
         }
 
         sale.setTotal(total);
-
-        saleRepository.save(sale);
-
-        // Descontar stock de cada producto vendido
-        deductStock(store.getId(), sale.getItems());
-
-        return SaleResponseDTO.from(sale);
     }
 
     // ── Cancelar venta ───────────────────────────────────────────────────────

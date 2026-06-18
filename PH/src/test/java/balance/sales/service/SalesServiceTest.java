@@ -328,6 +328,133 @@ class SalesServiceTest {
                 .hasMessageContaining("No se puede cancelar");
     }
 
+    // ── updateSale ───────────────────────────────────────────────────────────
+
+    private Sale buildOpenSaleWithItem(Shift shift, String username, Product product, int qty, BigDecimal unitPrice) {
+        Sale sale = new Sale();
+        sale.setStatus("OPEN");
+        sale.setUsername(username);
+        sale.setShift(shift);
+        sale.setStore(shift.getStore());
+        SaleItem item = new SaleItem();
+        item.setProduct(product);
+        item.setProductNameSnapshot(product.getName());
+        item.setUnitPriceSnapshot(unitPrice);
+        item.setQuantity(qty);
+        item.setSubtotal(unitPrice.multiply(BigDecimal.valueOf(qty)));
+        sale.getItems().add(item);
+        sale.setSubtotal(item.getSubtotal());
+        sale.setTotal(item.getSubtotal());
+        return sale;
+    }
+
+    @Test
+    void updateSale_replacesItemsAndRecalculatesTotal() {
+        // Venta original: 4 pollos a L100 = L400. Se edita a 2 pollos = L200.
+        Shift shift = buildShift(1L, "OPEN");
+        Product product = buildProduct(1L, "Pollo", new BigDecimal("100.00"));
+        Sale sale = buildOpenSaleWithItem(shift, "cajero01", product, 4, new BigDecimal("100.00"));
+
+        when(saleRepository.findById(1L)).thenReturn(Optional.of(sale));
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(saleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        SaleResponseDTO result = salesService.updateSale(1L, buildRequest("cajero01", 1L, 2));
+
+        assertThat(result.getSubtotal()).isEqualByComparingTo("200.00");
+        assertThat(result.getTotal()).isEqualByComparingTo("200.00");
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().get(0).getQuantity()).isEqualTo(2);
+    }
+
+    @Test
+    void updateSale_revertsOldStockAndDeductsNewStock() {
+        // 4 pollos vendidos -> se edita a 2: debe revertir 4 (ENTRADA) y descontar 2 (SALIDA)
+        Shift shift = buildShift(1L, "OPEN");
+        Product product = buildProduct(1L, "Pollo", new BigDecimal("100.00"));
+        Sale sale = buildOpenSaleWithItem(shift, "cajero01", product, 4, new BigDecimal("100.00"));
+
+        when(saleRepository.findById(1L)).thenReturn(Optional.of(sale));
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(saleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        salesService.updateSale(1L, buildRequest("cajero01", 1L, 2));
+
+        ArgumentCaptor<StockAdjustmentDTO> captor = ArgumentCaptor.forClass(StockAdjustmentDTO.class);
+        verify(inventoryService, times(2)).adjustSilent(eq(1L), captor.capture());
+
+        List<StockAdjustmentDTO> calls = captor.getAllValues();
+        assertThat(calls.get(0).getType()).isEqualTo("ENTRADA");
+        assertThat(calls.get(0).getQuantity()).isEqualTo(4);
+        assertThat(calls.get(1).getType()).isEqualTo("SALIDA");
+        assertThat(calls.get(1).getQuantity()).isEqualTo(2);
+    }
+
+    @Test
+    void updateSale_marksSaleAsEdited() {
+        Shift shift = buildShift(1L, "OPEN");
+        Product product = buildProduct(1L, "Pollo", new BigDecimal("100.00"));
+        Sale sale = buildOpenSaleWithItem(shift, "cajero01", product, 4, new BigDecimal("100.00"));
+
+        when(saleRepository.findById(1L)).thenReturn(Optional.of(sale));
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(saleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        SaleResponseDTO result = salesService.updateSale(1L, buildRequest("cajero01", 1L, 2));
+
+        assertThat(result.getEdited()).isTrue();
+        assertThat(result.getEditedAt()).isNotNull();
+    }
+
+    @Test
+    void updateSale_throwsWhenSaleNotFound() {
+        when(saleRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> salesService.updateSale(99L, buildRequest("cajero01", 1L, 1)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Venta no encontrada");
+    }
+
+    @Test
+    void updateSale_throwsWhenShiftClosed() {
+        Shift shift = buildShift(1L, "CLOSED");
+        Product product = buildProduct(1L, "Pollo", new BigDecimal("100.00"));
+        Sale sale = buildOpenSaleWithItem(shift, "cajero01", product, 4, new BigDecimal("100.00"));
+
+        when(saleRepository.findById(1L)).thenReturn(Optional.of(sale));
+
+        assertThatThrownBy(() -> salesService.updateSale(1L, buildRequest("cajero01", 1L, 2)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("turno cerrado");
+    }
+
+    @Test
+    void updateSale_throwsWhenSaleAlreadyConfirmed() {
+        Shift shift = buildShift(1L, "OPEN");
+        Product product = buildProduct(1L, "Pollo", new BigDecimal("100.00"));
+        Sale sale = buildOpenSaleWithItem(shift, "cajero01", product, 4, new BigDecimal("100.00"));
+        sale.setStatus("CONFIRMED");
+
+        when(saleRepository.findById(1L)).thenReturn(Optional.of(sale));
+
+        assertThatThrownBy(() -> salesService.updateSale(1L, buildRequest("cajero01", 1L, 2)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ya confirmada");
+    }
+
+    @Test
+    void updateSale_throwsWhenUsernameDoesNotMatchOwner() {
+        Shift shift = buildShift(1L, "OPEN");
+        Product product = buildProduct(1L, "Pollo", new BigDecimal("100.00"));
+        Sale sale = buildOpenSaleWithItem(shift, "cajero01", product, 4, new BigDecimal("100.00"));
+
+        when(saleRepository.findById(1L)).thenReturn(Optional.of(sale));
+
+        assertThatThrownBy(() -> salesService.updateSale(1L, buildRequest("otraCajera", 1L, 2)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("otro usuario");
+    }
+
     // ── closeShift ────────────────────────────────────────────────────────────
 
     @Test
