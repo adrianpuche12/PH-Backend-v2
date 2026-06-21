@@ -43,7 +43,7 @@ public class SalesService {
     private static final BigDecimal ISV_RATE = BigDecimal.ZERO;
 
     // Recargo por pago con tarjeta de crédito/débito (solicitud del cliente)
-    private static final BigDecimal CARD_SURCHARGE_RATE = new BigDecimal("0.03");
+    private static final BigDecimal CARD_SURCHARGE_RATE = new BigDecimal("0.02");
 
     @Autowired private SaleRepository saleRepository;
     @Autowired private ShiftRepository shiftRepository;
@@ -197,7 +197,7 @@ public class SalesService {
         String paymentMethod = request.getPaymentMethod() != null ? request.getPaymentMethod() : "CASH";
         sale.setPaymentMethod(paymentMethod);
 
-        // Recargo del 3% sobre el monto pagado con tarjeta (CARD o porción tarjeta de MIXED)
+        // Recargo del 2% sobre el monto pagado con tarjeta (CARD o porción tarjeta de MIXED)
         BigDecimal total;
         switch (paymentMethod) {
             case "CARD": {
