@@ -10,11 +10,8 @@ jobs:
     name: Ping Railway services
     runs-on: ubuntu-latest
     steps:
-      - name: Ping backend DEV
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
-            "https://ph-backend-dev-staging.up.railway.app/api/v2/stores/active")
-          echo "Backend DEV: HTTP $STATUS"
+      # Ping backend DEV deshabilitado (2026-07-07) — Fase 1 del plan de reduccion de costos Neon/Railway.
+      # Ver: 01. INFRAESTRUCTURA/05. Cambio Keepalive - Plan de Rollback.md para restaurar.
 
       - name: Ping backend PROD
         run: |
