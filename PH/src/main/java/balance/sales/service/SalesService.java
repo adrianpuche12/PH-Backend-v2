@@ -1,6 +1,8 @@
 package balance.sales.service;
 
 import balance.catalog.model.Product;
+import balance.catalog.model.ProductRecipeItem;
+import balance.catalog.repository.ProductRecipeRepository;
 import balance.catalog.repository.ProductRepository;
 import balance.inventory.dto.StockAdjustmentDTO;
 import balance.inventory.service.InventoryService;
@@ -49,6 +51,7 @@ public class SalesService {
     @Autowired private ShiftRepository shiftRepository;
     @Autowired private ShiftExpenseRepository shiftExpenseRepository;
     @Autowired private ProductRepository productRepository;
+    @Autowired private ProductRecipeRepository recipeRepository;
     @Autowired private StoreRepository storeRepository;
     @Autowired private InventoryService inventoryService;
     @Autowired private FormsService formsService;
@@ -145,14 +148,38 @@ public class SalesService {
         for (SaleItemRequestDTO itemReq : items) {
             Product product = productRepository.findById(itemReq.getProductId())
                     .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + itemReq.getProductId()));
-            inventoryStockRepository.findByProductIdAndStoreId(itemReq.getProductId(), store.getId())
-                    .ifPresent(stock -> {
-                        if (stock.getQuantity() < itemReq.getQuantity()) {
-                            throw new IllegalStateException(
-                                "Stock insuficiente para \"" + product.getName() + "\". " +
-                                "Disponible: " + stock.getQuantity() + ", solicitado: " + itemReq.getQuantity());
-                        }
-                    });
+
+            if ("FABRICATED".equals(product.getType())) {
+                // Verificar stock de cada ingrediente de la receta
+                List<ProductRecipeItem> recipe = recipeRepository.findByProductIdWithIngredient(product.getId());
+                if (recipe.isEmpty()) {
+                    throw new IllegalStateException(
+                        "El producto \"" + product.getName() + "\" no tiene receta definida");
+                }
+                for (ProductRecipeItem ri : recipe) {
+                    BigDecimal needed = ri.getQuantity()
+                            .multiply(BigDecimal.valueOf(itemReq.getQuantity()))
+                            .setScale(3, RoundingMode.HALF_UP);
+                    inventoryStockRepository.findByProductIdAndStoreId(ri.getIngredient().getId(), store.getId())
+                            .ifPresent(stock -> {
+                                if (BigDecimal.valueOf(stock.getQuantity()).compareTo(needed) < 0) {
+                                    throw new IllegalStateException(
+                                        "Stock insuficiente de \"" + ri.getIngredient().getName() +
+                                        "\" para fabricar \"" + product.getName() + "\". " +
+                                        "Disponible: " + stock.getQuantity() + ", necesario: " + needed);
+                                }
+                            });
+                }
+            } else {
+                inventoryStockRepository.findByProductIdAndStoreId(itemReq.getProductId(), store.getId())
+                        .ifPresent(stock -> {
+                            if (stock.getQuantity() < itemReq.getQuantity()) {
+                                throw new IllegalStateException(
+                                    "Stock insuficiente para \"" + product.getName() + "\". " +
+                                    "Disponible: " + stock.getQuantity() + ", solicitado: " + itemReq.getQuantity());
+                            }
+                        });
+            }
         }
     }
 
@@ -573,27 +600,62 @@ public class SalesService {
                 log.warn("SaleItem sin producto asociado — se omite descuento de stock");
                 continue;
             }
-            StockAdjustmentDTO adj = new StockAdjustmentDTO();
-            adj.setProductId(item.getProduct().getId());
-            adj.setType("SALIDA");
-            adj.setQuantity(item.getQuantity());
-            adj.setReason("Venta");
-            adj.setUsername("system");
-            inventoryService.adjustSilent(storeId, adj); // logea si stock insuficiente
+            Product product = item.getProduct();
+            if ("FABRICATED".equals(product.getType())) {
+                // Descontar ingredientes de la receta
+                List<ProductRecipeItem> recipe = recipeRepository.findByProductIdWithIngredient(product.getId());
+                for (ProductRecipeItem ri : recipe) {
+                    int qtyNeeded = ri.getQuantity()
+                            .multiply(BigDecimal.valueOf(item.getQuantity()))
+                            .setScale(0, RoundingMode.HALF_UP).intValue();
+                    StockAdjustmentDTO adj = new StockAdjustmentDTO();
+                    adj.setProductId(ri.getIngredient().getId());
+                    adj.setType("SALIDA");
+                    adj.setQuantity(qtyNeeded);
+                    adj.setReason("Venta de " + product.getName());
+                    adj.setUsername("system");
+                    inventoryService.adjustSilent(storeId, adj);
+                }
+            } else {
+                StockAdjustmentDTO adj = new StockAdjustmentDTO();
+                adj.setProductId(product.getId());
+                adj.setType("SALIDA");
+                adj.setQuantity(item.getQuantity());
+                adj.setReason("Venta");
+                adj.setUsername("system");
+                inventoryService.adjustSilent(storeId, adj);
+            }
         }
     }
 
     private void revertStock(Long storeId, List<SaleItem> items) {
         for (SaleItem item : items) {
             if (item.getProduct() == null) continue;
+            Product product = item.getProduct();
             try {
-                StockAdjustmentDTO adj = new StockAdjustmentDTO();
-                adj.setProductId(item.getProduct().getId());
-                adj.setType("ENTRADA");
-                adj.setQuantity(item.getQuantity());
-                adj.setReason("Cancelación de venta");
-                adj.setUsername("system");
-                inventoryService.adjustSilent(storeId, adj);
+                if ("FABRICATED".equals(product.getType())) {
+                    List<ProductRecipeItem> recipe = recipeRepository.findByProductIdWithIngredient(product.getId());
+                    for (ProductRecipeItem ri : recipe) {
+                        int qtyNeeded = ri.getQuantity()
+                                .multiply(BigDecimal.valueOf(item.getQuantity()))
+                                .setScale(0, RoundingMode.HALF_UP).intValue();
+                        StockAdjustmentDTO adj = new StockAdjustmentDTO();
+                        adj.setProductId(ri.getIngredient().getId());
+                        adj.setType("ENTRADA");
+                        adj.setQuantity(qtyNeeded);
+                        adj.setReason("Cancelación de venta de " + product.getName());
+                        adj.setUsername("system");
+                        inventoryService.adjustSilent(storeId, adj);
+                    }
+                } else {
+                    StockAdjustmentDTO adj = new StockAdjustmentDTO();
+                    adj.setProductId(product.getId());
+                    adj.setType("ENTRADA");
+                    adj.setQuantity(item.getQuantity());
+                    adj.setReason("Cancelación de venta");
+                    adj.setUsername("system");
+                    inventoryService.adjustSilent(storeId, adj);
+                }
             } catch (Exception ignored) {}
         }
     }
