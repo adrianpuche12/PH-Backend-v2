@@ -122,24 +122,30 @@ public class ProductService {
 
     @Transactional
     public List<RecipeItemDTO> saveRecipe(Long productId, List<RecipeItemDTO> items) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + productId));
-        if (!"FABRICATED".equals(product.getType())) {
-            throw new IllegalArgumentException("Solo los productos FABRICATED pueden tener receta");
+        try {
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + productId));
+            if (!"FABRICATED".equals(product.getType())) {
+                throw new IllegalArgumentException("Solo los productos FABRICATED pueden tener receta");
+            }
+            recipeRepository.deleteByProductId(productId);
+            items.forEach(dto -> {
+                Product ingredient = productRepository.findById(dto.getIngredientId())
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Ingrediente no encontrado: " + dto.getIngredientId()));
+                ProductRecipeItem item = new ProductRecipeItem();
+                item.setProduct(product);
+                item.setIngredient(ingredient);
+                item.setQuantity(dto.getQuantity());
+                recipeRepository.save(item);
+            });
+            return recipeRepository.findByProductIdWithIngredient(productId)
+                    .stream().map(RecipeItemDTO::from).toList();
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("[DEBUG] " + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
-        recipeRepository.deleteByProductId(productId);
-        items.forEach(dto -> {
-            Product ingredient = productRepository.findById(dto.getIngredientId())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Ingrediente no encontrado: " + dto.getIngredientId()));
-            ProductRecipeItem item = new ProductRecipeItem();
-            item.setProduct(product);
-            item.setIngredient(ingredient);
-            item.setQuantity(dto.getQuantity());
-            recipeRepository.save(item);
-        });
-        return recipeRepository.findByProductIdWithIngredient(productId)
-                .stream().map(RecipeItemDTO::from).toList();
     }
 
     @Transactional
