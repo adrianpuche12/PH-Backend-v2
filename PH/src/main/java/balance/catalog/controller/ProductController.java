@@ -3,8 +3,6 @@ package balance.catalog.controller;
 import balance.catalog.dto.ProductRequestDTO;
 import balance.catalog.dto.ProductResponseDTO;
 import balance.catalog.dto.RecipeItemDTO;
-import balance.catalog.model.Product;
-import balance.catalog.model.ProductRecipeItem;
 import balance.catalog.repository.ProductRecipeRepository;
 import balance.catalog.repository.ProductRepository;
 import balance.catalog.service.ProductService;
@@ -12,7 +10,6 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -96,33 +93,14 @@ public class ProductController {
     }
 
     @PutMapping("/api/v2/products/{id}/recipe")
-    @Transactional
     public ResponseEntity<?> saveRecipe(@PathVariable Long id,
                                         @Valid @RequestBody List<RecipeItemDTO> items) {
-        Product product = productRepository.findById(id).orElse(null);
-        if (product == null) return ResponseEntity.notFound().build();
-        if (!"FABRICATED".equals(product.getType())) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Solo los productos FABRICATED pueden tener receta"));
+        try {
+            if (!productRepository.existsById(id)) return ResponseEntity.notFound().build();
+            return ResponseEntity.ok(productService.saveRecipe(id, items));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-
-        recipeRepository.deleteByProductId(id);
-
-        items.forEach(dto -> {
-            Product ingredient = productRepository.findById(dto.getIngredientId())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Ingrediente no encontrado: " + dto.getIngredientId()));
-            ProductRecipeItem item = new ProductRecipeItem();
-            item.setProduct(product);
-            item.setIngredient(ingredient);
-            item.setQuantity(dto.getQuantity());
-            recipeRepository.save(item);
-        });
-
-        // Re-query con JOIN FETCH para evitar LazyInitializationException al mapear
-        List<RecipeItemDTO> response = recipeRepository.findByProductIdWithIngredient(id)
-                .stream().map(RecipeItemDTO::from).toList();
-        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/api/v2/products/{productId}/recipe/{itemId}")
