@@ -85,7 +85,7 @@ public class ProductController {
         return ResponseEntity.notFound().build();
     }
 
-    // ── Receta de producto manufacturado ────────────────────────────────────────
+    // â”€â”€ Receta de producto manufacturado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @GetMapping("/api/v2/products/{id}/recipe")
     public ResponseEntity<List<RecipeItemDTO>> getRecipe(@PathVariable Long id) {
@@ -126,10 +126,10 @@ public class ProductController {
     @Transactional
     public ResponseEntity<Void> deleteRecipeItem(@PathVariable Long productId,
                                                   @PathVariable Long itemId) {
-        return recipeRepository.findById(itemId)
-                .filter(r -> r.getProduct().getId().equals(productId))
-                .map(r -> { recipeRepository.delete(r); return ResponseEntity.<Void>noContent().build(); })
-                .orElse(ResponseEntity.notFound().build());
+        var found = recipeRepository.findById(itemId).filter(r -> r.getProduct().getId().equals(productId));
+        if (found.isEmpty()) return ResponseEntity.notFound().build();
+        recipeRepository.delete(found.get());
+        return ResponseEntity.noContent().build();
     }
 }
 

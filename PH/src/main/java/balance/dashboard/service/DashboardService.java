@@ -66,6 +66,7 @@ public class DashboardService {
             // COUNT + SUM por turno en vez de cargar todos los objetos Sale
             long salesCount  = saleRepository.countOpenByShiftId(shift.getId());
             BigDecimal salesTotal = saleRepository.sumTotalOpenByShiftId(shift.getId());
+            if (salesTotal == null) salesTotal = BigDecimal.ZERO;
 
             activeShifts.add(new StoreDashboardDTO.ActiveShiftDTO(
                     shift.getCode(), shift.getUsername(), shift.getOpenedAt(), salesCount, salesTotal));

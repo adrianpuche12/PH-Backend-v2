@@ -87,12 +87,10 @@ public class BankDepositService {
 
         BankDeposit saved = depositRepo.save(deposit);
 
-        // Marcar los cierres como depositados
+        // Marcar los cierres como depositados y propagar la imagen del comprobante via SQL directo
         for (ClosingDeposit c : closings) {
-            c.setDepositStatus("DEPOSITED");
-            c.setBankDepositId(saved.getId());
+            closingDepositRepo.updateDepositInfo(c.getId(), "DEPOSITED", saved.getId(), saved.getImageUri());
         }
-        closingDepositRepo.saveAll(closings);
 
         return DepositResponse.from(saved);
     }

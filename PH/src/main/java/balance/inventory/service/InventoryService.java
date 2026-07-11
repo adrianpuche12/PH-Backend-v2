@@ -1,7 +1,9 @@
 package balance.inventory.service;
 
 import balance.catalog.model.Product;
+import balance.catalog.model.ProductRecipeItem;
 import balance.catalog.repository.CategoryRepository;
+import balance.catalog.repository.ProductRecipeRepository;
 import balance.catalog.repository.ProductRepository;
 import balance.inventory.dto.*;
 import balance.inventory.model.InventoryMovement;
@@ -30,19 +32,31 @@ public class InventoryService {
     @Autowired private ProductRepository productRepository;
     @Autowired private StoreRepository storeRepository;
     @Autowired private CategoryRepository categoryRepository;
+    @Autowired private ProductRecipeRepository recipeRepository;
 
-    // ── Stock ──────────────────────────────────────────────────────────────
-
-    /**
-     * Retorna el stock de todos los productos activos del local.
-     * Si un producto no tiene registro de stock, lo crea automáticamente con quantity=0.
-     */
     public List<StockItemDTO> getStock(Long storeId) {
-        // Una sola query con JOIN — evita N+1 queries por producto
-        return stockRepository.findByStoreIdOrderByProductNameAsc(storeId)
-                .stream()
-                .map(StockItemDTO::from)
-                .toList();
+        List<StockItemDTO> items = stockRepository.findByStoreIdOrderByProductNameAsc(storeId)
+                .stream().map(StockItemDTO::from).collect(java.util.stream.Collectors.toList());
+        for (StockItemDTO item : items) {
+            if ("FABRICATED".equals(item.getProductType())) {
+                item.setQuantity(computeFabricatedQty(item.getProductId(), storeId));
+            }
+        }
+        return items;
+    }
+
+    private int computeFabricatedQty(Long productId, Long storeId) {
+        List<ProductRecipeItem> recipe = recipeRepository.findByProductIdWithIngredient(productId);
+        if (recipe.isEmpty()) return 0;
+        int min = Integer.MAX_VALUE;
+        for (ProductRecipeItem ri : recipe) {
+            InventoryStock ing = stockRepository
+                    .findByProductIdAndStoreId(ri.getIngredient().getId(), storeId).orElse(null);
+            int available = (ing != null) ? ing.getQuantity() : 0;
+            int canMake = (int) Math.floor((double) available / ri.getQuantity().doubleValue());
+            min = Math.min(min, canMake);
+        }
+        return min == Integer.MAX_VALUE ? 0 : min;
     }
 
     public List<StockItemDTO> getLowStock(Long storeId) {
@@ -66,12 +80,6 @@ public class InventoryService {
         return new StockSummaryDTO(total, active, lowStock, cats, value);
     }
 
-    // ── Ajuste de stock ────────────────────────────────────────────────────
-
-    /**
-     * Aplica un ajuste de stock (ENTRADA, SALIDA o AJUSTE) y registra el movimiento.
-     * @throws IllegalArgumentException si el stock es insuficiente para una SALIDA
-     */
     @Transactional
     public StockItemDTO adjust(Long storeId, StockAdjustmentDTO dto) {
         Store store = storeRepository.findById(storeId)
@@ -95,7 +103,6 @@ public class InventoryService {
         stock.setQuantity(newQty);
         stockRepository.save(stock);
 
-        // Registrar movimiento
         InventoryMovement movement = new InventoryMovement();
         movement.setType(dto.getType());
         movement.setQuantity(dto.getQuantity());
@@ -109,8 +116,6 @@ public class InventoryService {
         return StockItemDTO.from(stock);
     }
 
-    // ── Ajuste silencioso (usado por SalesService — no lanza excepción si stock insuficiente) ──
-
     @Transactional
     public void adjustSilent(Long storeId, StockAdjustmentDTO dto) {
         try {
@@ -121,14 +126,10 @@ public class InventoryService {
         }
     }
 
-    // ── Movimientos ────────────────────────────────────────────────────────
-
     public List<MovementDTO> getMovements(Long storeId) {
         return movementRepository.findByStoreIdOrderByCreatedAtDesc(storeId)
                 .stream().map(MovementDTO::from).toList();
     }
-
-    // ── Auto-crear stock al crear producto ─────────────────────────────────
 
     @Transactional
     public void initStock(Product product, Store store) {
