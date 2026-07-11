@@ -108,7 +108,7 @@ public class ProductController {
 
         recipeRepository.deleteByProductId(id);
 
-        List<ProductRecipeItem> saved = items.stream().map(dto -> {
+        items.forEach(dto -> {
             Product ingredient = productRepository.findById(dto.getIngredientId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Ingrediente no encontrado: " + dto.getIngredientId()));
@@ -116,10 +116,13 @@ public class ProductController {
             item.setProduct(product);
             item.setIngredient(ingredient);
             item.setQuantity(dto.getQuantity());
-            return recipeRepository.save(item);
-        }).toList();
+            recipeRepository.save(item);
+        });
 
-        return ResponseEntity.ok(saved.stream().map(RecipeItemDTO::from).toList());
+        // Re-query con JOIN FETCH para evitar LazyInitializationException al mapear
+        List<RecipeItemDTO> response = recipeRepository.findByProductIdWithIngredient(id)
+                .stream().map(RecipeItemDTO::from).toList();
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/api/v2/products/{productId}/recipe/{itemId}")
