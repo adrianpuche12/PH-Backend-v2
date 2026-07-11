@@ -142,6 +142,14 @@ public class ProductService {
                 .stream().map(RecipeItemDTO::from).toList();
     }
 
+    @Transactional
+    public boolean deleteRecipeItem(Long productId, Long itemId) {
+        return recipeRepository.findById(itemId)
+                .filter(r -> r.getProduct().getId().equals(productId))
+                .map(r -> { recipeRepository.delete(r); return true; })
+                .orElse(false);
+    }
+
     private void applyDTO(Product product, ProductRequestDTO dto) {
         product.setName(dto.getName().trim());
         product.setSku(dto.getSku() != null ? dto.getSku().trim() : null);

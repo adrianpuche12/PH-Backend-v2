@@ -104,12 +104,11 @@ public class ProductController {
     }
 
     @DeleteMapping("/api/v2/products/{productId}/recipe/{itemId}")
-    @Transactional
     public ResponseEntity<Void> deleteRecipeItem(@PathVariable Long productId,
                                                   @PathVariable Long itemId) {
-        var found = recipeRepository.findById(itemId).filter(r -> r.getProduct().getId().equals(productId));
-        if (found.isEmpty()) return ResponseEntity.notFound().build();
-        recipeRepository.delete(found.get());
+        if (!productService.deleteRecipeItem(productId, itemId)) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.noContent().build();
     }
 }
