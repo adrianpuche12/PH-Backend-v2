@@ -60,7 +60,7 @@ class InventoryServiceTest {
         InventoryStock stock = new InventoryStock();
         stock.setProduct(p);
         stock.setStore(s);
-        stock.setQuantity(qty);
+        stock.setQuantity(BigDecimal.valueOf(qty));
         return stock;
     }
 
@@ -68,7 +68,7 @@ class InventoryServiceTest {
         StockAdjustmentDTO dto = new StockAdjustmentDTO();
         dto.setProductId(productId);
         dto.setType(type);
-        dto.setQuantity(qty);
+        dto.setQuantity(BigDecimal.valueOf(qty));
         dto.setReason("Test");
         dto.setUsername("admin");
         return dto;
@@ -89,7 +89,7 @@ class InventoryServiceTest {
 
         inventoryService.adjust(1L, buildAdj(1L, "ENTRADA", 5));
 
-        assertThat(stock.getQuantity()).isEqualTo(15);
+        assertThat(stock.getQuantity()).isEqualByComparingTo(new BigDecimal("15"));
         verify(stockRepository).save(stock);
     }
 
@@ -108,7 +108,7 @@ class InventoryServiceTest {
 
         inventoryService.adjust(1L, buildAdj(1L, "SALIDA", 3));
 
-        assertThat(stock.getQuantity()).isEqualTo(7);
+        assertThat(stock.getQuantity()).isEqualByComparingTo(new BigDecimal("7"));
     }
 
     @Test
@@ -155,7 +155,7 @@ class InventoryServiceTest {
 
         inventoryService.adjust(1L, buildAdj(1L, "SALIDA", 5));
 
-        assertThat(stock.getQuantity()).isEqualTo(0);
+        assertThat(stock.getQuantity()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     // ── adjustSilent ──────────────────────────────────────────────────────────
@@ -202,7 +202,7 @@ class InventoryServiceTest {
         StockAdjustmentDTO dto = new StockAdjustmentDTO();
         dto.setProductId(1L);
         dto.setType("AJUSTE");
-        dto.setQuantity(10);
+        dto.setQuantity(new BigDecimal("10"));
         dto.setReason("Conteo físico");
         dto.setNotes("Diferencia mensual");
         dto.setUsername("admin");
@@ -218,7 +218,7 @@ class InventoryServiceTest {
         verify(movementRepository).save(captor.capture());
         InventoryMovement saved = captor.getValue();
         assertThat(saved.getType()).isEqualTo("AJUSTE");
-        assertThat(saved.getQuantity()).isEqualTo(10);
+        assertThat(saved.getQuantity()).isEqualByComparingTo(new BigDecimal("10"));
         assertThat(saved.getReason()).isEqualTo("Conteo físico");
         assertThat(saved.getNotes()).isEqualTo("Diferencia mensual");
         assertThat(saved.getUsername()).isEqualTo("admin");
@@ -258,7 +258,7 @@ class InventoryServiceTest {
         // stockRepository.save debe ser llamado para crear el registro nuevo con qty=10
         ArgumentCaptor<InventoryStock> captor = ArgumentCaptor.forClass(InventoryStock.class);
         verify(stockRepository, atLeastOnce()).save(captor.capture());
-        assertThat(captor.getAllValues()).anyMatch(s -> s.getQuantity() == 10);
+        assertThat(captor.getAllValues()).anyMatch(s -> s.getQuantity().compareTo(BigDecimal.TEN) == 0);
     }
 
     // ── validaciones ──────────────────────────────────────────────────────────

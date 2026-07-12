@@ -15,7 +15,7 @@ public class StockItemDTO {
     private String productType;
     private Boolean productActive;
     private BigDecimal price;
-    private Integer quantity;
+    private BigDecimal quantity;
     private Integer minStock;
     private boolean lowStock;
     private String categoryName;
@@ -39,8 +39,8 @@ public class StockItemDTO {
         dto.productActive = p.getActive();
         dto.price         = p.getPrice();
         dto.minStock      = p.getMinStock();
-        // lowStock solo aplica cuando hay un mÃ­nimo definido (minStock > 0)
-        dto.lowStock      = p.getMinStock() > 0 && stock.getQuantity() <= p.getMinStock();
+        // lowStock solo aplica cuando hay un mínimo definido (minStock > 0)
+        dto.lowStock      = p.getMinStock() > 0 && stock.getQuantity().compareTo(BigDecimal.valueOf(p.getMinStock())) <= 0;
 
         if (p.getCategory() != null) {
             dto.categoryName = p.getCategory().getName();
@@ -57,7 +57,7 @@ public class StockItemDTO {
     public static StockItemDTO fromFabricated(Product product, int computedQty, Long storeId) {
         StockItemDTO dto = new StockItemDTO();
         dto.stockId       = null;
-        dto.quantity      = computedQty;
+        dto.quantity      = BigDecimal.valueOf(computedQty);
         dto.updatedAt     = null;
         dto.productId     = product.getId();
         dto.productName   = product.getName();
@@ -89,8 +89,8 @@ public class StockItemDTO {
     public String getProductType() { return productType; }
     public Boolean getProductActive() { return productActive; }
     public BigDecimal getPrice() { return price; }
-    public Integer getQuantity() { return quantity; }
-    public void setQuantity(Integer quantity) { this.quantity = quantity; }
+    public BigDecimal getQuantity() { return quantity; }
+    public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
     public Integer getMinStock() { return minStock; }
     public boolean isLowStock() { return lowStock; }
     public String getCategoryName() { return categoryName; }

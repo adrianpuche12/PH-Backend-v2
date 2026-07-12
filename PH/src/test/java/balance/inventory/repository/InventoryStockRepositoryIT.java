@@ -66,7 +66,7 @@ class InventoryStockRepositoryIT {
         InventoryStock s = new InventoryStock();
         s.setProduct(product);
         s.setStore(store);
-        s.setQuantity(quantity);
+        s.setQuantity(java.math.BigDecimal.valueOf(quantity));
         return stockRepository.save(s);
     }
 
@@ -160,7 +160,7 @@ class InventoryStockRepositoryIT {
         InventoryStock sOtra = new InventoryStock();
         sOtra.setProduct(pOtra);
         sOtra.setStore(otraStore);
-        sOtra.setQuantity(1);
+        sOtra.setQuantity(java.math.BigDecimal.ONE);
         stockRepository.save(sOtra);
 
         // El local principal no tiene productos bajo stock

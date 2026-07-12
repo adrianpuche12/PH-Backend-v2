@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -23,8 +24,8 @@ public class InventoryMovement {
     private String type;
 
     @NotNull
-    @Column(nullable = false)
-    private Integer quantity;
+    @Column(nullable = false, precision = 10, scale = 4)
+    private BigDecimal quantity;
 
     private String reason;
 
@@ -49,8 +50,8 @@ public class InventoryMovement {
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
 
-    public Integer getQuantity() { return quantity; }
-    public void setQuantity(Integer quantity) { this.quantity = quantity; }
+    public BigDecimal getQuantity() { return quantity; }
+    public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }

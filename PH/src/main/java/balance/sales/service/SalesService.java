@@ -162,7 +162,7 @@ public class SalesService {
                             .setScale(3, RoundingMode.HALF_UP);
                     inventoryStockRepository.findByProductIdAndStoreId(ri.getIngredient().getId(), store.getId())
                             .ifPresent(stock -> {
-                                if (BigDecimal.valueOf(stock.getQuantity()).compareTo(needed) < 0) {
+                                if (stock.getQuantity().compareTo(needed) < 0) {
                                     throw new IllegalStateException(
                                         "Stock insuficiente de \"" + ri.getIngredient().getName() +
                                         "\" para fabricar \"" + product.getName() + "\". " +
@@ -173,7 +173,7 @@ public class SalesService {
             } else {
                 inventoryStockRepository.findByProductIdAndStoreId(itemReq.getProductId(), store.getId())
                         .ifPresent(stock -> {
-                            if (stock.getQuantity() < itemReq.getQuantity()) {
+                            if (stock.getQuantity().compareTo(BigDecimal.valueOf(itemReq.getQuantity())) < 0) {
                                 throw new IllegalStateException(
                                     "Stock insuficiente para \"" + product.getName() + "\". " +
                                     "Disponible: " + stock.getQuantity() + ", solicitado: " + itemReq.getQuantity());
@@ -602,12 +602,11 @@ public class SalesService {
             }
             Product product = item.getProduct();
             if ("FABRICATED".equals(product.getType())) {
-                // Descontar ingredientes de la receta
+                // Descontar ingredientes de la receta con cantidad exacta (fraccionaria si aplica)
                 List<ProductRecipeItem> recipe = recipeRepository.findByProductIdWithIngredient(product.getId());
                 for (ProductRecipeItem ri : recipe) {
-                    int qtyNeeded = ri.getQuantity()
-                            .multiply(BigDecimal.valueOf(item.getQuantity()))
-                            .setScale(0, RoundingMode.HALF_UP).intValue();
+                    BigDecimal qtyNeeded = ri.getQuantity()
+                            .multiply(BigDecimal.valueOf(item.getQuantity()));
                     StockAdjustmentDTO adj = new StockAdjustmentDTO();
                     adj.setProductId(ri.getIngredient().getId());
                     adj.setType("SALIDA");
@@ -620,7 +619,7 @@ public class SalesService {
                 StockAdjustmentDTO adj = new StockAdjustmentDTO();
                 adj.setProductId(product.getId());
                 adj.setType("SALIDA");
-                adj.setQuantity(item.getQuantity());
+                adj.setQuantity(BigDecimal.valueOf(item.getQuantity()));
                 adj.setReason("Venta");
                 adj.setUsername("system");
                 inventoryService.adjustSilent(storeId, adj);
@@ -636,9 +635,8 @@ public class SalesService {
                 if ("FABRICATED".equals(product.getType())) {
                     List<ProductRecipeItem> recipe = recipeRepository.findByProductIdWithIngredient(product.getId());
                     for (ProductRecipeItem ri : recipe) {
-                        int qtyNeeded = ri.getQuantity()
-                                .multiply(BigDecimal.valueOf(item.getQuantity()))
-                                .setScale(0, RoundingMode.HALF_UP).intValue();
+                        BigDecimal qtyNeeded = ri.getQuantity()
+                                .multiply(BigDecimal.valueOf(item.getQuantity()));
                         StockAdjustmentDTO adj = new StockAdjustmentDTO();
                         adj.setProductId(ri.getIngredient().getId());
                         adj.setType("ENTRADA");
@@ -651,7 +649,7 @@ public class SalesService {
                     StockAdjustmentDTO adj = new StockAdjustmentDTO();
                     adj.setProductId(product.getId());
                     adj.setType("ENTRADA");
-                    adj.setQuantity(item.getQuantity());
+                    adj.setQuantity(BigDecimal.valueOf(item.getQuantity()));
                     adj.setReason("Cancelación de venta");
                     adj.setUsername("system");
                     inventoryService.adjustSilent(storeId, adj);

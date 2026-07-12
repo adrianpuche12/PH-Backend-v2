@@ -99,7 +99,7 @@ public class StoreV2Service {
             InventoryStock stock = new InventoryStock();
             stock.setProduct(savedProduct);
             stock.setStore(targetStore);
-            stock.setQuantity(0);
+            stock.setQuantity(java.math.BigDecimal.ZERO);
             inventoryStockRepository.save(stock);
         }
     }
