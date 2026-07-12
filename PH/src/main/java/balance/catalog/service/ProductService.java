@@ -90,8 +90,18 @@ public class ProductService {
                         dto.getSku().trim(), product.getStore().getId(), id)) {
                 throw new IllegalArgumentException("Ya existe un producto con ese SKU en este local");
             }
+            String oldType = product.getType();
+            String newType = dto.getType() != null ? dto.getType() : "SIMPLE";
             applyDTO(product, dto);
-            return ProductResponseDTO.from(productRepository.save(product));
+            Product saved = productRepository.save(product);
+            if (!oldType.equals(newType)) {
+                if ("FABRICATED".equals(newType)) {
+                    inventoryStockRepository.deleteByProductId(saved.getId());
+                } else if ("FABRICATED".equals(oldType)) {
+                    inventoryService.initStock(saved, saved.getStore());
+                }
+            }
+            return ProductResponseDTO.from(saved);
         });
     }
 

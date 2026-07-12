@@ -35,13 +35,16 @@ public class InventoryService {
     @Autowired private ProductRecipeRepository recipeRepository;
 
     public List<StockItemDTO> getStock(Long storeId) {
-        List<StockItemDTO> items = stockRepository.findByStoreIdOrderByProductNameAsc(storeId)
+        List<StockItemDTO> items = stockRepository.findSimpleByStoreIdOrderByProductNameAsc(storeId)
                 .stream().map(StockItemDTO::from).collect(java.util.stream.Collectors.toList());
-        for (StockItemDTO item : items) {
-            if ("FABRICATED".equals(item.getProductType())) {
-                item.setQuantity(computeFabricatedQty(item.getProductId(), storeId));
-            }
-        }
+
+        productRepository.findByStoreIdAndTypeOrderByNameAsc(storeId, "FABRICATED").forEach(p -> {
+            int qty = computeFabricatedQty(p.getId(), storeId);
+            items.add(StockItemDTO.fromFabricated(p, qty, storeId));
+        });
+
+        items.sort(java.util.Comparator.comparing(StockItemDTO::getProductName,
+                String.CASE_INSENSITIVE_ORDER));
         return items;
     }
 
@@ -86,6 +89,10 @@ public class InventoryService {
                 .orElseThrow(() -> new IllegalArgumentException("Local no encontrado"));
         Product product = productRepository.findById(dto.getProductId())
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+
+        if ("FABRICATED".equals(product.getType())) {
+            throw new IllegalArgumentException("No se puede ajustar el stock de un producto fabricado");
+        }
 
         InventoryStock stock = stockRepository
                 .findByProductIdAndStoreId(dto.getProductId(), storeId)
@@ -133,6 +140,7 @@ public class InventoryService {
 
     @Transactional
     public void initStock(Product product, Store store) {
+        if ("FABRICATED".equals(product.getType())) return;
         if (stockRepository.findByProductIdAndStoreId(product.getId(), store.getId()).isEmpty()) {
             InventoryStock stock = new InventoryStock();
             stock.setProduct(product);
