@@ -106,6 +106,7 @@ public class ProductService {
     @Transactional
     public boolean delete(Long id) {
         if (!productRepository.existsById(id)) return false;
+        recipeRepository.deleteByProductId(id);
         inventoryMovementRepository.deleteByProductId(id);
         inventoryStockRepository.deleteByProductId(id);
         productRepository.deleteById(id);
