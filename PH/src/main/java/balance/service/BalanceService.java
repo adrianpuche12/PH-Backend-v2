@@ -26,6 +26,10 @@ public class BalanceService {
         return transactionRepository.findAllOrderByDateDesc();
     }
 
+    public List<Transaction> findByDateRange(LocalDate startDate, LocalDate endDate) {
+        return transactionRepository.findByDateBetweenOrderByDateDesc(startDate, endDate);
+    }
+
     // Método para calcular el balance entre dos fechas
     public BigDecimal calculateBalance(LocalDate startDate, LocalDate endDate) {
         // Ajustar la fecha de fin para incluir el día completo

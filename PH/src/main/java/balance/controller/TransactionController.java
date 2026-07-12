@@ -53,8 +53,14 @@ public class TransactionController {
     //OTRO COMENTARIO
 
     @GetMapping("/store/{storeId}")
-    public ResponseEntity<List<Transaction>> getByStoreId(@PathVariable Long storeId) {
-        return ResponseEntity.ok(transactionService.findByStoreId(storeId));
+    public ResponseEntity<List<Transaction>> getByStoreId(
+            @PathVariable Long storeId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        List<Transaction> result = (startDate != null && endDate != null)
+                ? transactionService.findByDateBetweenAndStoreId(startDate, endDate, storeId)
+                : transactionService.findByStoreId(storeId);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/date-range-store")
