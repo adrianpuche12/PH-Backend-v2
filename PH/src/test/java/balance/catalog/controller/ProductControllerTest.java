@@ -2,6 +2,8 @@ package balance.catalog.controller;
 
 import balance.catalog.dto.ProductRequestDTO;
 import balance.catalog.dto.ProductResponseDTO;
+import balance.catalog.repository.ProductRecipeRepository;
+import balance.catalog.repository.ProductRepository;
 import balance.catalog.service.ProductService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -24,9 +26,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(ProductController.class)
 class ProductControllerTest {
 
-    @Autowired private MockMvc         mockMvc;
-    @Autowired private ObjectMapper    objectMapper;
-    @MockBean  private ProductService  service;
+    @Autowired private MockMvc                  mockMvc;
+    @Autowired private ObjectMapper             objectMapper;
+    @MockBean  private ProductService           service;
+    @MockBean  private ProductRecipeRepository  recipeRepository;
+    @MockBean  private ProductRepository        productRepository;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

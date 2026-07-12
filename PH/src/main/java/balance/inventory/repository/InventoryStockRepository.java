@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +24,9 @@ public interface InventoryStockRepository extends JpaRepository<InventoryStock, 
 
     @Query("SELECT COUNT(s) FROM InventoryStock s WHERE s.store.id = :storeId AND s.product.minStock > 0 AND s.quantity <= s.product.minStock")
     long countLowStockByStoreId(@Param("storeId") Long storeId);
+
+    @Query("SELECT COALESCE(SUM(s.product.price * s.quantity), 0) FROM InventoryStock s WHERE s.store.id = :storeId")
+    BigDecimal sumEstimatedValueByStoreId(@Param("storeId") Long storeId);
 
     void deleteByProductId(Long productId);
 }

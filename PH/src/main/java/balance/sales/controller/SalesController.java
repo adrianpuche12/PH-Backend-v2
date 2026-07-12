@@ -49,6 +49,17 @@ public class SalesController {
         }
     }
 
+    // Editar venta (solo permitido si el turno sigue abierto y el username coincide con el dueño)
+    @PutMapping("/sales/{saleId}")
+    public ResponseEntity<?> updateSale(@PathVariable Long saleId,
+                                         @Valid @RequestBody SaleRequestDTO request) {
+        try {
+            return ResponseEntity.ok(salesService.updateSale(saleId, request));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // Cancelar venta (revierte stock)
     @DeleteMapping("/sales/{saleId}")
     public ResponseEntity<?> cancelSale(@PathVariable Long saleId) {
@@ -123,6 +134,28 @@ public class SalesController {
     @GetMapping("/shifts/{shiftId}/expenses")
     public ResponseEntity<List<ShiftExpenseResponseDTO>> getExpenses(@PathVariable Long shiftId) {
         return ResponseEntity.ok(salesService.getExpenses(shiftId));
+    }
+
+    // Editar egreso (solo permitido si el turno sigue abierto)
+    @PutMapping("/expenses/{expenseId}")
+    public ResponseEntity<?> updateExpense(@PathVariable Long expenseId,
+                                            @Valid @RequestBody ShiftExpenseRequestDTO request) {
+        try {
+            return ResponseEntity.ok(salesService.updateExpense(expenseId, request));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // Eliminar egreso (solo permitido si el turno sigue abierto)
+    @DeleteMapping("/expenses/{expenseId}")
+    public ResponseEntity<?> deleteExpense(@PathVariable Long expenseId) {
+        try {
+            salesService.deleteExpense(expenseId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     // Confirmar cierre de turno (integra con sistema V1)

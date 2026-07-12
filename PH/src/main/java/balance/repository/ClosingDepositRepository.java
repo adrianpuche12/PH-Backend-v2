@@ -1,10 +1,9 @@
 package balance.repository;
 import balance.model.ClosingDeposit;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-import java.time.LocalDate;
-import java.util.List;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -29,4 +28,9 @@ public interface ClosingDepositRepository extends JpaRepository<ClosingDeposit, 
 
     // Todos los pendientes de un local
     List<ClosingDeposit> findByStoreIdAndDepositStatusOrderByDepositDateDesc(Long storeId, String depositStatus);
+
+    // Actualiza directamente via SQL para evitar problemas de dirty-checking JPA
+    @Modifying
+    @Query(value = "UPDATE closing_deposits SET deposit_status = :status, bank_deposit_id = :bankDepositId, image_uri = :imageUri WHERE id = :id", nativeQuery = true)
+    void updateDepositInfo(Long id, String status, Long bankDepositId, String imageUri);
 }

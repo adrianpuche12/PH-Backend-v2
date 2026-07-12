@@ -2,6 +2,9 @@ package balance.catalog.controller;
 
 import balance.catalog.dto.ProductRequestDTO;
 import balance.catalog.dto.ProductResponseDTO;
+import balance.catalog.dto.RecipeItemDTO;
+import balance.catalog.repository.ProductRecipeRepository;
+import balance.catalog.repository.ProductRepository;
 import balance.catalog.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +20,12 @@ public class ProductController {
 
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private ProductRecipeRepository recipeRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
 
     @GetMapping("/api/v2/stores/{storeId}/products")
     public ResponseEntity<List<ProductResponseDTO>> getByStore(
@@ -71,6 +80,36 @@ public class ProductController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    // â”€â”€ Receta de producto manufacturado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    @GetMapping("/api/v2/products/{id}/recipe")
+    public ResponseEntity<List<RecipeItemDTO>> getRecipe(@PathVariable Long id) {
+        if (!productRepository.existsById(id)) return ResponseEntity.notFound().build();
+        List<RecipeItemDTO> items = recipeRepository.findByProductIdWithIngredient(id)
+                .stream().map(RecipeItemDTO::from).toList();
+        return ResponseEntity.ok(items);
+    }
+
+    @PutMapping("/api/v2/products/{id}/recipe")
+    public ResponseEntity<?> saveRecipe(@PathVariable Long id,
+                                        @Valid @RequestBody List<RecipeItemDTO> items) {
+        try {
+            if (!productRepository.existsById(id)) return ResponseEntity.notFound().build();
+            return ResponseEntity.ok(productService.saveRecipe(id, items));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/api/v2/products/{productId}/recipe/{itemId}")
+    public ResponseEntity<Void> deleteRecipeItem(@PathVariable Long productId,
+                                                  @PathVariable Long itemId) {
+        if (!productService.deleteRecipeItem(productId, itemId)) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.noContent().build();
     }
 }
 

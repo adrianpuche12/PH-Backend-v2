@@ -14,12 +14,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class ShiftService {
+
+    private static final ZoneId HONDURAS_TZ = ZoneId.of("America/Tegucigalpa");
 
     @Autowired private ShiftRepository shiftRepository;
     @Autowired private StoreRepository storeRepository;
@@ -38,6 +41,7 @@ public class ShiftService {
         shift.setUsername(username);
         shift.setStatus("OPEN");
         shift.setCode(generateCode(store));
+        shift.setOpenedAt(LocalDateTime.now(HONDURAS_TZ));
         shift.setOpeningCashAmount(openingCashAmount != null ? openingCashAmount : BigDecimal.ZERO);
         shiftRepository.save(shift);
         return ShiftResponseDTO.from(shift);
@@ -51,7 +55,7 @@ public class ShiftService {
             throw new IllegalStateException("El turno ya está cerrado");
         }
         shift.setStatus("CLOSED");
-        shift.setClosedAt(LocalDateTime.now());
+        shift.setClosedAt(LocalDateTime.now(HONDURAS_TZ));
         shiftRepository.save(shift);
         return ShiftResponseDTO.from(shift);
     }
@@ -107,8 +111,8 @@ public class ShiftService {
     /** Genera código único de turno: T-YYYYMMDD-HHmmss-DAN
      *  Incluye segundos para garantizar unicidad incluso con turnos consecutivos. */
     private String generateCode(Store store) {
-        String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
+        String date = LocalDate.now(HONDURAS_TZ).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String time = LocalTime.now(HONDURAS_TZ).format(DateTimeFormatter.ofPattern("HHmmss"));
         String storePart = store.getName()
                 .replaceAll("[^a-zA-Z]", "")
                 .toUpperCase();

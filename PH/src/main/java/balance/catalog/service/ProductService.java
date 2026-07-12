@@ -2,9 +2,11 @@ package balance.catalog.service;
 
 import balance.catalog.dto.ProductRequestDTO;
 import balance.catalog.dto.ProductResponseDTO;
-import balance.catalog.model.Category;
+import balance.catalog.dto.RecipeItemDTO;
 import balance.catalog.model.Product;
+import balance.catalog.model.ProductRecipeItem;
 import balance.catalog.repository.CategoryRepository;
+import balance.catalog.repository.ProductRecipeRepository;
 import balance.catalog.repository.ProductRepository;
 import balance.inventory.repository.InventoryMovementRepository;
 import balance.inventory.repository.InventoryStockRepository;
@@ -37,6 +39,9 @@ public class ProductService {
 
     @Autowired
     private InventoryStockRepository inventoryStockRepository;
+
+    @Autowired
+    private ProductRecipeRepository recipeRepository;
 
     @Autowired
     private InventoryMovementRepository inventoryMovementRepository;
@@ -101,6 +106,7 @@ public class ProductService {
     @Transactional
     public boolean delete(Long id) {
         if (!productRepository.existsById(id)) return false;
+        recipeRepository.deleteByProductId(id);
         inventoryMovementRepository.deleteByProductId(id);
         inventoryStockRepository.deleteByProductId(id);
         productRepository.deleteById(id);
@@ -113,6 +119,36 @@ public class ProductService {
         product.setStore(store);
         product.setActive(true);
         return product;
+    }
+
+    @Transactional
+    public List<RecipeItemDTO> saveRecipe(Long productId, List<RecipeItemDTO> items) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + productId));
+        if (!"FABRICATED".equals(product.getType())) {
+            throw new IllegalArgumentException("Solo los productos FABRICATED pueden tener receta");
+        }
+        recipeRepository.deleteByProductId(productId);
+        items.forEach(dto -> {
+            Product ingredient = productRepository.findById(dto.getIngredientId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Ingrediente no encontrado: " + dto.getIngredientId()));
+            ProductRecipeItem item = new ProductRecipeItem();
+            item.setProduct(product);
+            item.setIngredient(ingredient);
+            item.setQuantity(dto.getQuantity());
+            recipeRepository.save(item);
+        });
+        return recipeRepository.findByProductIdWithIngredient(productId)
+                .stream().map(RecipeItemDTO::from).toList();
+    }
+
+    @Transactional
+    public boolean deleteRecipeItem(Long productId, Long itemId) {
+        return recipeRepository.findById(itemId)
+                .filter(r -> r.getProduct().getId().equals(productId))
+                .map(r -> { recipeRepository.delete(r); return true; })
+                .orElse(false);
     }
 
     private void applyDTO(Product product, ProductRequestDTO dto) {

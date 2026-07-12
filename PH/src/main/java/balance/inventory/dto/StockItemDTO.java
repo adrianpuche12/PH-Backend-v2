@@ -38,7 +38,7 @@ public class StockItemDTO {
         dto.productActive = p.getActive();
         dto.price         = p.getPrice();
         dto.minStock      = p.getMinStock();
-        // lowStock solo aplica cuando hay un mínimo definido (minStock > 0)
+        // lowStock solo aplica cuando hay un mÃ­nimo definido (minStock > 0)
         dto.lowStock      = p.getMinStock() > 0 && stock.getQuantity() <= p.getMinStock();
 
         if (p.getCategory() != null) {
@@ -67,6 +67,7 @@ public class StockItemDTO {
     public Boolean getProductActive() { return productActive; }
     public BigDecimal getPrice() { return price; }
     public Integer getQuantity() { return quantity; }
+    public void setQuantity(Integer quantity) { this.quantity = quantity; }
     public Integer getMinStock() { return minStock; }
     public boolean isLowStock() { return lowStock; }
     public String getCategoryName() { return categoryName; }

@@ -65,20 +65,28 @@ jobs:
           push: true
           tags: |
             adrianpuche/humberto-v2-backend:${{ steps.env.outputs.IMAGE_TAG }}
+            adrianpuche/humberto-v2-backend:${{ github.sha }}
 
-      - name: Deploy en Railway
+      - name: Deploy en Railway (actualizar imagen + redeploy)
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           SERVICE_ID: ${{ steps.env.outputs.RAILWAY_SERVICE_ID }}
           ENV_ID: ${{ steps.env.outputs.RAILWAY_ENVIRONMENT_ID }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          DEPLOYMENT_ID=$(curl -sf -X POST "https://backboard.railway.app/graphql/v2" \
+          FULL_IMAGE="adrianpuche/humberto-v2-backend:$IMAGE_TAG"
+          echo "Updating Railway service source image to: $FULL_IMAGE"
+
+          # Step 1: Actualizar la imagen fuente del servicio en Railway
+          UPDATE_RESPONSE=$(curl -s -X POST "https://backboard.railway.app/graphql/v2" \
             -H "Authorization: Bearer $RAILWAY_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"query\": \"{ deployments(input: { serviceId: \\\"$SERVICE_ID\\\", environmentId: \\\"$ENV_ID\\\" }) { edges { node { id status } } } }\"}" \
-            | jq -r '.data.deployments.edges[0].node.id')
-          echo "Redeploying deployment: $DEPLOYMENT_ID"
-          curl -sf -X POST "https://backboard.railway.app/graphql/v2" \
+            -d "{\"query\": \"mutation { serviceInstanceUpdate(serviceId: \\\"$SERVICE_ID\\\", environmentId: \\\"$ENV_ID\\\", input: { source: { image: \\\"$FULL_IMAGE\\\" } }) }\"}")
+          echo "Update response: $UPDATE_RESPONSE"
+
+          # Step 2: Disparar un nuevo deploy con la imagen actualizada
+          REDEPLOY_RESPONSE=$(curl -s -X POST "https://backboard.railway.app/graphql/v2" \
             -H "Authorization: Bearer $RAILWAY_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"query\": \"mutation { deploymentRedeploy(id: \\\"$DEPLOYMENT_ID\\\") { id status } }\"}"
+            -d "{\"query\": \"mutation { serviceInstanceRedeploy(serviceId: \\\"$SERVICE_ID\\\", environmentId: \\\"$ENV_ID\\\") }\"}")
+          echo "Redeploy response: $REDEPLOY_RESPONSE"

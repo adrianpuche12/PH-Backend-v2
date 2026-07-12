@@ -5,11 +5,14 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "gasto_admin")
 public class GastoAdmin {
-    
+
+    private static final ZoneId HONDURAS_TZ = ZoneId.of("America/Tegucigalpa");
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -52,7 +55,7 @@ public class GastoAdmin {
     
     // Constructores
     public GastoAdmin() {
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now(HONDURAS_TZ);
     }
     
     public GastoAdmin(LocalDate fecha, BigDecimal monto, String descripcion, 
@@ -69,13 +72,13 @@ public class GastoAdmin {
     // Métodos de lifecycle
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now(HONDURAS_TZ);
         calcularMontos();
     }
-    
+
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(HONDURAS_TZ);
         calcularMontos();
     }
     

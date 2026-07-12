@@ -4,7 +4,6 @@ import balance.model.Store;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -31,7 +30,6 @@ public class Shift {
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
-    @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime openedAt;
 
@@ -79,6 +77,7 @@ public class Shift {
     public void setStore(Store store) { this.store = store; }
 
     public LocalDateTime getOpenedAt() { return openedAt; }
+    public void setOpenedAt(LocalDateTime openedAt) { this.openedAt = openedAt; }
 
     public LocalDateTime getClosedAt() { return closedAt; }
     public void setClosedAt(LocalDateTime closedAt) { this.closedAt = closedAt; }

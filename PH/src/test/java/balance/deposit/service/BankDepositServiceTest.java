@@ -127,10 +127,9 @@ class BankDepositServiceTest {
 
         service.createDeposit("cajero01", buildRequest(List.of(1L, 2L), new BigDecimal("500.00")));
 
-        assertThat(c1.getDepositStatus()).isEqualTo("DEPOSITED");
-        assertThat(c2.getDepositStatus()).isEqualTo("DEPOSITED");
-        assertThat(c1.getBankDepositId()).isEqualTo(99L);
-        verify(closingDepositRepo).saveAll(List.of(c1, c2));
+        // El servicio usa native SQL updateDepositInfo en lugar de saveAll
+        verify(closingDepositRepo).updateDepositInfo(1L, "DEPOSITED", 99L, null);
+        verify(closingDepositRepo).updateDepositInfo(2L, "DEPOSITED", 99L, null);
     }
 
     @Test

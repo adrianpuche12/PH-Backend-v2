@@ -21,18 +21,28 @@ public class SaleResponseDTO {
     private BigDecimal total;
     private List<SaleItemDTO> items;
     private LocalDateTime createdAt;
+    private Boolean edited;
+    private LocalDateTime editedAt;
+    private String paymentMethod;
+    private BigDecimal cashAmount;
+    private BigDecimal cardAmount;
 
     public static SaleResponseDTO from(Sale sale) {
         SaleResponseDTO dto = new SaleResponseDTO();
-        dto.id        = sale.getId();
-        dto.username  = sale.getUsername();
-        dto.saleDate  = sale.getSaleDate();
-        dto.status    = sale.getStatus();
-        dto.subtotal  = sale.getSubtotal();
-        dto.isv       = sale.getIsv();
-        dto.total     = sale.getTotal();
-        dto.createdAt = sale.getCreatedAt();
-        dto.items     = sale.getItems().stream().map(SaleItemDTO::from).toList();
+        dto.id            = sale.getId();
+        dto.username      = sale.getUsername();
+        dto.saleDate      = sale.getSaleDate();
+        dto.status        = sale.getStatus();
+        dto.subtotal      = sale.getSubtotal();
+        dto.isv           = sale.getIsv();
+        dto.total         = sale.getTotal();
+        dto.createdAt     = sale.getCreatedAt();
+        dto.edited        = sale.getEdited();
+        dto.editedAt      = sale.getEditedAt();
+        dto.paymentMethod = sale.getPaymentMethod();
+        dto.cashAmount    = sale.getCashAmount();
+        dto.cardAmount    = sale.getCardAmount();
+        dto.items         = sale.getItems().stream().map(SaleItemDTO::from).toList();
         if (sale.getShift() != null) {
             dto.shiftId   = sale.getShift().getId();
             dto.shiftCode = sale.getShift().getCode();
@@ -57,4 +67,9 @@ public class SaleResponseDTO {
     public BigDecimal getTotal() { return total; }
     public List<SaleItemDTO> getItems() { return items; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public Boolean getEdited() { return edited; }
+    public LocalDateTime getEditedAt() { return editedAt; }
+    public String getPaymentMethod() { return paymentMethod; }
+    public BigDecimal getCashAmount() { return cashAmount; }
+    public BigDecimal getCardAmount() { return cardAmount; }
 }

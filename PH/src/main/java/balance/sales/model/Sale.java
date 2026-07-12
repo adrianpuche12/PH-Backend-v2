@@ -65,6 +65,12 @@ public class Sale {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    // Auditoría: true si la venta fue corregida después de creada (mientras el turno seguía abierto)
+    @Column(nullable = false)
+    private Boolean edited = false;
+
+    private LocalDateTime editedAt;
+
     public Long getId() { return id; }
 
     public Shift getShift() { return shift; }
@@ -103,4 +109,10 @@ public class Sale {
 
     public BigDecimal getCardAmount() { return cardAmount; }
     public void setCardAmount(BigDecimal cardAmount) { this.cardAmount = cardAmount; }
+
+    public Boolean getEdited() { return edited; }
+    public void setEdited(Boolean edited) { this.edited = edited; }
+
+    public LocalDateTime getEditedAt() { return editedAt; }
+    public void setEditedAt(LocalDateTime editedAt) { this.editedAt = editedAt; }
 }

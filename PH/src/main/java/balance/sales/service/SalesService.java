@@ -1,6 +1,8 @@
 package balance.sales.service;
 
 import balance.catalog.model.Product;
+import balance.catalog.model.ProductRecipeItem;
+import balance.catalog.repository.ProductRecipeRepository;
 import balance.catalog.repository.ProductRepository;
 import balance.inventory.dto.StockAdjustmentDTO;
 import balance.inventory.service.InventoryService;
@@ -43,12 +45,13 @@ public class SalesService {
     private static final BigDecimal ISV_RATE = BigDecimal.ZERO;
 
     // Recargo por pago con tarjeta de crédito/débito (solicitud del cliente)
-    private static final BigDecimal CARD_SURCHARGE_RATE = new BigDecimal("0.03");
+    private static final BigDecimal CARD_SURCHARGE_RATE = new BigDecimal("0.02");
 
     @Autowired private SaleRepository saleRepository;
     @Autowired private ShiftRepository shiftRepository;
     @Autowired private ShiftExpenseRepository shiftExpenseRepository;
     @Autowired private ProductRepository productRepository;
+    @Autowired private ProductRecipeRepository recipeRepository;
     @Autowired private StoreRepository storeRepository;
     @Autowired private InventoryService inventoryService;
     @Autowired private FormsService formsService;
@@ -73,19 +76,7 @@ public class SalesService {
 
         Store store = shift.getStore();
 
-        // Validar stock disponible para todos los ítems antes de crear la venta
-        for (SaleItemRequestDTO itemReq : request.getItems()) {
-            Product product = productRepository.findById(itemReq.getProductId())
-                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + itemReq.getProductId()));
-            inventoryStockRepository.findByProductIdAndStoreId(itemReq.getProductId(), store.getId())
-                    .ifPresent(stock -> {
-                        if (stock.getQuantity() < itemReq.getQuantity()) {
-                            throw new IllegalStateException(
-                                "Stock insuficiente para \"" + product.getName() + "\". " +
-                                "Disponible: " + stock.getQuantity() + ", solicitado: " + itemReq.getQuantity());
-                        }
-                    });
-        }
+        validateStockAvailable(store, request.getItems());
 
         Sale sale = new Sale();
         sale.setShift(shift);
@@ -94,6 +85,109 @@ public class SalesService {
         sale.setSaleDate(LocalDate.now(HONDURAS_TZ));
         sale.setStatus("OPEN");
 
+        applyItemsAndPayment(sale, request);
+
+        saleRepository.save(sale);
+
+        // Descontar stock de cada producto vendido
+        deductStock(store.getId(), sale.getItems());
+
+        return SaleResponseDTO.from(sale);
+    }
+
+    // ── Editar venta ─────────────────────────────────────────────────────────
+
+    /**
+     * Edita una venta existente mientras el turno sigue abierto.
+     * Revierte el stock de los ítems anteriores y descuenta el de los nuevos.
+     * Marca la venta como editada (edited=true, editedAt=ahora).
+     * @throws IllegalArgumentException si la venta o algún producto no existe
+     * @throws IllegalStateException     si el turno está cerrado, la venta ya está confirmada,
+     *                                    si el usuario no es el dueño de la venta, o si no hay stock
+     */
+    @Transactional
+    public SaleResponseDTO updateSale(Long saleId, SaleRequestDTO request) {
+        Sale sale = saleRepository.findById(saleId)
+                .orElseThrow(() -> new IllegalArgumentException("Venta no encontrada"));
+
+        Shift shift = sale.getShift();
+        if ("CLOSED".equals(shift.getStatus())) {
+            throw new IllegalStateException("No se puede editar una venta de un turno cerrado");
+        }
+        if ("CONFIRMED".equals(sale.getStatus())) {
+            throw new IllegalStateException("No se puede editar una venta ya confirmada");
+        }
+        if (!sale.getUsername().equals(request.getUsername())) {
+            throw new IllegalStateException("No podés editar una venta registrada por otro usuario");
+        }
+
+        Store store = shift.getStore();
+
+        // Revertir el stock de los ítems actuales antes de validar/aplicar los nuevos
+        revertStock(store.getId(), sale.getItems());
+
+        validateStockAvailable(store, request.getItems());
+
+        sale.getItems().clear();
+        applyItemsAndPayment(sale, request);
+
+        sale.setEdited(true);
+        sale.setEditedAt(java.time.LocalDateTime.now(HONDURAS_TZ));
+
+        saleRepository.save(sale);
+
+        deductStock(store.getId(), sale.getItems());
+
+        return SaleResponseDTO.from(sale);
+    }
+
+    // ── Helpers compartidos por createSale / updateSale ─────────────────────
+
+    /** Valida que haya stock suficiente para cada ítem solicitado. */
+    private void validateStockAvailable(Store store, List<SaleItemRequestDTO> items) {
+        for (SaleItemRequestDTO itemReq : items) {
+            Product product = productRepository.findById(itemReq.getProductId())
+                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + itemReq.getProductId()));
+
+            if ("FABRICATED".equals(product.getType())) {
+                // Verificar stock de cada ingrediente de la receta
+                List<ProductRecipeItem> recipe = recipeRepository.findByProductIdWithIngredient(product.getId());
+                if (recipe.isEmpty()) {
+                    throw new IllegalStateException(
+                        "El producto \"" + product.getName() + "\" no tiene receta definida");
+                }
+                for (ProductRecipeItem ri : recipe) {
+                    BigDecimal needed = ri.getQuantity()
+                            .multiply(BigDecimal.valueOf(itemReq.getQuantity()))
+                            .setScale(3, RoundingMode.HALF_UP);
+                    inventoryStockRepository.findByProductIdAndStoreId(ri.getIngredient().getId(), store.getId())
+                            .ifPresent(stock -> {
+                                if (BigDecimal.valueOf(stock.getQuantity()).compareTo(needed) < 0) {
+                                    throw new IllegalStateException(
+                                        "Stock insuficiente de \"" + ri.getIngredient().getName() +
+                                        "\" para fabricar \"" + product.getName() + "\". " +
+                                        "Disponible: " + stock.getQuantity() + ", necesario: " + needed);
+                                }
+                            });
+                }
+            } else {
+                inventoryStockRepository.findByProductIdAndStoreId(itemReq.getProductId(), store.getId())
+                        .ifPresent(stock -> {
+                            if (stock.getQuantity() < itemReq.getQuantity()) {
+                                throw new IllegalStateException(
+                                    "Stock insuficiente para \"" + product.getName() + "\". " +
+                                    "Disponible: " + stock.getQuantity() + ", solicitado: " + itemReq.getQuantity());
+                            }
+                        });
+            }
+        }
+    }
+
+    /**
+     * Construye los SaleItem a partir del request, calcula subtotal/ISV/recargo de tarjeta
+     * y deja la venta lista para persistir. Asume que sale.getItems() está vacío al entrar.
+     */
+    private void applyItemsAndPayment(Sale sale, SaleRequestDTO request) {
         BigDecimal subtotal = BigDecimal.ZERO;
 
         for (SaleItemRequestDTO itemReq : request.getItems()) {
@@ -130,7 +224,7 @@ public class SalesService {
         String paymentMethod = request.getPaymentMethod() != null ? request.getPaymentMethod() : "CASH";
         sale.setPaymentMethod(paymentMethod);
 
-        // Recargo del 3% sobre el monto pagado con tarjeta (CARD o porción tarjeta de MIXED)
+        // Recargo del 2% sobre el monto pagado con tarjeta (CARD o porción tarjeta de MIXED)
         BigDecimal total;
         switch (paymentMethod) {
             case "CARD": {
@@ -161,13 +255,6 @@ public class SalesService {
         }
 
         sale.setTotal(total);
-
-        saleRepository.save(sale);
-
-        // Descontar stock de cada producto vendido
-        deductStock(store.getId(), sale.getItems());
-
-        return SaleResponseDTO.from(sale);
     }
 
     // ── Cancelar venta ───────────────────────────────────────────────────────
@@ -347,6 +434,44 @@ public class SalesService {
                 .stream().map(ShiftExpenseResponseDTO::from).toList();
     }
 
+    /**
+     * Edita un egreso. Solo permitido si el turno al que pertenece sigue OPEN.
+     * @throws IllegalArgumentException si el egreso no existe
+     * @throws IllegalStateException    si el turno ya está cerrado
+     */
+    @Transactional
+    public ShiftExpenseResponseDTO updateExpense(Long expenseId, ShiftExpenseRequestDTO request) {
+        ShiftExpense expense = shiftExpenseRepository.findById(expenseId)
+                .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado"));
+
+        if ("CLOSED".equals(expense.getShift().getStatus())) {
+            throw new IllegalStateException("No se puede editar un egreso de un turno cerrado");
+        }
+
+        expense.setDescription(request.getDescription());
+        expense.setAmount(request.getAmount());
+
+        shiftExpenseRepository.save(expense);
+        return ShiftExpenseResponseDTO.from(expense);
+    }
+
+    /**
+     * Elimina un egreso. Solo permitido si el turno al que pertenece sigue OPEN.
+     * @throws IllegalArgumentException si el egreso no existe
+     * @throws IllegalStateException    si el turno ya está cerrado
+     */
+    @Transactional
+    public void deleteExpense(Long expenseId) {
+        ShiftExpense expense = shiftExpenseRepository.findById(expenseId)
+                .orElseThrow(() -> new IllegalArgumentException("Egreso no encontrado"));
+
+        if ("CLOSED".equals(expense.getShift().getStatus())) {
+            throw new IllegalStateException("No se puede eliminar un egreso de un turno cerrado");
+        }
+
+        shiftExpenseRepository.delete(expense);
+    }
+
     // ── Resumen de efectivo para reconciliación bancaria ─────────────────────
 
     public Map<String, Object> getCashSummary(Long storeId, LocalDate from, LocalDate to) {
@@ -406,12 +531,14 @@ public class SalesService {
 
         BigDecimal totalCardSurcharge = totalAmount.subtract(totalSubtotal).subtract(totalIsv);
 
-        // Reconciliación: efectivo esperado = fondo inicial + ventas en efectivo - egresos del turno
+        // Reconciliación: efectivo esperado = ventas en efectivo - egresos del turno.
+        // El fondo inicial NO se cuenta: la cajera solo declara el efectivo de ventas,
+        // el fondo queda en caja para el siguiente turno y nunca se deposita.
         BigDecimal opening    = shift.getOpeningCashAmount() != null ? shift.getOpeningCashAmount() : BigDecimal.ZERO;
         BigDecimal declared   = declaredCashAmount != null ? declaredCashAmount : BigDecimal.ZERO;
         BigDecimal expensesRaw = shiftExpenseRepository.sumAmountByShiftId(shiftId);
         BigDecimal expenses    = expensesRaw != null ? expensesRaw : BigDecimal.ZERO;
-        BigDecimal expected    = opening.add(totalCash).subtract(expenses);
+        BigDecimal expected    = totalCash.subtract(expenses);
         BigDecimal difference = declared.subtract(expected).setScale(2, RoundingMode.HALF_UP);
 
         // Crear ClosingDeposit en sistema V1 vinculado a este turno
@@ -438,7 +565,7 @@ public class SalesService {
 
         // Cerrar el turno con todos los datos de reconciliación
         shift.setStatus("CLOSED");
-        shift.setClosedAt(java.time.LocalDateTime.now());
+        shift.setClosedAt(java.time.LocalDateTime.now(HONDURAS_TZ));
         shift.setTotalCashSales(totalCash);
         shift.setTotalCardSales(totalCard);
         shift.setTotalShiftExpenses(expenses);
@@ -473,27 +600,62 @@ public class SalesService {
                 log.warn("SaleItem sin producto asociado — se omite descuento de stock");
                 continue;
             }
-            StockAdjustmentDTO adj = new StockAdjustmentDTO();
-            adj.setProductId(item.getProduct().getId());
-            adj.setType("SALIDA");
-            adj.setQuantity(item.getQuantity());
-            adj.setReason("Venta");
-            adj.setUsername("system");
-            inventoryService.adjustSilent(storeId, adj); // logea si stock insuficiente
+            Product product = item.getProduct();
+            if ("FABRICATED".equals(product.getType())) {
+                // Descontar ingredientes de la receta
+                List<ProductRecipeItem> recipe = recipeRepository.findByProductIdWithIngredient(product.getId());
+                for (ProductRecipeItem ri : recipe) {
+                    int qtyNeeded = ri.getQuantity()
+                            .multiply(BigDecimal.valueOf(item.getQuantity()))
+                            .setScale(0, RoundingMode.HALF_UP).intValue();
+                    StockAdjustmentDTO adj = new StockAdjustmentDTO();
+                    adj.setProductId(ri.getIngredient().getId());
+                    adj.setType("SALIDA");
+                    adj.setQuantity(qtyNeeded);
+                    adj.setReason("Venta de " + product.getName());
+                    adj.setUsername("system");
+                    inventoryService.adjustSilent(storeId, adj);
+                }
+            } else {
+                StockAdjustmentDTO adj = new StockAdjustmentDTO();
+                adj.setProductId(product.getId());
+                adj.setType("SALIDA");
+                adj.setQuantity(item.getQuantity());
+                adj.setReason("Venta");
+                adj.setUsername("system");
+                inventoryService.adjustSilent(storeId, adj);
+            }
         }
     }
 
     private void revertStock(Long storeId, List<SaleItem> items) {
         for (SaleItem item : items) {
             if (item.getProduct() == null) continue;
+            Product product = item.getProduct();
             try {
-                StockAdjustmentDTO adj = new StockAdjustmentDTO();
-                adj.setProductId(item.getProduct().getId());
-                adj.setType("ENTRADA");
-                adj.setQuantity(item.getQuantity());
-                adj.setReason("Cancelación de venta");
-                adj.setUsername("system");
-                inventoryService.adjustSilent(storeId, adj);
+                if ("FABRICATED".equals(product.getType())) {
+                    List<ProductRecipeItem> recipe = recipeRepository.findByProductIdWithIngredient(product.getId());
+                    for (ProductRecipeItem ri : recipe) {
+                        int qtyNeeded = ri.getQuantity()
+                                .multiply(BigDecimal.valueOf(item.getQuantity()))
+                                .setScale(0, RoundingMode.HALF_UP).intValue();
+                        StockAdjustmentDTO adj = new StockAdjustmentDTO();
+                        adj.setProductId(ri.getIngredient().getId());
+                        adj.setType("ENTRADA");
+                        adj.setQuantity(qtyNeeded);
+                        adj.setReason("Cancelación de venta de " + product.getName());
+                        adj.setUsername("system");
+                        inventoryService.adjustSilent(storeId, adj);
+                    }
+                } else {
+                    StockAdjustmentDTO adj = new StockAdjustmentDTO();
+                    adj.setProductId(product.getId());
+                    adj.setType("ENTRADA");
+                    adj.setQuantity(item.getQuantity());
+                    adj.setReason("Cancelación de venta");
+                    adj.setUsername("system");
+                    inventoryService.adjustSilent(storeId, adj);
+                }
             } catch (Exception ignored) {}
         }
     }
