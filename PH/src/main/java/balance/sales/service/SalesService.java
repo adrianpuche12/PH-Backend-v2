@@ -162,7 +162,7 @@ public class SalesService {
                             .setScale(3, RoundingMode.HALF_UP);
                     inventoryStockRepository.findByProductIdAndStoreId(ri.getIngredient().getId(), store.getId())
                             .ifPresent(stock -> {
-                                if (BigDecimal.valueOf(stock.getQuantity()).compareTo(needed) < 0) {
+                                if (stock.getQuantity().compareTo(needed) < 0) {
                                     throw new IllegalStateException(
                                         "Stock insuficiente de \"" + ri.getIngredient().getName() +
                                         "\" para fabricar \"" + product.getName() + "\". " +
@@ -173,7 +173,7 @@ public class SalesService {
             } else {
                 inventoryStockRepository.findByProductIdAndStoreId(itemReq.getProductId(), store.getId())
                         .ifPresent(stock -> {
-                            if (stock.getQuantity() < itemReq.getQuantity()) {
+                            if (stock.getQuantity().compareTo(BigDecimal.valueOf(itemReq.getQuantity())) < 0) {
                                 throw new IllegalStateException(
                                     "Stock insuficiente para \"" + product.getName() + "\". " +
                                     "Disponible: " + stock.getQuantity() + ", solicitado: " + itemReq.getQuantity());
