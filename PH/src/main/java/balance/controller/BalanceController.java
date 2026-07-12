@@ -56,10 +56,14 @@ public class BalanceController {
         return ResponseEntity.ok(balance);
     }
 
-    // Método para obtener todas las transacciones
+    // Método para obtener todas las transacciones (con filtro de fecha opcional)
     @GetMapping
-    public ResponseEntity<List<Transaction>> getAllTransactions() {
-        List<Transaction> transactions = balanceService.getAllTransactions();
+    public ResponseEntity<List<Transaction>> getAllTransactions(
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        List<Transaction> transactions = (startDate != null && endDate != null)
+                ? balanceService.findByDateRange(startDate, endDate)
+                : balanceService.getAllTransactions();
         return ResponseEntity.ok(transactions);
     }
 

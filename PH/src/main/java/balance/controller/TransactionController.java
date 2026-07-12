@@ -3,6 +3,7 @@ package balance.controller;
 import balance.model.Transaction;
 import balance.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,8 +54,14 @@ public class TransactionController {
     //OTRO COMENTARIO
 
     @GetMapping("/store/{storeId}")
-    public ResponseEntity<List<Transaction>> getByStoreId(@PathVariable Long storeId) {
-        return ResponseEntity.ok(transactionService.findByStoreId(storeId));
+    public ResponseEntity<List<Transaction>> getByStoreId(
+            @PathVariable Long storeId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        List<Transaction> result = (startDate != null && endDate != null)
+                ? transactionService.findByDateBetweenAndStoreId(startDate, endDate, storeId)
+                : transactionService.findByStoreId(storeId);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/date-range-store")
