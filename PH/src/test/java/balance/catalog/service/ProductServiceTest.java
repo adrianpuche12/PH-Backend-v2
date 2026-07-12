@@ -4,6 +4,7 @@ import balance.catalog.dto.ProductRequestDTO;
 import balance.catalog.dto.ProductResponseDTO;
 import balance.catalog.model.Product;
 import balance.catalog.repository.CategoryRepository;
+import balance.catalog.repository.ProductRecipeRepository;
 import balance.catalog.repository.ProductRepository;
 import balance.inventory.repository.InventoryMovementRepository;
 import balance.inventory.repository.InventoryStockRepository;
@@ -35,6 +36,7 @@ class ProductServiceTest {
     @Mock private InventoryService            inventoryService;
     @Mock private InventoryStockRepository    inventoryStockRepository;
     @Mock private InventoryMovementRepository inventoryMovementRepository;
+    @Mock private ProductRecipeRepository     recipeRepository;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
