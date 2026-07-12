@@ -23,6 +23,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            "LOWER(p.sku)  LIKE LOWER(CONCAT('%', :search, '%')))")
     List<Product> searchByStoreId(Long storeId, String search);
 
+    List<Product> findByStoreIdAndTypeOrderByNameAsc(Long storeId, String type);
+
     boolean existsBySkuAndStoreId(String sku, Long storeId);
 
     boolean existsBySkuAndStoreIdAndIdNot(String sku, Long storeId, Long id);

@@ -1,5 +1,6 @@
 package balance.inventory.dto;
 
+import balance.catalog.model.Product;
 import balance.inventory.model.InventoryStock;
 
 import java.math.BigDecimal;
@@ -49,6 +50,28 @@ public class StockItemDTO {
         if (stock.getStore() != null) {
             dto.storeId   = stock.getStore().getId();
             dto.storeName = stock.getStore().getName();
+        }
+        return dto;
+    }
+
+    public static StockItemDTO fromFabricated(Product product, int computedQty, Long storeId) {
+        StockItemDTO dto = new StockItemDTO();
+        dto.stockId       = null;
+        dto.quantity      = computedQty;
+        dto.updatedAt     = null;
+        dto.productId     = product.getId();
+        dto.productName   = product.getName();
+        dto.productSku    = product.getSku();
+        dto.productType   = product.getType();
+        dto.productActive = product.getActive();
+        dto.price         = product.getPrice();
+        dto.minStock      = null;
+        dto.lowStock      = false;
+        dto.storeId       = storeId;
+        if (product.getCategory() != null) {
+            dto.categoryName = product.getCategory().getName();
+            dto.categoryPath = buildPath(product.getCategory());
+            dto.categoryId   = product.getCategory().getId();
         }
         return dto;
     }

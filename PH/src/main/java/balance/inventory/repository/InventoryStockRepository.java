@@ -16,6 +16,9 @@ public interface InventoryStockRepository extends JpaRepository<InventoryStock, 
     @Query("SELECT s FROM InventoryStock s JOIN FETCH s.product p JOIN FETCH s.store LEFT JOIN FETCH p.category c LEFT JOIN FETCH c.parent WHERE s.store.id = :storeId ORDER BY p.name ASC")
     List<InventoryStock> findByStoreIdOrderByProductNameAsc(@Param("storeId") Long storeId);
 
+    @Query("SELECT s FROM InventoryStock s JOIN FETCH s.product p JOIN FETCH s.store LEFT JOIN FETCH p.category c LEFT JOIN FETCH c.parent WHERE s.store.id = :storeId AND p.type <> 'FABRICATED' ORDER BY p.name ASC")
+    List<InventoryStock> findSimpleByStoreIdOrderByProductNameAsc(@Param("storeId") Long storeId);
+
     Optional<InventoryStock> findByProductIdAndStoreId(Long productId, Long storeId);
 
     // minStock > 0 evita falsos positivos cuando el producto no tiene mínimo definido
