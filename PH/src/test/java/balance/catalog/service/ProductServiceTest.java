@@ -35,6 +35,7 @@ class ProductServiceTest {
     @Mock private InventoryService            inventoryService;
     @Mock private InventoryStockRepository    inventoryStockRepository;
     @Mock private InventoryMovementRepository inventoryMovementRepository;
+    @Mock private balance.catalog.repository.ProductRecipeRepository recipeRepository;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
