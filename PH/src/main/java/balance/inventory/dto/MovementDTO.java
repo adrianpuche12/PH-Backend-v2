@@ -2,13 +2,14 @@ package balance.inventory.dto;
 
 import balance.inventory.model.InventoryMovement;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class MovementDTO {
 
     private Long id;
     private String type;
-    private Integer quantity;
+    private BigDecimal quantity;
     private String reason;
     private String notes;
     private String username;
@@ -36,7 +37,7 @@ public class MovementDTO {
 
     public Long getId() { return id; }
     public String getType() { return type; }
-    public Integer getQuantity() { return quantity; }
+    public BigDecimal getQuantity() { return quantity; }
     public String getReason() { return reason; }
     public String getNotes() { return notes; }
     public String getUsername() { return username; }

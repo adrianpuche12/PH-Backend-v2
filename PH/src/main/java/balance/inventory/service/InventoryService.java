@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,8 +56,8 @@ public class InventoryService {
         for (ProductRecipeItem ri : recipe) {
             InventoryStock ing = stockRepository
                     .findByProductIdAndStoreId(ri.getIngredient().getId(), storeId).orElse(null);
-            int available = (ing != null) ? ing.getQuantity() : 0;
-            int canMake = (int) Math.floor((double) available / ri.getQuantity().doubleValue());
+            BigDecimal available = (ing != null) ? ing.getQuantity() : BigDecimal.ZERO;
+            int canMake = available.divide(ri.getQuantity(), 0, RoundingMode.FLOOR).intValue();
             min = Math.min(min, canMake);
         }
         return min == Integer.MAX_VALUE ? 0 : min;
@@ -76,8 +77,7 @@ public class InventoryService {
         long cats     = categoryRepository.findRootsByStoreId(storeId).size();
 
         BigDecimal value = stocks.stream()
-                .map(s -> s.getProduct().getPrice()
-                        .multiply(BigDecimal.valueOf(s.getQuantity())))
+                .map(s -> s.getProduct().getPrice().multiply(s.getQuantity()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new StockSummaryDTO(total, active, lowStock, cats, value);
@@ -100,13 +100,13 @@ public class InventoryService {
                     InventoryStock s = new InventoryStock();
                     s.setProduct(product);
                     s.setStore(store);
-                    s.setQuantity(0);
+                    s.setQuantity(BigDecimal.ZERO);
                     return s;
                 });
 
-        int delta = "SALIDA".equals(dto.getType()) ? -dto.getQuantity() : dto.getQuantity();
-        int newQty = stock.getQuantity() + delta;
-        if (newQty < 0) throw new IllegalArgumentException("Stock insuficiente para realizar la salida");
+        BigDecimal delta = "SALIDA".equals(dto.getType()) ? dto.getQuantity().negate() : dto.getQuantity();
+        BigDecimal newQty = stock.getQuantity().add(delta);
+        if (newQty.compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("Stock insuficiente para realizar la salida");
         stock.setQuantity(newQty);
         stockRepository.save(stock);
 
@@ -145,7 +145,7 @@ public class InventoryService {
             InventoryStock stock = new InventoryStock();
             stock.setProduct(product);
             stock.setStore(store);
-            stock.setQuantity(0);
+            stock.setQuantity(BigDecimal.ZERO);
             stockRepository.save(stock);
         }
     }

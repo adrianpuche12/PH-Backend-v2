@@ -1,8 +1,10 @@
 package balance.inventory.dto;
 
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
+import java.math.BigDecimal;
 
 public class StockAdjustmentDTO {
 
@@ -14,8 +16,8 @@ public class StockAdjustmentDTO {
     private String type;
 
     @NotNull
-    @Min(value = 1, message = "La cantidad debe ser mayor a 0")
-    private Integer quantity;
+    @DecimalMin(value = "0.0001", message = "La cantidad debe ser mayor a 0")
+    private BigDecimal quantity;
 
     private String reason;
     private String notes;
@@ -27,8 +29,8 @@ public class StockAdjustmentDTO {
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
 
-    public Integer getQuantity() { return quantity; }
-    public void setQuantity(Integer quantity) { this.quantity = quantity; }
+    public BigDecimal getQuantity() { return quantity; }
+    public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
