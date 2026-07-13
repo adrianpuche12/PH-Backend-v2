@@ -57,7 +57,7 @@ class InventoryControllerTest {
         StockItemDTO lowItem = new StockItemDTO();
         ReflectionTestUtils.setField(lowItem, "productId",   1L);
         ReflectionTestUtils.setField(lowItem, "productName", "Pollo");
-        ReflectionTestUtils.setField(lowItem, "quantity",    2);
+        ReflectionTestUtils.setField(lowItem, "quantity",    new BigDecimal("2"));
         ReflectionTestUtils.setField(lowItem, "minStock",    5);
         ReflectionTestUtils.setField(lowItem, "lowStock",    true);
         when(inventoryService.getLowStock(1L)).thenReturn(List.of(lowItem));
@@ -97,7 +97,7 @@ class InventoryControllerTest {
         StockItemDTO updated = new StockItemDTO();
         ReflectionTestUtils.setField(updated, "productId",   1L);
         ReflectionTestUtils.setField(updated, "productName", "Pollo Entero");
-        ReflectionTestUtils.setField(updated, "quantity",    15);
+        ReflectionTestUtils.setField(updated, "quantity",    new BigDecimal("15"));
         ReflectionTestUtils.setField(updated, "lowStock",    false);
         when(inventoryService.adjust(eq(1L), any())).thenReturn(updated);
 
@@ -183,7 +183,7 @@ class InventoryControllerTest {
         StockItemDTO dto = new StockItemDTO();
         ReflectionTestUtils.setField(dto, "productId",   1L);
         ReflectionTestUtils.setField(dto, "productName", "Pollo Entero");
-        ReflectionTestUtils.setField(dto, "quantity",    10);
+        ReflectionTestUtils.setField(dto, "quantity",    new BigDecimal("10"));
         ReflectionTestUtils.setField(dto, "minStock",    5);
         ReflectionTestUtils.setField(dto, "lowStock",    false);
         ReflectionTestUtils.setField(dto, "price",       new BigDecimal("150.00"));

@@ -263,7 +263,7 @@ class SalesServiceTest {
 
         verify(inventoryService).adjustSilent(eq(1L), captor.capture());
         assertThat(captor.getValue().getType()).isEqualTo("SALIDA");
-        assertThat(captor.getValue().getQuantity()).isEqualTo(3);
+        assertThat(captor.getValue().getQuantity()).isEqualByComparingTo(new BigDecimal("3"));
     }
 
     // ── cancelSale ────────────────────────────────────────────────────────────
@@ -303,7 +303,7 @@ class SalesServiceTest {
 
         verify(inventoryService).adjustSilent(eq(1L), captor.capture());
         assertThat(captor.getValue().getType()).isEqualTo("ENTRADA");
-        assertThat(captor.getValue().getQuantity()).isEqualTo(3);
+        assertThat(captor.getValue().getQuantity()).isEqualByComparingTo(new BigDecimal("3"));
     }
 
     @Test
@@ -385,9 +385,9 @@ class SalesServiceTest {
 
         List<StockAdjustmentDTO> calls = captor.getAllValues();
         assertThat(calls.get(0).getType()).isEqualTo("ENTRADA");
-        assertThat(calls.get(0).getQuantity()).isEqualTo(4);
+        assertThat(calls.get(0).getQuantity()).isEqualByComparingTo(new BigDecimal("4"));
         assertThat(calls.get(1).getType()).isEqualTo("SALIDA");
-        assertThat(calls.get(1).getQuantity()).isEqualTo(2);
+        assertThat(calls.get(1).getQuantity()).isEqualByComparingTo(new BigDecimal("2"));
     }
 
     @Test
