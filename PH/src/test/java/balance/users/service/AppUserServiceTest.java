@@ -27,6 +27,7 @@ class AppUserServiceTest {
     @Mock private AppUserRepository    userRepository;
     @Mock private StoreRepository      storeRepository;
     @Mock private KeycloakAdminService keycloakAdmin;
+    @Mock private EmailService         emailService;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -51,7 +52,8 @@ class AppUserServiceTest {
         AppUserRequestDTO dto = new AppUserRequestDTO();
         dto.setUsername(username);
         dto.setFullName(fullName);
-        dto.setPassword("pass123");
+        dto.setEmail(username + "@test.com");
+        dto.setRole("ENCARGADO");
         dto.setStoreId(storeId);
         return dto;
     }
@@ -62,7 +64,7 @@ class AppUserServiceTest {
     void create_normalizesUsernameToLowercase() {
         when(userRepository.existsByUsername("cajero01")).thenReturn(false);
         when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
-        when(keycloakAdmin.createUser(any(), any(), any())).thenReturn("kc-uuid-nuevo");
+        when(keycloakAdmin.createUser(any(), any(), any(), any(), any())).thenReturn("kc-uuid-nuevo");
         when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         appUserService.create(buildRequest("CAJERO01", "Cajero Uno", 1L));
@@ -76,7 +78,7 @@ class AppUserServiceTest {
     void create_trimesUsernameWhitespace() {
         when(userRepository.existsByUsername("cajero01")).thenReturn(false);
         when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
-        when(keycloakAdmin.createUser(any(), any(), any())).thenReturn("kc-uuid-nuevo");
+        when(keycloakAdmin.createUser(any(), any(), any(), any(), any())).thenReturn("kc-uuid-nuevo");
         when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         appUserService.create(buildRequest("  cajero01  ", "Cajero Uno", 1L));
@@ -90,7 +92,7 @@ class AppUserServiceTest {
     void create_savesKeycloakIdReturnedByKeycloak() {
         when(userRepository.existsByUsername("cajero01")).thenReturn(false);
         when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
-        when(keycloakAdmin.createUser(any(), any(), any())).thenReturn("kc-uuid-abc123");
+        when(keycloakAdmin.createUser(any(), any(), any(), any(), any())).thenReturn("kc-uuid-abc123");
         when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         appUserService.create(buildRequest("cajero01", "Cajero", 1L));
@@ -104,7 +106,7 @@ class AppUserServiceTest {
     void create_setsStatusToActiveByDefault() {
         when(userRepository.existsByUsername("cajero01")).thenReturn(false);
         when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
-        when(keycloakAdmin.createUser(any(), any(), any())).thenReturn("kc-uuid-nuevo");
+        when(keycloakAdmin.createUser(any(), any(), any(), any(), any())).thenReturn("kc-uuid-nuevo");
         when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         appUserService.create(buildRequest("cajero01", "Cajero", 1L));
