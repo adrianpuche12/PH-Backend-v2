@@ -94,7 +94,8 @@ class AppUserControllerTest {
         String body = objectMapper.writeValueAsString(Map.of(
                 "fullName", "Cajero Uno",
                 "username", "cajero01",
-                "password", "pass123",
+                "email", "cajero01@test.com",
+                "role", "ENCARGADO",
                 "storeId", 1
         ));
 
@@ -108,12 +109,13 @@ class AppUserControllerTest {
     @Test
     void create_returns400WhenUsernameAlreadyExists() throws Exception {
         when(userService.create(any()))
-                .thenThrow(new IllegalArgumentException("El username 'cajero01' ya estÃ¡ en uso"));
+                .thenThrow(new IllegalArgumentException("El username 'cajero01' ya está en uso"));
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "fullName", "Cajero Uno",
                 "username", "cajero01",
-                "password", "pass123",
+                "email", "cajero01@test.com",
+                "role", "ENCARGADO",
                 "storeId", 1
         ));
 
@@ -121,7 +123,7 @@ class AppUserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("El username 'cajero01' ya estÃ¡ en uso"));
+                .andExpect(jsonPath("$.error").value("El username 'cajero01' ya está en uso"));
     }
 
     @Test
@@ -149,7 +151,8 @@ class AppUserControllerTest {
         String body = objectMapper.writeValueAsString(Map.of(
                 "fullName", "Cajero",
                 "username", "cajero01",
-                "password", "pass123",
+                "email", "cajero01@test.com",
+                "role", "ENCARGADO",
                 "storeId", 1
         ));
 
