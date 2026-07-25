@@ -13,6 +13,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -287,6 +289,252 @@ class AppUserServiceTest {
         when(userRepository.findByUsername("desconocido")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> appUserService.findByUsername("desconocido"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Usuario no encontrado");
+    }
+
+    // ── create — nuevos campos rol/email/firstLogin ───────────────────────────
+
+    @Test
+    void create_setsRoleFromDto() {
+        when(userRepository.existsByUsername("cnt01")).thenReturn(false);
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
+        when(keycloakAdmin.createUser(any(), any(), any(), any(), any())).thenReturn("kc-uuid-cnt");
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AppUserRequestDTO dto = buildRequest("cnt01", "Contador Uno", 1L);
+        dto.setRole("CONTADOR");
+        appUserService.create(dto);
+
+        ArgumentCaptor<AppUser> captor = ArgumentCaptor.forClass(AppUser.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getRole()).isEqualTo("CONTADOR");
+    }
+
+    @Test
+    void create_setsFirstLoginTrue() {
+        when(userRepository.existsByUsername("cajero01")).thenReturn(false);
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
+        when(keycloakAdmin.createUser(any(), any(), any(), any(), any())).thenReturn("kc-uuid");
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        appUserService.create(buildRequest("cajero01", "Cajero", 1L));
+
+        ArgumentCaptor<AppUser> captor = ArgumentCaptor.forClass(AppUser.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().isFirstLogin()).isTrue();
+    }
+
+    @Test
+    void create_setsEmailFromDto() {
+        when(userRepository.existsByUsername("cajero01")).thenReturn(false);
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
+        when(keycloakAdmin.createUser(any(), any(), any(), any(), any())).thenReturn("kc-uuid");
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AppUserRequestDTO dto = buildRequest("cajero01", "Cajero", 1L);
+        dto.setEmail("cajero01@test.com");
+        appUserService.create(dto);
+
+        ArgumentCaptor<AppUser> captor = ArgumentCaptor.forClass(AppUser.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getEmail()).isEqualTo("cajero01@test.com");
+    }
+
+    @Test
+    void create_usesAdminRoleForKcWhenRoleIsAdmin() {
+        when(userRepository.existsByUsername("admin01")).thenReturn(false);
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
+        when(keycloakAdmin.createUser(any(), any(), any(), any(), any())).thenReturn("kc-uuid");
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AppUserRequestDTO dto = buildRequest("admin01", "Admin Uno", 1L);
+        dto.setRole("ADMIN");
+        appUserService.create(dto);
+
+        verify(keycloakAdmin).createUser(any(), any(), any(), any(), eq("admin"));
+    }
+
+    @Test
+    void create_usesUserRoleForKcWhenRoleIsEncargado() {
+        when(userRepository.existsByUsername("enc01")).thenReturn(false);
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
+        when(keycloakAdmin.createUser(any(), any(), any(), any(), any())).thenReturn("kc-uuid");
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AppUserRequestDTO dto = buildRequest("enc01", "Encargado", 1L);
+        dto.setRole("ENCARGADO");
+        appUserService.create(dto);
+
+        verify(keycloakAdmin).createUser(any(), any(), any(), any(), eq("user"));
+    }
+
+    @Test
+    void create_sendsWelcomeEmail() {
+        when(userRepository.existsByUsername("cajero01")).thenReturn(false);
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
+        when(keycloakAdmin.createUser(any(), any(), any(), any(), any())).thenReturn("kc-uuid");
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AppUserRequestDTO dto = buildRequest("cajero01", "Cajero", 1L);
+        dto.setEmail("cajero01@test.com");
+        appUserService.create(dto);
+
+        verify(emailService).sendWelcomeEmail(
+            eq("cajero01@test.com"), eq("Cajero"), eq("cajero01"), any()
+        );
+    }
+
+    @Test
+    void create_withoutStoreIdIsAllowed() {
+        when(userRepository.existsByUsername("cnt01")).thenReturn(false);
+        when(keycloakAdmin.createUser(any(), any(), any(), any(), any())).thenReturn("kc-uuid-cnt");
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AppUserRequestDTO dto = buildRequest("cnt01", "Contador", null);
+        dto.setRole("CONTADOR");
+        appUserService.create(dto);
+
+        ArgumentCaptor<AppUser> captor = ArgumentCaptor.forClass(AppUser.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getStore()).isNull();
+    }
+
+    @Test
+    void create_setsPermissionsFromDto() {
+        when(userRepository.existsByUsername("enc01")).thenReturn(false);
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
+        when(keycloakAdmin.createUser(any(), any(), any(), any(), any())).thenReturn("kc-uuid");
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AppUserRequestDTO dto = buildRequest("enc01", "Encargado", 1L);
+        dto.setPermissions(List.of("POS", "SALES_HISTORY", "INVENTORY"));
+        appUserService.create(dto);
+
+        ArgumentCaptor<AppUser> captor = ArgumentCaptor.forClass(AppUser.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getPermissions())
+            .containsExactlyInAnyOrder("POS", "SALES_HISTORY", "INVENTORY");
+    }
+
+    // ── updatePermissions ─────────────────────────────────────────────────────
+
+    @Test
+    void updatePermissions_replacesExistingPermissions() {
+        AppUser user = buildUser(1L, "cajero01", "ACTIVE");
+        user.setPermissions(new ArrayList<>(List.of("POS", "CATALOG")));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AppUserResponseDTO result = appUserService.updatePermissions(1L, List.of("DASHBOARD", "SALES_HISTORY"));
+
+        assertThat(result.getPermissions()).containsExactlyInAnyOrder("DASHBOARD", "SALES_HISTORY");
+    }
+
+    @Test
+    void updatePermissions_emptyListMeansFullAccess() {
+        AppUser user = buildUser(1L, "cajero01", "ACTIVE");
+        user.setPermissions(new ArrayList<>(List.of("POS")));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AppUserResponseDTO result = appUserService.updatePermissions(1L, new ArrayList<>());
+
+        assertThat(result.getPermissions()).isEmpty();
+    }
+
+    @Test
+    void updatePermissions_nullTreatedAsEmpty() {
+        AppUser user = buildUser(1L, "cajero01", "ACTIVE");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AppUserResponseDTO result = appUserService.updatePermissions(1L, null);
+
+        assertThat(result.getPermissions()).isEmpty();
+    }
+
+    @Test
+    void updatePermissions_throwsWhenUserNotFound() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> appUserService.updatePermissions(99L, List.of("POS")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Usuario no encontrado");
+    }
+
+    // ── updateStoreAccess ─────────────────────────────────────────────────────
+
+    @Test
+    void updateStoreAccess_setsNewStores() {
+        AppUser user = buildUser(1L, "cajero01", "ACTIVE");
+        Store s2 = buildStore(2L, "El Paraíso");
+        Store s3 = buildStore(3L, "Tegucigalpa");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(storeRepository.findById(2L)).thenReturn(Optional.of(s2));
+        when(storeRepository.findById(3L)).thenReturn(Optional.of(s3));
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AppUserResponseDTO result = appUserService.updateStoreAccess(1L, List.of(2L, 3L));
+
+        assertThat(result.getStoreIds()).containsExactlyInAnyOrder(2L, 3L);
+    }
+
+    @Test
+    void updateStoreAccess_emptyListMeansAllStores() {
+        AppUser user = buildUser(1L, "cajero01", "ACTIVE");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AppUserResponseDTO result = appUserService.updateStoreAccess(1L, new ArrayList<>());
+
+        assertThat(result.getStoreIds()).isEmpty();
+    }
+
+    @Test
+    void updateStoreAccess_throwsWhenStoreNotFound() {
+        AppUser user = buildUser(1L, "cajero01", "ACTIVE");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(storeRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> appUserService.updateStoreAccess(1L, List.of(99L)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Local no encontrado");
+    }
+
+    // ── changePassword ────────────────────────────────────────────────────────
+
+    @Test
+    void changePassword_setsFirstLoginFalse() {
+        AppUser user = buildUser(1L, "cajero01", "ACTIVE");
+        user.setFirstLogin(true);
+        when(userRepository.findByUsername("cajero01")).thenReturn(Optional.of(user));
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        appUserService.changePassword("cajero01", "NuevaPass123!");
+
+        ArgumentCaptor<AppUser> captor = ArgumentCaptor.forClass(AppUser.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().isFirstLogin()).isFalse();
+    }
+
+    @Test
+    void changePassword_callsKcResetPassword() {
+        AppUser user = buildUser(1L, "cajero01", "ACTIVE");
+        when(userRepository.findByUsername("cajero01")).thenReturn(Optional.of(user));
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        appUserService.changePassword("cajero01", "NuevaPass123!");
+
+        verify(keycloakAdmin).resetPassword("kc-uuid-1", "NuevaPass123!");
+    }
+
+    @Test
+    void changePassword_throwsWhenUserNotFound() {
+        when(userRepository.findByUsername("desconocido")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> appUserService.changePassword("desconocido", "pass"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Usuario no encontrado");
     }
