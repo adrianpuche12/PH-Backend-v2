@@ -28,7 +28,7 @@ class AppUserControllerTest {
 
     @MockBean private AppUserService userService;
 
-    // â”€â”€ GET /api/v2/users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ GET /api/v2/users â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @Test
     void findAll_returns200WithList() throws Exception {
@@ -50,7 +50,7 @@ class AppUserControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
-    // â”€â”€ GET /api/v2/users/by-username/{username} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ GET /api/v2/users/by-username/{username} â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @Test
     void findByUsername_returns200WhenFound() throws Exception {
@@ -71,7 +71,7 @@ class AppUserControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // â”€â”€ GET /api/v2/users/store/{storeId} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ GET /api/v2/users/store/{storeId} â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @Test
     void findByStore_returns200WithFilteredList() throws Exception {
@@ -85,7 +85,7 @@ class AppUserControllerTest {
                 .andExpect(jsonPath("$.length()").value(2));
     }
 
-    // â”€â”€ POST /api/v2/users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ POST /api/v2/users â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @Test
     void create_returns200WhenSuccessful() throws Exception {
@@ -128,7 +128,7 @@ class AppUserControllerTest {
 
     @Test
     void create_returns400WhenValidationFails() throws Exception {
-        // fullName es @NotBlank â€” omitirlo â†’ 400 sin llamar al servicio
+        // fullName es @NotBlank â€" omitirlo â†’ 400 sin llamar al servicio
         String body = objectMapper.writeValueAsString(Map.of(
                 "username", "cajero01",
                 "password", "pass123",
@@ -163,7 +163,7 @@ class AppUserControllerTest {
                 .andExpect(jsonPath("$.error").exists());
     }
 
-    // â”€â”€ PUT /api/v2/users/{id}/suspend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ PUT /api/v2/users/{id}/suspend â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @Test
     void suspend_returns200WhenSuccessful() throws Exception {
@@ -193,7 +193,7 @@ class AppUserControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // â”€â”€ PUT /api/v2/users/{id}/activate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ PUT /api/v2/users/{id}/activate â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @Test
     void activate_returns200WhenSuccessful() throws Exception {
@@ -213,7 +213,7 @@ class AppUserControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // â”€â”€ PUT /api/v2/users/{id}/reassign â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ PUT /api/v2/users/{id}/reassign â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @Test
     void reassign_returns200WhenSuccessful() throws Exception {
@@ -236,7 +236,7 @@ class AppUserControllerTest {
         verifyNoInteractions(userService);
     }
 
-    // â”€â”€ PUT /api/v2/users/{id}/reset-password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ PUT /api/v2/users/{id}/reset-password â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @Test
     void resetPassword_returns200WhenSuccessful() throws Exception {
@@ -260,7 +260,7 @@ class AppUserControllerTest {
         verifyNoInteractions(userService);
     }
 
-    // â”€â”€ DELETE /api/v2/users/{id} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ DELETE /api/v2/users/{id} â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @Test
     void delete_returns204WhenSuccessful() throws Exception {
@@ -280,94 +280,94 @@ class AppUserControllerTest {
                 .andExpect(jsonPath("$.error").exists());
     }
 
-    // â”€â”€ PUT /api/v2/users/change-password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ PUT /api/v2/users/change-password â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @Test
     void changePassword_returns200WhenSuccessful() throws Exception {
-        doNothing().when(userService).changePassword(“cajero01”, “NuevaPass123!”);
+        doNothing().when(userService).changePassword("cajero01", "NuevaPass123!");
 
-        mockMvc.perform(put(“/api/v2/users/change-password”)
+        mockMvc.perform(put("/api/v2/users/change-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                “username”, “cajero01”,
-                                “newPassword”, “NuevaPass123!”))))
+                                "username", "cajero01",
+                                "newPassword", "NuevaPass123!"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath(“$.message”).exists());
+                .andExpect(jsonPath("$.message").exists());
     }
 
     @Test
     void changePassword_returns400WhenUsernameMissing() throws Exception {
-        mockMvc.perform(put(“/api/v2/users/change-password”)
+        mockMvc.perform(put("/api/v2/users/change-password")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of(“newPassword”, “pass123”))))
+                        .content(objectMapper.writeValueAsString(Map.of("newPassword", "pass123"))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath(“$.error”).value(“username es obligatorio”));
+                .andExpect(jsonPath("$.error").value("username es obligatorio"));
 
         verifyNoInteractions(userService);
     }
 
     @Test
     void changePassword_returns400WhenNewPasswordMissing() throws Exception {
-        mockMvc.perform(put(“/api/v2/users/change-password”)
+        mockMvc.perform(put("/api/v2/users/change-password")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of(“username”, “cajero01”))))
+                        .content(objectMapper.writeValueAsString(Map.of("username", "cajero01"))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath(“$.error”).value(“newPassword es obligatorio”));
+                .andExpect(jsonPath("$.error").value("newPassword es obligatorio"));
 
         verifyNoInteractions(userService);
     }
 
-    // â”€â”€ PUT /api/v2/users/{id}/permissions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ PUT /api/v2/users/{id}/permissions â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @Test
     void updatePermissions_returns200WhenSuccessful() throws Exception {
-        when(userService.updatePermissions(1L, List.of(“POS”, “SALES_HISTORY”)))
-                .thenReturn(buildUserResponse(“cajero01”, “ACTIVE”));
+        when(userService.updatePermissions(1L, List.of("POS", "SALES_HISTORY")))
+                .thenReturn(buildUserResponse("cajero01", "ACTIVE"));
 
-        mockMvc.perform(put(“/api/v2/users/1/permissions”)
+        mockMvc.perform(put("/api/v2/users/1/permissions")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of(“permissions”, List.of(“POS”, “SALES_HISTORY”)))))
+                        .content(objectMapper.writeValueAsString(Map.of("permissions", List.of("POS", "SALES_HISTORY")))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath(“$.username”).value(“cajero01”));
+                .andExpect(jsonPath("$.username").value("cajero01"));
     }
 
     @Test
     void updatePermissions_returns200WithEmptyList() throws Exception {
         when(userService.updatePermissions(eq(1L), eq(List.of())))
-                .thenReturn(buildUserResponse(“cajero01”, “ACTIVE”));
+                .thenReturn(buildUserResponse("cajero01", "ACTIVE"));
 
-        mockMvc.perform(put(“/api/v2/users/1/permissions”)
+        mockMvc.perform(put("/api/v2/users/1/permissions")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(“{\”permissions\”:[]}”))
+                        .content("{\"permissions\":[]}"))
                 .andExpect(status().isOk());
     }
 
-    // â”€â”€ PUT /api/v2/users/{id}/store-access â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ PUT /api/v2/users/{id}/store-access â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @Test
     void updateStoreAccess_returns200WhenSuccessful() throws Exception {
         when(userService.updateStoreAccess(1L, List.of(2L, 3L)))
-                .thenReturn(buildUserResponse(“cajero01”, “ACTIVE”));
+                .thenReturn(buildUserResponse("cajero01", "ACTIVE"));
 
-        mockMvc.perform(put(“/api/v2/users/1/store-access”)
+        mockMvc.perform(put("/api/v2/users/1/store-access")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of(“storeIds”, List.of(2, 3)))))
+                        .content(objectMapper.writeValueAsString(Map.of("storeIds", List.of(2, 3)))))
                 .andExpect(status().isOk());
     }
 
     @Test
     void updateStoreAccess_returns400WhenStoreNotFound() throws Exception {
         when(userService.updateStoreAccess(1L, List.of(99L)))
-                .thenThrow(new IllegalArgumentException(“Local no encontrado: 99”));
+                .thenThrow(new IllegalArgumentException("Local no encontrado: 99"));
 
-        mockMvc.perform(put(“/api/v2/users/1/store-access”)
+        mockMvc.perform(put("/api/v2/users/1/store-access")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of(“storeIds”, List.of(99)))))
+                        .content(objectMapper.writeValueAsString(Map.of("storeIds", List.of(99)))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath(“$.error”).exists());
+                .andExpect(jsonPath("$.error").exists());
     }
 
-    // â”€â”€ Helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Helper â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     private AppUserResponseDTO buildUserResponse(String username, String status) {
         AppUserResponseDTO dto = new AppUserResponseDTO();
