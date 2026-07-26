@@ -19,6 +19,9 @@ public class EmailService {
     @Value("${app.url:https://lospolloshermanos.org}")
     private String appUrl;
 
+    @Value("${app.from.email:noreply@lospolloshermanos.org}")
+    private String fromEmail;
+
     public void sendWelcomeEmail(String toEmail, String fullName, String username, String tempPassword) {
         if (resendApiKey == null || resendApiKey.isBlank()) {
             log.warn("RESEND_API_KEY no configurado — email de bienvenida no enviado para {}", username);
@@ -30,7 +33,7 @@ public class EmailService {
         try {
             Resend resend = new Resend(resendApiKey);
             CreateEmailOptions params = CreateEmailOptions.builder()
-                    .from("Los Pollos Hermanos <noreply@lospolloshermanos.org>")
+                    .from("Los Pollos Hermanos <" + fromEmail + ">")
                     .to(toEmail)
                     .subject("Bienvenido a Los Pollos Hermanos — Tu acceso al sistema")
                     .html(html)
