@@ -93,7 +93,7 @@ public class KeycloakAdminService {
 
         String[] parts = fullName.trim().split("\\s+", 2);
         String firstName = parts[0];
-        String lastName  = parts.length > 1 ? parts[1] : "";
+        String lastName  = parts.length > 1 ? parts[1] : parts[0];
 
         Map<String, Object> userPayload = new java.util.HashMap<>();
         userPayload.put("username",      username.trim().toLowerCase());
