@@ -84,7 +84,9 @@ public class AppUserService {
         AppUser saved = userRepository.save(user);
         emailService.sendWelcomeEmail(dto.getEmail(), dto.getFullName(), username, tempPassword);
 
-        return AppUserResponseDTO.from(saved);
+        AppUserResponseDTO response = AppUserResponseDTO.from(saved);
+        response.setTempPassword(tempPassword);
+        return response;
     }
 
     // ── Cambio de contraseña (primer login) ──────────────────────────────────
