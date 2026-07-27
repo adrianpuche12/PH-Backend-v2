@@ -10,16 +10,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class AppUserService {
 
-    @Autowired private AppUserRepository     userRepository;
-    @Autowired private StoreRepository       storeRepository;
-    @Autowired private KeycloakAdminService  keycloakAdmin;
+    private static final String PASSWORD_CHARS =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz!@#$";
+    private static final SecureRandom RANDOM = new SecureRandom();
 
-    // ── Listar usuarios ───────────────────────────────────────────────────────
+    @Autowired private AppUserRepository    userRepository;
+    @Autowired private StoreRepository      storeRepository;
+    @Autowired private KeycloakAdminService keycloakAdmin;
+    @Autowired private EmailService         emailService;
+
+    // ── Listar ───────────────────────────────────────────────────────────────
 
     public List<AppUserResponseDTO> findAll() {
         return userRepository.findAllByOrderByFullNameAsc()
@@ -33,38 +40,93 @@ public class AppUserService {
 
     // ── Crear usuario ─────────────────────────────────────────────────────────
 
-    /**
-     * Crea el usuario en nuestra BD y en Keycloak con rol 'user'.
-     * Si falla Keycloak, la transacción se revierte.
-     */
     @Transactional
     public AppUserResponseDTO create(AppUserRequestDTO dto) {
-        if (userRepository.existsByUsername(dto.getUsername().trim().toLowerCase())) {
-            throw new IllegalArgumentException("El username '" + dto.getUsername() + "' ya está en uso");
+        String username = dto.getUsername().trim().toLowerCase();
+
+        if (userRepository.existsByUsername(username)) {
+            throw new IllegalArgumentException("El username '" + username + "' ya está en uso");
         }
 
-        Store store = storeRepository.findById(dto.getStoreId())
-                .orElseThrow(() -> new IllegalArgumentException("Local no encontrado"));
+        Store primaryStore = null;
+        if (dto.getStoreId() != null) {
+            primaryStore = storeRepository.findById(dto.getStoreId())
+                    .orElseThrow(() -> new IllegalArgumentException("Local no encontrado: " + dto.getStoreId()));
+        }
 
-        // 1. Crear en Keycloak y obtener el keycloakId
+        List<Store> accessibleStores = new ArrayList<>();
+        for (Long sid : dto.getStoreIds()) {
+            accessibleStores.add(
+                storeRepository.findById(sid)
+                    .orElseThrow(() -> new IllegalArgumentException("Local no encontrado: " + sid))
+            );
+        }
+
+        String tempPassword = generatePassword();
+        String kcRole = "ADMIN".equalsIgnoreCase(dto.getRole()) ? "admin" : "user";
+
         String keycloakId = keycloakAdmin.createUser(
-            dto.getUsername(), dto.getFullName(), dto.getPassword()
+            username, dto.getFullName(), dto.getEmail(), tempPassword, kcRole
         );
 
-        // 2. Guardar en nuestra BD
         AppUser user = new AppUser();
         user.setKeycloakId(keycloakId);
         user.setFullName(dto.getFullName().trim());
-        user.setUsername(dto.getUsername().trim().toLowerCase());
-        user.setStore(store);
+        user.setUsername(username);
+        user.setEmail(dto.getEmail());
+        user.setRole(dto.getRole().toUpperCase());
+        user.setFirstLogin(true);
+        user.setStore(primaryStore);
+        user.setAccessibleStores(accessibleStores);
+        user.setPermissions(dto.getPermissions());
         user.setStatus("ACTIVE");
 
+        AppUser saved = userRepository.save(user);
+        emailService.sendWelcomeEmail(dto.getEmail(), dto.getFullName(), username, tempPassword);
+
+        AppUserResponseDTO response = AppUserResponseDTO.from(saved);
+        response.setTempPassword(tempPassword);
+        return response;
+    }
+
+    // ── Cambio de contraseña (primer login) ──────────────────────────────────
+
+    @Transactional
+    public void changePassword(String username, String newPassword) {
+        AppUser user = userRepository.findByUsername(username.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+        keycloakAdmin.resetPassword(user.getKeycloakId(), newPassword);
+        user.setFirstLogin(false);
+        userRepository.save(user);
+    }
+
+    // ── Actualizar permisos de secciones ─────────────────────────────────────
+
+    @Transactional
+    public AppUserResponseDTO updatePermissions(Long id, List<String> permissions) {
+        AppUser user = findOrThrow(id);
+        user.setPermissions(permissions != null ? permissions : new ArrayList<>());
+        return AppUserResponseDTO.from(userRepository.save(user));
+    }
+
+    // ── Actualizar locales accesibles ─────────────────────────────────────────
+
+    @Transactional
+    public AppUserResponseDTO updateStoreAccess(Long id, List<Long> storeIds) {
+        AppUser user = findOrThrow(id);
+        List<Store> stores = new ArrayList<>();
+        for (Long sid : storeIds) {
+            stores.add(
+                storeRepository.findById(sid)
+                    .orElseThrow(() -> new IllegalArgumentException("Local no encontrado: " + sid))
+            );
+        }
+        user.setAccessibleStores(stores);
         return AppUserResponseDTO.from(userRepository.save(user));
     }
 
     // ── Suspender / Activar ───────────────────────────────────────────────────
 
-    /** Suspende el usuario — no puede iniciar sesión hasta que se reactive. */
     @Transactional
     public AppUserResponseDTO suspend(Long id) {
         AppUser user = findOrThrow(id);
@@ -72,12 +134,11 @@ public class AppUserService {
             throw new IllegalStateException("El usuario ya está suspendido");
         }
         keycloakAdmin.setUserEnabled(user.getKeycloakId(), false);
-        keycloakAdmin.logoutUser(user.getKeycloakId());   // termina sesiones activas
+        keycloakAdmin.logoutUser(user.getKeycloakId());
         user.setStatus("SUSPENDED");
         return AppUserResponseDTO.from(userRepository.save(user));
     }
 
-    /** Reactiva el acceso del usuario. */
     @Transactional
     public AppUserResponseDTO activate(Long id) {
         AppUser user = findOrThrow(id);
@@ -89,9 +150,8 @@ public class AppUserService {
         return AppUserResponseDTO.from(userRepository.save(user));
     }
 
-    // ── Reasignar local ───────────────────────────────────────────────────────
+    // ── Reasignar local principal ─────────────────────────────────────────────
 
-    /** Cambia el local al que está asignado el usuario. */
     @Transactional
     public AppUserResponseDTO reassign(Long id, Long newStoreId) {
         AppUser user = findOrThrow(id);
@@ -101,18 +161,16 @@ public class AppUserService {
         return AppUserResponseDTO.from(userRepository.save(user));
     }
 
-    // ── Resetear contraseña ───────────────────────────────────────────────────
+    // ── Reset contraseña por admin ────────────────────────────────────────────
 
-    /** El admin resetea la contraseña de un usuario. */
     @Transactional
     public void resetPassword(Long id, String newPassword) {
         AppUser user = findOrThrow(id);
         keycloakAdmin.resetPassword(user.getKeycloakId(), newPassword);
     }
 
-    // ── Eliminar usuario ──────────────────────────────────────────────────────
+    // ── Eliminar ──────────────────────────────────────────────────────────────
 
-    /** Elimina el usuario de nuestra BD y de Keycloak permanentemente. */
     @Transactional
     public void delete(Long id) {
         AppUser user = findOrThrow(id);
@@ -120,26 +178,32 @@ public class AppUserService {
         userRepository.delete(user);
     }
 
-    // ── Buscar por username ────────────────────────────────────────────────────
+    // ── Buscar ────────────────────────────────────────────────────────────────
 
-    /** Retorna el perfil del empleado por su username de Keycloak. */
     public AppUserResponseDTO findByUsername(String username) {
         return userRepository.findByUsername(username.toLowerCase())
                 .map(AppUserResponseDTO::from)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
     }
 
-    /** Retorna el perfil del empleado por su keycloakId (sub del JWT). */
     public AppUserResponseDTO findByKeycloakId(String keycloakId) {
         return userRepository.findByKeycloakId(keycloakId)
                 .map(AppUserResponseDTO::from)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private AppUser findOrThrow(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+    }
+
+    private String generatePassword() {
+        StringBuilder sb = new StringBuilder(10);
+        for (int i = 0; i < 10; i++) {
+            sb.append(PASSWORD_CHARS.charAt(RANDOM.nextInt(PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
     }
 }
