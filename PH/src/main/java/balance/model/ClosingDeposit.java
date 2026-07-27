@@ -51,7 +51,7 @@ public class ClosingDeposit {
     @Column(name = "shift_id")
     private Long shiftId;
 
-    @ManyToOne
+    @ManyToOne(fetch = jakarta.persistence.FetchType.EAGER)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
