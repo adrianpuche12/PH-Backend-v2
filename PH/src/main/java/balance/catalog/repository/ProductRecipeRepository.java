@@ -2,6 +2,7 @@ package balance.catalog.repository;
 
 import balance.catalog.model.ProductRecipeItem;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,5 +15,7 @@ public interface ProductRecipeRepository extends JpaRepository<ProductRecipeItem
     @Query("SELECT r FROM ProductRecipeItem r JOIN FETCH r.ingredient WHERE r.product.id = :productId")
     List<ProductRecipeItem> findByProductIdWithIngredient(@Param("productId") Long productId);
 
-    void deleteByProductId(Long productId);
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM ProductRecipeItem r WHERE r.product.id = :productId")
+    void deleteByProductId(@Param("productId") Long productId);
 }
