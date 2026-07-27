@@ -78,15 +78,24 @@ jobs:
           echo "Updating Railway service source image to: $FULL_IMAGE"
 
           # Step 1: Actualizar la imagen fuente del servicio en Railway
-          UPDATE_RESPONSE=$(curl -s -X POST "https://backboard.railway.app/graphql/v2" \
+          UPDATE_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "https://backboard.railway.app/graphql/v2" \
             -H "Authorization: Bearer $RAILWAY_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"query\": \"mutation { serviceInstanceUpdate(serviceId: \\\"$SERVICE_ID\\\", environmentId: \\\"$ENV_ID\\\", input: { source: { image: \\\"$FULL_IMAGE\\\" } }) }\"}")
           echo "Update response: $UPDATE_RESPONSE"
+          if echo "$UPDATE_RESPONSE" | grep -q '"errors"'; then
+            echo "ERROR: Railway serviceInstanceUpdate devolvió errores"
+            exit 1
+          fi
 
           # Step 2: Disparar un nuevo deploy con la imagen actualizada
-          REDEPLOY_RESPONSE=$(curl -s -X POST "https://backboard.railway.app/graphql/v2" \
+          REDEPLOY_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "https://backboard.railway.app/graphql/v2" \
             -H "Authorization: Bearer $RAILWAY_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"query\": \"mutation { serviceInstanceRedeploy(serviceId: \\\"$SERVICE_ID\\\", environmentId: \\\"$ENV_ID\\\") }\"}")
           echo "Redeploy response: $REDEPLOY_RESPONSE"
+          if echo "$REDEPLOY_RESPONSE" | grep -q '"errors"'; then
+            echo "ERROR: Railway serviceInstanceRedeploy devolvió errores"
+            exit 1
+          fi
+          echo "Deploy a Railway completado exitosamente"

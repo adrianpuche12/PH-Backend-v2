@@ -130,33 +130,11 @@ public class FormsService {
         return allOperations;
     }
 
-    // Método para filtrar por store
+    // Método para filtrar por store — mismo límite de 90 días que getAllOperations()
     public List<AllOperationsDTO> getOperationsByStore(Long storeId) {
-        List<AllOperationsDTO> allOperations = new ArrayList<>();
-
-        closingDepositRepository.findByStoreId(storeId)
-                .stream()
-                .map(AllOperationsDTO::fromClosingDeposit)
-                .forEach(allOperations::add);
-
-        supplierPaymentRepository.findByStoreId(storeId)
-                .stream()
-                .map(AllOperationsDTO::fromSupplierPayment)
-                .forEach(allOperations::add);
-
-        salaryPaymentRepository.findByStoreId(storeId)
-                .stream()
-                .map(AllOperationsDTO::fromSalaryPayment)
-                .forEach(allOperations::add);
-
-        enrichClosingDTOs(allOperations);
-        allOperations.sort((o1, o2) -> {
-            if (o1.getDate() == null) return 1;
-            if (o2.getDate() == null) return -1;
-            return o2.getDate().compareTo(o1.getDate());
-        });
-
-        return allOperations;
+        LocalDate endDate   = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(90);
+        return getOperationsByDateRangeAndStore(startDate, endDate, storeId);
     }
 
     // Método para filtrar por fecha y store
