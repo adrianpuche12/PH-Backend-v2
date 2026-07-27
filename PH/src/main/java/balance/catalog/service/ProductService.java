@@ -76,6 +76,11 @@ public class ProductService {
             throw new IllegalArgumentException("Ya existe un producto con ese SKU en este local");
         }
 
+        if (productRepository.existsByNameIgnoreCaseAndStoreId(dto.getName().trim(), storeId)) {
+            throw new IllegalArgumentException(
+                "Ya existe un producto llamado «" + dto.getName().trim() + "» en este local. Por favor, usá un nombre diferente.");
+        }
+
         Product product = buildProduct(dto, store.get());
         Product saved = productRepository.save(product);
         inventoryService.initStock(saved, store.get());
@@ -89,6 +94,11 @@ public class ProductService {
                     && productRepository.existsBySkuAndStoreIdAndIdNot(
                         dto.getSku().trim(), product.getStore().getId(), id)) {
                 throw new IllegalArgumentException("Ya existe un producto con ese SKU en este local");
+            }
+            if (productRepository.existsByNameIgnoreCaseAndStoreIdAndIdNot(
+                    dto.getName().trim(), product.getStore().getId(), id)) {
+                throw new IllegalArgumentException(
+                    "Ya existe un producto llamado «" + dto.getName().trim() + "» en este local. Por favor, usá un nombre diferente.");
             }
             String oldType = product.getType();
             String newType = dto.getType() != null ? dto.getType() : "SIMPLE";
