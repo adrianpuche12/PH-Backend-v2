@@ -167,6 +167,29 @@ class ProductServiceTest {
     }
 
     @Test
+    void create_throwsWhenNameAlreadyExistsInStore() {
+        Store store = buildStore(1L);
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
+        when(productRepository.existsByNameIgnoreCaseAndStoreId("Pollo Entero", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.create(1L, buildRequest("Pollo Entero", "POL-001")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("nombre diferente");
+    }
+
+    @Test
+    void update_throwsWhenNameConflictsWithAnotherProduct() {
+        Product existing = buildProduct(1L, "Pollo Frito", "POL-002");
+        when(productRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(productRepository.existsBySkuAndStoreIdAndIdNot("POL-002", 1L, 1L)).thenReturn(false);
+        when(productRepository.existsByNameIgnoreCaseAndStoreIdAndIdNot("Pollo Entero", 1L, 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.update(1L, buildRequest("Pollo Entero", "POL-002")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("nombre diferente");
+    }
+
+    @Test
     void create_allowsNullSku() {
         Store store = buildStore(1L);
         Product saved = buildProduct(10L, "Sin SKU", null);
