@@ -157,18 +157,15 @@ public class ProductService {
         if (!"FABRICATED".equals(product.getType())) {
             throw new IllegalArgumentException("Solo los productos FABRICATED pueden tener receta");
         }
-        // [DIAG] SQL nativo: bypassa Hibernate por completo
-        log.info("[DIAG] saveRecipe: productId={}, items={}", productId, items.size());
-        int deleted = em.createNativeQuery("DELETE FROM product_recipe_items WHERE product_id = :productId")
+        // SQL nativo: bypassa Hibernate por completo, DELETE garantizado antes de INSERTs
+        em.createNativeQuery("DELETE FROM product_recipe_items WHERE product_id = :productId")
                 .setParameter("productId", productId)
                 .executeUpdate();
-        log.info("[DIAG] saveRecipe: deleted={} rows", deleted);
         em.flush();
         em.clear();
         Product freshProduct = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + productId));
         for (RecipeItemDTO dto : items) {
-            log.info("[DIAG] saveRecipe: inserting ingredientId={}", dto.getIngredientId());
             Product ingredient = productRepository.findById(dto.getIngredientId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Ingrediente no encontrado: " + dto.getIngredientId()));
