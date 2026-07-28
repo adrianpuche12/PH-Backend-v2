@@ -13,6 +13,8 @@ import balance.inventory.repository.InventoryStockRepository;
 import balance.inventory.service.InventoryService;
 import balance.model.Store;
 import balance.repository.StoreRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
@@ -40,6 +42,8 @@ class ProductServiceTest {
     @Mock private InventoryStockRepository    inventoryStockRepository;
     @Mock private InventoryMovementRepository inventoryMovementRepository;
     @Mock private ProductRecipeRepository     recipeRepository;
+    @Mock private EntityManager               em;
+    @Mock private Query                       nativeQuery;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -302,6 +306,8 @@ class ProductServiceTest {
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(fabricated));
         when(productRepository.findById(2L)).thenReturn(Optional.of(ingredient));
+        when(em.createNativeQuery(anyString())).thenReturn(nativeQuery);
+        when(nativeQuery.setParameter(anyString(), any())).thenReturn(nativeQuery);
         when(recipeRepository.findByProductIdWithIngredient(1L)).thenReturn(List.of());
 
         RecipeItemDTO dto = new RecipeItemDTO();
@@ -310,9 +316,11 @@ class ProductServiceTest {
 
         service.saveRecipe(1L, List.of(dto));
 
-        // Verifica que deleteAllInBatch ocurre ANTES de save
-        InOrder order = inOrder(recipeRepository);
-        order.verify(recipeRepository).deleteAllInBatch(anyList());
+        // Verifica que native DELETE → flush → clear ocurren ANTES de save
+        InOrder order = inOrder(em, recipeRepository);
+        order.verify(em).createNativeQuery(contains("DELETE FROM product_recipe_items"));
+        order.verify(em).flush();
+        order.verify(em).clear();
         order.verify(recipeRepository).save(any(ProductRecipeItem.class));
     }
 
