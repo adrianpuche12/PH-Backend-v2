@@ -15,6 +15,8 @@ import balance.model.Store;
 import balance.repository.StoreRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,8 @@ import java.util.Optional;
 
 @Service
 public class ProductService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProductService.class);
 
     @Autowired
     private ProductRepository productRepository;
@@ -153,17 +157,18 @@ public class ProductService {
         if (!"FABRICATED".equals(product.getType())) {
             throw new IllegalArgumentException("Solo los productos FABRICATED pueden tener receta");
         }
-        // SQL nativo: bypassa Hibernate por completo, DELETE ejecutado via JDBC antes de cualquier INSERT
-        em.createNativeQuery("DELETE FROM product_recipe_items WHERE product_id = :productId")
+        // [DIAG] SQL nativo: bypassa Hibernate por completo
+        log.info("[DIAG] saveRecipe: productId={}, items={}", productId, items.size());
+        int deleted = em.createNativeQuery("DELETE FROM product_recipe_items WHERE product_id = :productId")
                 .setParameter("productId", productId)
                 .executeUpdate();
-        // flush + clear: fuerza escritura de pendientes y limpia la sesion para evitar entidades stale
+        log.info("[DIAG] saveRecipe: deleted={} rows", deleted);
         em.flush();
         em.clear();
-        // Re-fetch producto porque clear() lo desconecto de la sesion
         Product freshProduct = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + productId));
         for (RecipeItemDTO dto : items) {
+            log.info("[DIAG] saveRecipe: inserting ingredientId={}", dto.getIngredientId());
             Product ingredient = productRepository.findById(dto.getIngredientId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Ingrediente no encontrado: " + dto.getIngredientId()));

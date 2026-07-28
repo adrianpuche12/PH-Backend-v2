@@ -36,14 +36,15 @@ public class GlobalExceptionHandler {
     // 409 — violacion de constraint en BD (ej: unique constraint en SKU)
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> handleDataIntegrity(DataIntegrityViolationException ex) {
-        log.warn("DataIntegrityViolation: {}", ex.getMostSpecificCause().getMessage());
         String msg = ex.getMostSpecificCause().getMessage();
-        if (msg != null && msg.contains("unique") || msg != null && msg.contains("duplicate")) {
+        log.warn("DataIntegrityViolation: {}", msg);
+        if (msg != null && (msg.contains("unique") || msg.contains("duplicate"))) {
+            // [DIAG] incluye msg completo para identificar constraint exacto
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("error", "Ya existe un registro con esos datos (restriccion de unicidad)"));
+                    .body(Map.of("error", "[DIAG] " + msg));
         }
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("error", "Conflicto de integridad en base de datos"));
+                .body(Map.of("error", "Conflicto de integridad en base de datos: " + msg));
     }
 
     // 400 — validacion de campos @Valid
