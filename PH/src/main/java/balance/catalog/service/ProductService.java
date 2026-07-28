@@ -148,7 +148,10 @@ public class ProductService {
         if (!"FABRICATED".equals(product.getType())) {
             throw new IllegalArgumentException("Solo los productos FABRICATED pueden tener receta");
         }
-        recipeRepository.deleteByProductId(productId);
+        // deleteAllInBatch genera DELETE ... WHERE id IN (...) ejecutado inmediatamente
+        // via executeUpdate(), garantizando que el DELETE ocurra ANTES de los INSERTs
+        List<ProductRecipeItem> existing = recipeRepository.findByProductIdWithIngredient(productId);
+        recipeRepository.deleteAllInBatch(existing);
         items.forEach(dto -> {
             Product ingredient = productRepository.findById(dto.getIngredientId())
                     .orElseThrow(() -> new IllegalArgumentException(
