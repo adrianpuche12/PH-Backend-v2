@@ -279,6 +279,8 @@ class ProductServiceTest {
     @Test
     void delete_deletesStockAndMovementsBeforeProduct() {
         when(productRepository.existsById(1L)).thenReturn(true);
+        when(em.createNativeQuery(anyString())).thenReturn(nativeQuery);
+        when(nativeQuery.setParameter(anyString(), any())).thenReturn(nativeQuery);
 
         boolean result = service.delete(1L);
 
