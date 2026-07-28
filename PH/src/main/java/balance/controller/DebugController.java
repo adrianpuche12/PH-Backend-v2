@@ -31,6 +31,14 @@ public class DebugController {
      * Endpoint para obtener información detallada sobre la conexión a la base de datos.
      * Accede a esta información en: http://[tu-host]:[tu-puerto]/debug/datasource
      */
+    @GetMapping("/version")
+    public Map<String, String> getVersion() {
+        return Map.of(
+            "version", "saveRecipe-nativeSQL-v1",
+            "build", "2026-07-28"
+        );
+    }
+
     @GetMapping("/datasource")
     public Map<String, String> getDataSourceInfo() {
         Map<String, String> info = new HashMap<>();
