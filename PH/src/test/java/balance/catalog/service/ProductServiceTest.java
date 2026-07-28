@@ -2,8 +2,11 @@ package balance.catalog.service;
 
 import balance.catalog.dto.ProductRequestDTO;
 import balance.catalog.dto.ProductResponseDTO;
+import balance.catalog.dto.RecipeItemDTO;
 import balance.catalog.model.Product;
+import balance.catalog.model.ProductRecipeItem;
 import balance.catalog.repository.CategoryRepository;
+import balance.catalog.repository.ProductRecipeRepository;
 import balance.catalog.repository.ProductRepository;
 import balance.inventory.repository.InventoryMovementRepository;
 import balance.inventory.repository.InventoryStockRepository;
@@ -12,6 +15,7 @@ import balance.model.Store;
 import balance.repository.StoreRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -35,7 +39,7 @@ class ProductServiceTest {
     @Mock private InventoryService            inventoryService;
     @Mock private InventoryStockRepository    inventoryStockRepository;
     @Mock private InventoryMovementRepository inventoryMovementRepository;
-    @Mock private balance.catalog.repository.ProductRecipeRepository recipeRepository;
+    @Mock private ProductRecipeRepository     recipeRepository;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -285,5 +289,39 @@ class ProductServiceTest {
         when(productRepository.existsById(99L)).thenReturn(false);
         assertThat(service.delete(99L)).isFalse();
         verify(productRepository, never()).deleteById(any());
+    }
+
+    // ── saveRecipe ────────────────────────────────────────────────────────────
+
+    @Test
+    void saveRecipe_deleteOccursBeforeInserts() {
+        Product fabricated = buildProduct(1L, "Pollo con Papas", "FAB-001");
+        fabricated.setType("FABRICATED");
+
+        Product ingredient = buildProduct(2L, "Pollo Crudo", "ING-001");
+
+        when(productRepository.findById(1L)).thenReturn(Optional.of(fabricated));
+        when(productRepository.findById(2L)).thenReturn(Optional.of(ingredient));
+        when(recipeRepository.findByProductIdWithIngredient(1L)).thenReturn(List.of());
+
+        RecipeItemDTO dto = new RecipeItemDTO();
+        dto.setIngredientId(2L);
+        dto.setQuantity(new BigDecimal("1.000"));
+
+        service.saveRecipe(1L, List.of(dto));
+
+        InOrder order = inOrder(recipeRepository);
+        order.verify(recipeRepository).deleteByProductId(1L);
+        order.verify(recipeRepository).save(any(ProductRecipeItem.class));
+    }
+
+    @Test
+    void saveRecipe_throwsWhenProductNotFabricated() {
+        Product simple = buildProduct(1L, "Pieza Simple", "SIM-001");
+        when(productRepository.findById(1L)).thenReturn(Optional.of(simple));
+
+        assertThatThrownBy(() -> service.saveRecipe(1L, List.of()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("FABRICATED");
     }
 }

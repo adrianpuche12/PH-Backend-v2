@@ -15,7 +15,7 @@ public interface ProductRecipeRepository extends JpaRepository<ProductRecipeItem
     @Query("SELECT r FROM ProductRecipeItem r JOIN FETCH r.ingredient WHERE r.product.id = :productId")
     List<ProductRecipeItem> findByProductIdWithIngredient(@Param("productId") Long productId);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying
     @Query("DELETE FROM ProductRecipeItem r WHERE r.product.id = :productId")
     void deleteByProductId(@Param("productId") Long productId);
 }
