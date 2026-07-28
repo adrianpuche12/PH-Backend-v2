@@ -1,5 +1,5 @@
 -- ============================================================
--- V6 — Módulo de permisos avanzado (2026-07-25)
+-- V9 — Módulo de permisos avanzado (2026-07-25)
 --
 -- Agrega email, role, first_login a app_users y crea las
 -- tablas de permisos por sección y acceso multi-local.
