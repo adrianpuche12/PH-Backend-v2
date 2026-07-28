@@ -13,6 +13,8 @@ import balance.inventory.repository.InventoryStockRepository;
 import balance.inventory.service.InventoryService;
 import balance.model.Store;
 import balance.repository.StoreRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -45,6 +47,9 @@ public class ProductService {
 
     @Autowired
     private InventoryMovementRepository inventoryMovementRepository;
+
+    @PersistenceContext
+    private EntityManager em;
 
     public List<ProductResponseDTO> findByStore(Long storeId, Boolean active, Long categoryId, String search) {
         List<Product> products;
@@ -148,20 +153,26 @@ public class ProductService {
         if (!"FABRICATED".equals(product.getType())) {
             throw new IllegalArgumentException("Solo los productos FABRICATED pueden tener receta");
         }
-        // deleteAllInBatch genera DELETE ... WHERE id IN (...) ejecutado inmediatamente
-        // via executeUpdate(), garantizando que el DELETE ocurra ANTES de los INSERTs
-        List<ProductRecipeItem> existing = recipeRepository.findByProductIdWithIngredient(productId);
-        recipeRepository.deleteAllInBatch(existing);
-        items.forEach(dto -> {
+        // SQL nativo: bypassa Hibernate por completo, DELETE ejecutado via JDBC antes de cualquier INSERT
+        em.createNativeQuery("DELETE FROM product_recipe_items WHERE product_id = :productId")
+                .setParameter("productId", productId)
+                .executeUpdate();
+        // flush + clear: fuerza escritura de pendientes y limpia la sesion para evitar entidades stale
+        em.flush();
+        em.clear();
+        // Re-fetch producto porque clear() lo desconecto de la sesion
+        Product freshProduct = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + productId));
+        for (RecipeItemDTO dto : items) {
             Product ingredient = productRepository.findById(dto.getIngredientId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Ingrediente no encontrado: " + dto.getIngredientId()));
             ProductRecipeItem item = new ProductRecipeItem();
-            item.setProduct(product);
+            item.setProduct(freshProduct);
             item.setIngredient(ingredient);
             item.setQuantity(dto.getQuantity());
             recipeRepository.save(item);
-        });
+        }
         return recipeRepository.findByProductIdWithIngredient(productId)
                 .stream().map(RecipeItemDTO::from).toList();
     }
