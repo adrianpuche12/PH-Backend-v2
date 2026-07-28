@@ -135,6 +135,9 @@ public class ProductService {
     @Transactional
     public boolean delete(Long id) {
         if (!productRepository.existsById(id)) return false;
+        em.createNativeQuery("UPDATE sale_items SET product_id = NULL WHERE product_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
         recipeRepository.deleteByProductId(id);
         inventoryMovementRepository.deleteByProductId(id);
         inventoryStockRepository.deleteByProductId(id);
