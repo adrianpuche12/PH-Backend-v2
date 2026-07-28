@@ -310,8 +310,9 @@ class ProductServiceTest {
 
         service.saveRecipe(1L, List.of(dto));
 
+        // Verifica que deleteAllInBatch ocurre ANTES de save
         InOrder order = inOrder(recipeRepository);
-        order.verify(recipeRepository).deleteByProductId(1L);
+        order.verify(recipeRepository).deleteAllInBatch(anyList());
         order.verify(recipeRepository).save(any(ProductRecipeItem.class));
     }
 
