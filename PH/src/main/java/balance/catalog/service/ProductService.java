@@ -139,6 +139,9 @@ public class ProductService {
                 .setParameter("id", id)
                 .executeUpdate();
         recipeRepository.deleteByProductId(id);
+        em.createNativeQuery("DELETE FROM product_recipe_items WHERE ingredient_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
         inventoryMovementRepository.deleteByProductId(id);
         inventoryStockRepository.deleteByProductId(id);
         productRepository.deleteById(id);
