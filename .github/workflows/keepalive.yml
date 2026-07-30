@@ -19,8 +19,4 @@ jobs:
             "${{ secrets.RAILWAY_PROD_URL }}/api/v2/stores/active" 2>/dev/null || echo "0")
           echo "Backend PROD: HTTP $STATUS"
 
-      - name: Ping Keycloak
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
-            "https://keycloak.belopia.app/realms/proyecto-h-prod/.well-known/openid-configuration")
-          echo "Keycloak: HTTP $STATUS"
+      # Ping Keycloak eliminado (2026-07-18) — keycloak.belopia.app dado de baja (Belopia suspendido).
