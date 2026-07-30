@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +22,20 @@ public class AppUserController {
     @GetMapping
     public ResponseEntity<List<AppUserResponseDTO>> findAll() {
         return ResponseEntity.ok(userService.findAll());
+    }
+
+    @GetMapping("/accessible-stores")
+    public ResponseEntity<?> getAccessibleStores(
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String keycloakId = extractSub(authHeader.substring(7));
+            if (keycloakId == null) return ResponseEntity.badRequest().body(Map.of("error", "Token inválido"));
+            return ResponseEntity.ok(userService.getAccessibleStores(keycloakId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al cargar locales"));
+        }
     }
 
     @GetMapping("/by-username/{username}")
@@ -162,6 +177,25 @@ public class AppUserController {
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String extractSub(String token) {
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length < 2) return null;
+            String payload = parts[1];
+            int mod = payload.length() % 4;
+            if (mod == 2) payload += "==";
+            else if (mod == 3) payload += "=";
+            byte[] decoded = Base64.getUrlDecoder().decode(payload);
+            Map<String, Object> claims = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readValue(decoded, Map.class);
+            Object sub = claims.get("sub");
+            return sub != null ? sub.toString() : null;
+        } catch (Exception e) {
+            return null;
         }
     }
 }

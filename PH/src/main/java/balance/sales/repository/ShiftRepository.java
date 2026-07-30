@@ -35,6 +35,9 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
      * Consulta unificada con filtros opcionales: username, rango de fechas (openedAt).
      * Pasar null para omitir cualquier filtro.
      */
+    @Query("SELECT s.store.id FROM Shift s WHERE s.id = :shiftId")
+    Optional<Long> findStoreIdByShiftId(@Param("shiftId") Long shiftId);
+
     @Query(value = "SELECT s FROM Shift s WHERE s.store.id = :storeId " +
                    "AND (:username IS NULL OR s.username = :username) " +
                    "AND (:from IS NULL OR s.openedAt >= :from) " +

@@ -192,6 +192,21 @@ public class AppUserService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
     }
 
+    // ── Locales accesibles (para no-admins en el dashboard) ───────────────────
+
+    public List<java.util.Map<String, Object>> getAccessibleStores(String keycloakId) {
+        AppUser user = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        List<Store> stores = user.getAccessibleStores().isEmpty()
+            ? storeRepository.findByActiveTrueOrderByNameAsc()
+            : user.getAccessibleStores().stream()
+                .filter(s -> Boolean.TRUE.equals(s.getActive()))
+                .toList();
+        return stores.stream()
+            .map(s -> java.util.Map.<String, Object>of("id", s.getId(), "name", s.getName()))
+            .toList();
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private AppUser findOrThrow(Long id) {
