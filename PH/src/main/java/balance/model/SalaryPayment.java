@@ -30,7 +30,7 @@ public class SalaryPayment {
     @Column(nullable = false)
     private LocalDate salaryDate;
 
-    @ManyToOne
+    @ManyToOne(fetch = jakarta.persistence.FetchType.EAGER)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 

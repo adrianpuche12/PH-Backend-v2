@@ -2,16 +2,22 @@ package balance.catalog.service;
 
 import balance.catalog.dto.ProductRequestDTO;
 import balance.catalog.dto.ProductResponseDTO;
+import balance.catalog.dto.RecipeItemDTO;
 import balance.catalog.model.Product;
+import balance.catalog.model.ProductRecipeItem;
 import balance.catalog.repository.CategoryRepository;
+import balance.catalog.repository.ProductRecipeRepository;
 import balance.catalog.repository.ProductRepository;
 import balance.inventory.repository.InventoryMovementRepository;
 import balance.inventory.repository.InventoryStockRepository;
 import balance.inventory.service.InventoryService;
 import balance.model.Store;
 import balance.repository.StoreRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -35,7 +41,9 @@ class ProductServiceTest {
     @Mock private InventoryService            inventoryService;
     @Mock private InventoryStockRepository    inventoryStockRepository;
     @Mock private InventoryMovementRepository inventoryMovementRepository;
-    @Mock private balance.catalog.repository.ProductRecipeRepository recipeRepository;
+    @Mock private ProductRecipeRepository     recipeRepository;
+    @Mock private EntityManager               em;
+    @Mock private Query                       nativeQuery;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -167,6 +175,29 @@ class ProductServiceTest {
     }
 
     @Test
+    void create_throwsWhenNameAlreadyExistsInStore() {
+        Store store = buildStore(1L);
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
+        when(productRepository.existsByNameIgnoreCaseAndStoreId("Pollo Entero", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.create(1L, buildRequest("Pollo Entero", "POL-001")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("nombre diferente");
+    }
+
+    @Test
+    void update_throwsWhenNameConflictsWithAnotherProduct() {
+        Product existing = buildProduct(1L, "Pollo Frito", "POL-002");
+        when(productRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(productRepository.existsBySkuAndStoreIdAndIdNot("POL-002", 1L, 1L)).thenReturn(false);
+        when(productRepository.existsByNameIgnoreCaseAndStoreIdAndIdNot("Pollo Entero", 1L, 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.update(1L, buildRequest("Pollo Entero", "POL-002")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("nombre diferente");
+    }
+
+    @Test
     void create_allowsNullSku() {
         Store store = buildStore(1L);
         Product saved = buildProduct(10L, "Sin SKU", null);
@@ -248,6 +279,8 @@ class ProductServiceTest {
     @Test
     void delete_deletesStockAndMovementsBeforeProduct() {
         when(productRepository.existsById(1L)).thenReturn(true);
+        when(em.createNativeQuery(anyString())).thenReturn(nativeQuery);
+        when(nativeQuery.setParameter(anyString(), any())).thenReturn(nativeQuery);
 
         boolean result = service.delete(1L);
 
@@ -262,5 +295,44 @@ class ProductServiceTest {
         when(productRepository.existsById(99L)).thenReturn(false);
         assertThat(service.delete(99L)).isFalse();
         verify(productRepository, never()).deleteById(any());
+    }
+
+    // ── saveRecipe ────────────────────────────────────────────────────────────
+
+    @Test
+    void saveRecipe_deleteOccursBeforeInserts() {
+        Product fabricated = buildProduct(1L, "Pollo con Papas", "FAB-001");
+        fabricated.setType("FABRICATED");
+
+        Product ingredient = buildProduct(2L, "Pollo Crudo", "ING-001");
+
+        when(productRepository.findById(1L)).thenReturn(Optional.of(fabricated));
+        when(productRepository.findById(2L)).thenReturn(Optional.of(ingredient));
+        when(em.createNativeQuery(anyString())).thenReturn(nativeQuery);
+        when(nativeQuery.setParameter(anyString(), any())).thenReturn(nativeQuery);
+        when(recipeRepository.findByProductIdWithIngredient(1L)).thenReturn(List.of());
+
+        RecipeItemDTO dto = new RecipeItemDTO();
+        dto.setIngredientId(2L);
+        dto.setQuantity(new BigDecimal("1.000"));
+
+        service.saveRecipe(1L, List.of(dto));
+
+        // Verifica que native DELETE → flush → clear ocurren ANTES de save
+        InOrder order = inOrder(em, recipeRepository);
+        order.verify(em).createNativeQuery(contains("DELETE FROM product_recipe_items"));
+        order.verify(em).flush();
+        order.verify(em).clear();
+        order.verify(recipeRepository).save(any(ProductRecipeItem.class));
+    }
+
+    @Test
+    void saveRecipe_throwsWhenProductNotFabricated() {
+        Product simple = buildProduct(1L, "Pieza Simple", "SIM-001");
+        when(productRepository.findById(1L)).thenReturn(Optional.of(simple));
+
+        assertThatThrownBy(() -> service.saveRecipe(1L, List.of()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("FABRICATED");
     }
 }

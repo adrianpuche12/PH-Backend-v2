@@ -13,6 +13,10 @@ import balance.inventory.repository.InventoryStockRepository;
 import balance.inventory.service.InventoryService;
 import balance.model.Store;
 import balance.repository.StoreRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -23,6 +27,8 @@ import java.util.Optional;
 
 @Service
 public class ProductService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProductService.class);
 
     @Autowired
     private ProductRepository productRepository;
@@ -45,6 +51,9 @@ public class ProductService {
 
     @Autowired
     private InventoryMovementRepository inventoryMovementRepository;
+
+    @PersistenceContext
+    private EntityManager em;
 
     public List<ProductResponseDTO> findByStore(Long storeId, Boolean active, Long categoryId, String search) {
         List<Product> products;
@@ -76,6 +85,11 @@ public class ProductService {
             throw new IllegalArgumentException("Ya existe un producto con ese SKU en este local");
         }
 
+        if (productRepository.existsByNameIgnoreCaseAndStoreId(dto.getName().trim(), storeId)) {
+            throw new IllegalArgumentException(
+                "Ya existe un producto llamado «" + dto.getName().trim() + "» en este local. Por favor, usá un nombre diferente.");
+        }
+
         Product product = buildProduct(dto, store.get());
         Product saved = productRepository.save(product);
         inventoryService.initStock(saved, store.get());
@@ -89,6 +103,11 @@ public class ProductService {
                     && productRepository.existsBySkuAndStoreIdAndIdNot(
                         dto.getSku().trim(), product.getStore().getId(), id)) {
                 throw new IllegalArgumentException("Ya existe un producto con ese SKU en este local");
+            }
+            if (productRepository.existsByNameIgnoreCaseAndStoreIdAndIdNot(
+                    dto.getName().trim(), product.getStore().getId(), id)) {
+                throw new IllegalArgumentException(
+                    "Ya existe un producto llamado «" + dto.getName().trim() + "» en este local. Por favor, usá un nombre diferente.");
             }
             String oldType = product.getType();
             String newType = dto.getType() != null ? dto.getType() : "SIMPLE";
@@ -116,7 +135,13 @@ public class ProductService {
     @Transactional
     public boolean delete(Long id) {
         if (!productRepository.existsById(id)) return false;
+        em.createNativeQuery("UPDATE sale_items SET product_id = NULL WHERE product_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
         recipeRepository.deleteByProductId(id);
+        em.createNativeQuery("DELETE FROM product_recipe_items WHERE ingredient_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
         inventoryMovementRepository.deleteByProductId(id);
         inventoryStockRepository.deleteByProductId(id);
         productRepository.deleteById(id);
@@ -138,17 +163,24 @@ public class ProductService {
         if (!"FABRICATED".equals(product.getType())) {
             throw new IllegalArgumentException("Solo los productos FABRICATED pueden tener receta");
         }
-        recipeRepository.deleteByProductId(productId);
-        items.forEach(dto -> {
+        // SQL nativo: bypassa Hibernate por completo, DELETE garantizado antes de INSERTs
+        em.createNativeQuery("DELETE FROM product_recipe_items WHERE product_id = :productId")
+                .setParameter("productId", productId)
+                .executeUpdate();
+        em.flush();
+        em.clear();
+        Product freshProduct = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + productId));
+        for (RecipeItemDTO dto : items) {
             Product ingredient = productRepository.findById(dto.getIngredientId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Ingrediente no encontrado: " + dto.getIngredientId()));
             ProductRecipeItem item = new ProductRecipeItem();
-            item.setProduct(product);
+            item.setProduct(freshProduct);
             item.setIngredient(ingredient);
             item.setQuantity(dto.getQuantity());
             recipeRepository.save(item);
-        });
+        }
         return recipeRepository.findByProductIdWithIngredient(productId)
                 .stream().map(RecipeItemDTO::from).toList();
     }

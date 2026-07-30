@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import java.math.BigDecimal;
@@ -62,49 +63,43 @@ public class FormsService {
     private SaleRepository saleRepository;
 
     // ── Helper: enriquece los CLOSING DTOs con datos del turno vinculado ────────
+    // Usa batch queries para evitar N+1: 2 queries totales en lugar de 2 por cada cierre.
 
     private void enrichClosingDTOs(List<AllOperationsDTO> dtos) {
+        List<Long> shiftIds = dtos.stream()
+            .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getClosingShiftId() != null)
+            .map(AllOperationsDTO::getClosingShiftId)
+            .collect(Collectors.toList());
+
+        if (shiftIds.isEmpty()) return;
+
+        Map<Long, Shift> shiftMap = shiftRepository.findAllById(shiftIds).stream()
+            .collect(Collectors.toMap(Shift::getId, s -> s));
+
+        Map<Long, Long> countsMap = saleRepository.countByShiftIdIn(shiftIds).stream()
+            .collect(Collectors.toMap(
+                row -> (Long) row[0],
+                row -> (Long) row[1]
+            ));
+
         dtos.stream()
             .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getClosingShiftId() != null)
             .forEach(dto -> {
-                // Busca el Shift por el shiftId guardado en ClosingDeposit
-                shiftRepository.findById(dto.getClosingShiftId()).ifPresent(shift -> {
-                    int salesCount = (int) saleRepository.countByShiftId(shift.getId());
-                    dto.enrichWithShift(shift, salesCount);
-                });
+                Shift shift = shiftMap.get(dto.getClosingShiftId());
+                if (shift != null) {
+                    int count = countsMap.getOrDefault(dto.getClosingShiftId(), 0L).intValue();
+                    dto.enrichWithShift(shift, count);
+                }
             });
     }
 
     // Métodos para obtener operaciones
     public List<AllOperationsDTO> getAllOperations() {
-        List<AllOperationsDTO> allOperations = new ArrayList<>();
-
-        allOperations.addAll(
-                closingDepositRepository.findAll().stream()
-                        .map(AllOperationsDTO::fromClosingDeposit)
-                        .collect(Collectors.toList())
-        );
-
-        allOperations.addAll(
-                supplierPaymentRepository.findAll().stream()
-                        .map(AllOperationsDTO::fromSupplierPayment)
-                        .collect(Collectors.toList())
-        );
-
-        allOperations.addAll(
-                salaryPaymentRepository.findAll().stream()
-                        .map(AllOperationsDTO::fromSalaryPayment)
-                        .collect(Collectors.toList())
-        );
-
-        enrichClosingDTOs(allOperations);
-        allOperations.sort((t1, t2) -> {
-            if (t1.getDate() == null) return 1;
-            if (t2.getDate() == null) return -1;
-            return t2.getDate().compareTo(t1.getDate());
-        });
-
-        return allOperations;
+        // Sin filtro de fecha: limitar a los últimos 90 días para evitar traer toda la historia.
+        // El usuario puede usar el filtro de fechas para ver períodos anteriores.
+        LocalDate endDate   = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(90);
+        return getOperationsByDateRange(startDate, endDate);
     }
 
     public List<AllOperationsDTO> getOperationsByDateRange(LocalDate startDate, LocalDate endDate) {
@@ -135,33 +130,11 @@ public class FormsService {
         return allOperations;
     }
 
-    // Método para filtrar por store
+    // Método para filtrar por store — mismo límite de 90 días que getAllOperations()
     public List<AllOperationsDTO> getOperationsByStore(Long storeId) {
-        List<AllOperationsDTO> allOperations = new ArrayList<>();
-
-        closingDepositRepository.findByStoreId(storeId)
-                .stream()
-                .map(AllOperationsDTO::fromClosingDeposit)
-                .forEach(allOperations::add);
-
-        supplierPaymentRepository.findByStoreId(storeId)
-                .stream()
-                .map(AllOperationsDTO::fromSupplierPayment)
-                .forEach(allOperations::add);
-
-        salaryPaymentRepository.findByStoreId(storeId)
-                .stream()
-                .map(AllOperationsDTO::fromSalaryPayment)
-                .forEach(allOperations::add);
-
-        enrichClosingDTOs(allOperations);
-        allOperations.sort((o1, o2) -> {
-            if (o1.getDate() == null) return 1;
-            if (o2.getDate() == null) return -1;
-            return o2.getDate().compareTo(o1.getDate());
-        });
-
-        return allOperations;
+        LocalDate endDate   = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(90);
+        return getOperationsByDateRangeAndStore(startDate, endDate, storeId);
     }
 
     // Método para filtrar por fecha y store

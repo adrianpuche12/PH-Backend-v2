@@ -1,11 +1,11 @@
 package balance.users.service;
 
-import com.resend.Resend;
-import com.resend.core.exception.ResendException;
-import com.resend.services.emails.model.CreateEmailOptions;
+import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,33 +13,34 @@ public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
-    @Value("${resend.api.key:}")
-    private String resendApiKey;
+    private final JavaMailSender mailSender;
 
     @Value("${app.url:https://lospolloshermanos.org}")
     private String appUrl;
 
+    @Value("${app.from.email:}")
+    private String fromEmail;
+
+    public EmailService(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
+
     public void sendWelcomeEmail(String toEmail, String fullName, String username, String tempPassword) {
-        if (resendApiKey == null || resendApiKey.isBlank()) {
-            log.warn("RESEND_API_KEY no configurado — email de bienvenida no enviado para {}", username);
+        if (fromEmail == null || fromEmail.isBlank()) {
+            log.warn("MAIL_USERNAME / APP_FROM_EMAIL no configurado — email no enviado para {}", username);
             return;
         }
 
-        String html = buildWelcomeHtml(fullName, username, tempPassword);
-
         try {
-            Resend resend = new Resend(resendApiKey);
-            CreateEmailOptions params = CreateEmailOptions.builder()
-                    .from("Los Pollos Hermanos <noreply@lospolloshermanos.org>")
-                    .to(toEmail)
-                    .subject("Bienvenido a Los Pollos Hermanos — Tu acceso al sistema")
-                    .html(html)
-                    .build();
-
-            resend.emails().send(params);
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom("Los Pollos Hermanos <" + fromEmail + ">");
+            helper.setTo(toEmail);
+            helper.setSubject("Bienvenido a Los Pollos Hermanos — Tu acceso al sistema");
+            helper.setText(buildWelcomeHtml(fullName, username, tempPassword), true);
+            mailSender.send(message);
             log.info("Email de bienvenida enviado a {} ({})", username, toEmail);
-
-        } catch (ResendException e) {
+        } catch (Exception e) {
             log.error("Error al enviar email a {}: {}", toEmail, e.getMessage());
         }
     }

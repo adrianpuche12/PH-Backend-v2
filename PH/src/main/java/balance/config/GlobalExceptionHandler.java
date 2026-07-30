@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleDataIntegrity(DataIntegrityViolationException ex) {
         log.warn("DataIntegrityViolation: {}", ex.getMostSpecificCause().getMessage());
         String msg = ex.getMostSpecificCause().getMessage();
-        if (msg != null && msg.contains("unique") || msg != null && msg.contains("duplicate")) {
+        if (msg != null && (msg.contains("unique") || msg.contains("duplicate"))) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("error", "Ya existe un registro con esos datos (restriccion de unicidad)"));
         }

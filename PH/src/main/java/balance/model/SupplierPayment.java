@@ -30,7 +30,7 @@ public class SupplierPayment {
     @Column(nullable = false)
     private String username;
 
-    @ManyToOne
+    @ManyToOne(fetch = jakarta.persistence.FetchType.EAGER)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 

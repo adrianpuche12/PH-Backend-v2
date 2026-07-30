@@ -37,6 +37,10 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
     /** Total de ventas (cualquier estado) en un turno — para el resumen admin */
     long countByShiftId(Long shiftId);
 
+    /** Counts por turno en batch — evita N+1 en enrichClosingDTOs */
+    @Query("SELECT s.shift.id, COUNT(s) FROM Sale s WHERE s.shift.id IN :shiftIds GROUP BY s.shift.id")
+    List<Object[]> countByShiftIdIn(@Param("shiftIds") List<Long> shiftIds);
+
     @Query("SELECT s FROM Sale s WHERE s.store.id = :storeId AND s.saleDate >= :from AND s.saleDate <= :to ORDER BY s.createdAt DESC")
     List<Sale> findByStoreIdAndDateRangeStrict(@Param("storeId") Long storeId, @Param("from") LocalDate from, @Param("to") LocalDate to);
 }

@@ -19,6 +19,7 @@ public class AppUserResponseDTO {
     private List<Long>    storeIds;
     private List<String>  permissions;
     private LocalDateTime createdAt;
+    private String        tempPassword;
 
     public static AppUserResponseDTO from(AppUser u) {
         AppUserResponseDTO dto = new AppUserResponseDTO();
@@ -56,4 +57,6 @@ public class AppUserResponseDTO {
     public List<Long> getStoreIds()      { return storeIds; }
     public List<String> getPermissions() { return permissions; }
     public LocalDateTime getCreatedAt()  { return createdAt; }
+    public String getTempPassword()      { return tempPassword; }
+    public void setTempPassword(String p){ this.tempPassword = p; }
 }
