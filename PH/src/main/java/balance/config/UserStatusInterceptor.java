@@ -31,7 +31,8 @@ public class UserStatusInterceptor implements HandlerInterceptor {
     // Paths que non-admins necesitan en login/primer login — se verifican antes que todo
     private static final List<String> ALWAYS_ALLOWED = List.of(
         "/api/v2/users/by-username/**",
-        "/api/v2/users/change-password"
+        "/api/v2/users/change-password",
+        "/api/v2/users/accessible-stores"
     );
 
     // Paths admin-only que se bloquean solo cuando ninguna sección los reclama
