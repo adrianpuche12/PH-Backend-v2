@@ -76,8 +76,9 @@ public class UserStatusInterceptor implements HandlerInterceptor {
         new SectionRule("GET",    "/api/v2/shifts",                  List.of("SALES_HISTORY")),
 
         // ── INVENTORY — Inventario ───────────────────────────────────────────
-        // POS también puede leer el stock para mostrar productos en el punto de venta
-        new SectionRule("GET",    "/api/v2/stores/*/stock",          List.of("INVENTORY", "POS")),
+        // POS y CATALOG también pueden leer el stock (GET); solo INVENTORY puede escribir
+        new SectionRule("GET",    "/api/v2/stores/*/stock",          List.of("INVENTORY", "POS", "CATALOG")),
+        new SectionRule("GET",    "/api/v2/stores/*/stock/**",       List.of("INVENTORY", "CATALOG")),
         new SectionRule("*",      "/api/v2/stores/*/stock/**",       List.of("INVENTORY")),
         new SectionRule("*",      "/api/v2/stores/*/stock",          List.of("INVENTORY")),
 

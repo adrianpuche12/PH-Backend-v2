@@ -384,6 +384,45 @@ class UserStatusInterceptorTest {
         assertThat(interceptor.preHandle(req, res, null)).isTrue();
     }
 
+    // ── 17e. CATALOG puede leer stock (GET) ──────────────────────────────────
+
+    @Test
+    void catalog_user_can_read_stock() throws Exception {
+        bearer("user-sub", false);
+        req.setMethod("GET");
+        req.setRequestURI("/api/v2/stores/1/stock");
+
+        AppUser u = activeUser("user-sub", List.of("CATALOG"), List.of(1L));
+        when(userRepository.findByKeycloakId("user-sub")).thenReturn(Optional.of(u));
+
+        assertThat(interceptor.preHandle(req, res, null)).isTrue();
+    }
+
+    @Test
+    void catalog_user_can_read_stock_summary() throws Exception {
+        bearer("user-sub", false);
+        req.setMethod("GET");
+        req.setRequestURI("/api/v2/stores/1/stock/summary");
+
+        AppUser u = activeUser("user-sub", List.of("CATALOG"), List.of(1L));
+        when(userRepository.findByKeycloakId("user-sub")).thenReturn(Optional.of(u));
+
+        assertThat(interceptor.preHandle(req, res, null)).isTrue();
+    }
+
+    @Test
+    void catalog_user_cannot_adjust_stock() throws Exception {
+        bearer("user-sub", false);
+        req.setMethod("POST");
+        req.setRequestURI("/api/v2/stores/1/stock/adjustment");
+
+        AppUser u = activeUser("user-sub", List.of("CATALOG"), List.of(1L));
+        when(userRepository.findByKeycloakId("user-sub")).thenReturn(Optional.of(u));
+
+        assertThat(interceptor.preHandle(req, res, null)).isFalse();
+        assertThat(res.getContentAsString()).contains("SECTION_FORBIDDEN");
+    }
+
     // ── 18. TRANSACTIONS: query param storeId ────────────────────────────────
 
     @Test
