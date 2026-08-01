@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class AppUserService {
@@ -20,6 +21,23 @@ public class AppUserService {
     private static final String PASSWORD_CHARS =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz!@#$";
     private static final SecureRandom RANDOM = new SecureRandom();
+
+    // Todas las secciones conocidas por el backend (SECTION_RULES + legado)
+    static final Set<String> VALID_SECTIONS = Set.of(
+        "POS", "SALES_HISTORY", "INVENTORY", "TRANSACTIONS",
+        "BANK_DEPOSITS", "SALARY_PAYMENTS", "SUPPLIER_PAYMENTS", "FORMS",
+        "CATALOG", "DASHBOARD"
+    );
+
+    private static void validatePermissions(List<String> permissions) {
+        if (permissions == null) return;
+        List<String> invalid = permissions.stream()
+            .filter(p -> !VALID_SECTIONS.contains(p))
+            .toList();
+        if (!invalid.isEmpty()) {
+            throw new IllegalArgumentException("Permisos inválidos: " + invalid);
+        }
+    }
 
     @Autowired private AppUserRepository    userRepository;
     @Autowired private StoreRepository      storeRepository;
@@ -78,6 +96,7 @@ public class AppUserService {
         user.setFirstLogin(true);
         user.setStore(primaryStore);
         user.setAccessibleStores(accessibleStores);
+        validatePermissions(dto.getPermissions());
         user.setPermissions(dto.getPermissions());
         user.setStatus("ACTIVE");
 
@@ -105,6 +124,7 @@ public class AppUserService {
     @Transactional
     public AppUserResponseDTO updatePermissions(Long id, List<String> permissions) {
         AppUser user = findOrThrow(id);
+        validatePermissions(permissions);
         user.setPermissions(permissions != null ? permissions : new ArrayList<>());
         return AppUserResponseDTO.from(userRepository.save(user));
     }
