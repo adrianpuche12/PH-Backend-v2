@@ -107,6 +107,9 @@ public class AppUserController {
     public ResponseEntity<?> updatePermissions(
             @PathVariable Long id,
             @RequestBody Map<String, List<String>> body) {
+        if (!body.containsKey("permissions")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "El campo 'permissions' es obligatorio"));
+        }
         try {
             return ResponseEntity.ok(userService.updatePermissions(id, body.get("permissions")));
         } catch (IllegalArgumentException e) {
