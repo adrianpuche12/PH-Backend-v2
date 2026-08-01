@@ -170,6 +170,9 @@ public class AppUserController {
             return ResponseEntity.ok(Map.of("message", "Contraseña actualizada correctamente"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "Error al cambiar contraseña: " + e.getMessage()));
         }
     }
 
