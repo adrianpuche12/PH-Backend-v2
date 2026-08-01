@@ -43,8 +43,8 @@ public class UserStatusInterceptor implements HandlerInterceptor {
         "/api/v2/uploads/**"
     );
 
-    // Reglas path → sección; el primer match gana. Ordered from most specific to least.
-    private record SectionRule(String method, String pattern, String section) {
+    // Reglas path → secciones válidas (OR); el primer match gana.
+    private record SectionRule(String method, String pattern, List<String> allowedSections) {
         boolean matches(String reqMethod, String path) {
             boolean methodOk = "*".equals(method) || method.equalsIgnoreCase(reqMethod);
             return methodOk && ANT.match(pattern, path);
@@ -53,63 +53,66 @@ public class UserStatusInterceptor implements HandlerInterceptor {
 
     private static final List<SectionRule> SECTION_RULES = List.of(
         // ── POS — Ventas ────────────────────────────────────────────────────
-        new SectionRule("POST",   "/api/v2/stores/*/shifts",         "POS"),
-        new SectionRule("*",      "/api/v2/shifts/active/*",         "POS"),
-        new SectionRule("*",      "/api/v2/shifts/*/close",          "POS"),
-        new SectionRule("*",      "/api/v2/shifts/*/closing",        "POS"),
-        new SectionRule("POST",   "/api/v2/shifts/*/sales",          "POS"),
-        new SectionRule("POST",   "/api/v2/shifts/*/expenses",       "POS"),
-        new SectionRule("*",      "/api/v2/shifts/*/summary",        "POS"),
-        new SectionRule("PUT",    "/api/v2/expenses/*",              "POS"),
-        new SectionRule("DELETE", "/api/v2/expenses/*",              "POS"),
+        new SectionRule("POST",   "/api/v2/stores/*/shifts",         List.of("POS")),
+        new SectionRule("*",      "/api/v2/shifts/active/*",         List.of("POS")),
+        new SectionRule("*",      "/api/v2/shifts/*/close",          List.of("POS")),
+        new SectionRule("*",      "/api/v2/shifts/*/closing",        List.of("POS")),
+        new SectionRule("POST",   "/api/v2/shifts/*/sales",          List.of("POS")),
+        new SectionRule("POST",   "/api/v2/shifts/*/expenses",       List.of("POS")),
+        new SectionRule("*",      "/api/v2/shifts/*/summary",        List.of("POS")),
+        new SectionRule("PUT",    "/api/v2/expenses/*",              List.of("POS")),
+        new SectionRule("DELETE", "/api/v2/expenses/*",              List.of("POS")),
 
         // ── SALES_HISTORY — Historial de ventas ─────────────────────────────
-        new SectionRule("GET",    "/api/v2/stores/*/shifts",         "SALES_HISTORY"),
-        new SectionRule("GET",    "/api/v2/stores/*/sales/summary",  "SALES_HISTORY"),
-        new SectionRule("GET",    "/api/v2/stores/*/sales",          "SALES_HISTORY"),
-        new SectionRule("GET",    "/api/v2/sales/cash-summary",      "SALES_HISTORY"),
-        new SectionRule("GET",    "/api/v2/sales/*",                 "SALES_HISTORY"),
-        new SectionRule("GET",    "/api/v2/shifts/*/sales",          "SALES_HISTORY"),
-        new SectionRule("GET",    "/api/v2/shifts/*/expenses",       "SALES_HISTORY"),
-        new SectionRule("GET",    "/api/v2/shifts/*",                "SALES_HISTORY"),
-        new SectionRule("GET",    "/api/v2/shifts",                  "SALES_HISTORY"),
+        new SectionRule("GET",    "/api/v2/stores/*/shifts",         List.of("SALES_HISTORY")),
+        new SectionRule("GET",    "/api/v2/stores/*/sales/summary",  List.of("SALES_HISTORY")),
+        new SectionRule("GET",    "/api/v2/stores/*/sales",          List.of("SALES_HISTORY")),
+        new SectionRule("GET",    "/api/v2/sales/cash-summary",      List.of("SALES_HISTORY")),
+        new SectionRule("GET",    "/api/v2/sales/*",                 List.of("SALES_HISTORY")),
+        // POS también puede ver las ventas y egresos de su turno activo
+        new SectionRule("GET",    "/api/v2/shifts/*/sales",          List.of("SALES_HISTORY", "POS")),
+        new SectionRule("GET",    "/api/v2/shifts/*/expenses",       List.of("SALES_HISTORY", "POS")),
+        new SectionRule("GET",    "/api/v2/shifts/*",                List.of("SALES_HISTORY")),
+        new SectionRule("GET",    "/api/v2/shifts",                  List.of("SALES_HISTORY")),
 
         // ── INVENTORY — Inventario ───────────────────────────────────────────
-        new SectionRule("*",      "/api/v2/stores/*/stock/**",       "INVENTORY"),
-        new SectionRule("*",      "/api/v2/stores/*/stock",          "INVENTORY"),
+        // POS también puede leer el stock para mostrar productos en el punto de venta
+        new SectionRule("GET",    "/api/v2/stores/*/stock",          List.of("INVENTORY", "POS")),
+        new SectionRule("*",      "/api/v2/stores/*/stock/**",       List.of("INVENTORY")),
+        new SectionRule("*",      "/api/v2/stores/*/stock",          List.of("INVENTORY")),
 
         // ── TRANSACTIONS — Operaciones ───────────────────────────────────────
-        new SectionRule("*",      "/api/transactions/store/*",            "TRANSACTIONS"),
-        new SectionRule("*",      "/api/transactions/date-range-store",   "TRANSACTIONS"),
-        new SectionRule("*",      "/api/operations/**",                   "TRANSACTIONS"),
+        new SectionRule("*",      "/api/transactions/store/*",            List.of("TRANSACTIONS")),
+        new SectionRule("*",      "/api/transactions/date-range-store",   List.of("TRANSACTIONS")),
+        new SectionRule("*",      "/api/operations/**",                   List.of("TRANSACTIONS")),
 
         // ── BANK_DEPOSITS — Depósitos bancarios ─────────────────────────────
-        new SectionRule("*",      "/api/v2/deposits/**",                  "BANK_DEPOSITS"),
-        new SectionRule("*",      "/api/v2/deposits",                     "BANK_DEPOSITS"),
-        new SectionRule("*",      "/api/forms/closing-deposits/**",       "BANK_DEPOSITS"),
-        new SectionRule("*",      "/api/forms/closing-deposits",          "BANK_DEPOSITS"),
+        new SectionRule("*",      "/api/v2/deposits/**",                  List.of("BANK_DEPOSITS")),
+        new SectionRule("*",      "/api/v2/deposits",                     List.of("BANK_DEPOSITS")),
+        new SectionRule("*",      "/api/forms/closing-deposits/**",       List.of("BANK_DEPOSITS")),
+        new SectionRule("*",      "/api/forms/closing-deposits",          List.of("BANK_DEPOSITS")),
 
         // ── SALARY_PAYMENTS ─────────────────────────────────────────────────
-        new SectionRule("*",      "/api/salary-payments/store/*",         "SALARY_PAYMENTS"),
-        new SectionRule("*",      "/api/forms/salary-payments",           "SALARY_PAYMENTS"),
+        new SectionRule("*",      "/api/salary-payments/store/*",         List.of("SALARY_PAYMENTS")),
+        new SectionRule("*",      "/api/forms/salary-payments",           List.of("SALARY_PAYMENTS")),
 
         // ── SUPPLIER_PAYMENTS ────────────────────────────────────────────────
-        new SectionRule("*",      "/api/supplier-payments/store/*",       "SUPPLIER_PAYMENTS"),
-        new SectionRule("*",      "/api/forms/supplier-payments",         "SUPPLIER_PAYMENTS"),
+        new SectionRule("*",      "/api/supplier-payments/store/*",       List.of("SUPPLIER_PAYMENTS")),
+        new SectionRule("*",      "/api/forms/supplier-payments",         List.of("SUPPLIER_PAYMENTS")),
 
         // ── CATALOG — Catálogo ───────────────────────────────────────────────
-        new SectionRule("*",      "/api/v2/stores/*/products",            "CATALOG"),
-        new SectionRule("*",      "/api/v2/products/**",                  "CATALOG"),
-        new SectionRule("*",      "/api/v2/stores/*/categories",          "CATALOG"),
-        new SectionRule("*",      "/api/v2/categories/**",                "CATALOG"),
+        new SectionRule("*",      "/api/v2/stores/*/products",            List.of("CATALOG")),
+        new SectionRule("*",      "/api/v2/products/**",                  List.of("CATALOG")),
+        new SectionRule("*",      "/api/v2/stores/*/categories",          List.of("CATALOG")),
+        new SectionRule("*",      "/api/v2/categories/**",                List.of("CATALOG")),
 
         // ── FORMS — Formularios ──────────────────────────────────────────────
-        new SectionRule("*",      "/api/forms/gasto-admin/**",            "FORMS"),
-        new SectionRule("*",      "/api/forms/gasto-admin",               "FORMS"),
+        new SectionRule("*",      "/api/forms/gasto-admin/**",            List.of("FORMS")),
+        new SectionRule("*",      "/api/forms/gasto-admin",               List.of("FORMS")),
 
         // ── DASHBOARD ────────────────────────────────────────────────────────
-        new SectionRule("*",      "/api/v2/dashboard/**",                 "DASHBOARD"),
-        new SectionRule("*",      "/api/v2/dashboard",                    "DASHBOARD")
+        new SectionRule("*",      "/api/v2/dashboard/**",                 List.of("DASHBOARD")),
+        new SectionRule("*",      "/api/v2/dashboard",                    List.of("DASHBOARD"))
     );
 
     // Patrón para endpoints cuyo storeId se obtiene JOIN via turno
@@ -167,11 +170,11 @@ public class UserStatusInterceptor implements HandlerInterceptor {
         }
 
         // ── Check 2: sección ──────────────────────────────────────────────
-        String section = resolveSection(method, path);
+        List<String> allowedSections = resolveAllowedSections(method, path);
 
-        if (section != null) {
+        if (allowedSections != null) {
             List<String> permissions = user.getPermissions();
-            if (!permissions.isEmpty() && !permissions.contains(section)) {
+            if (!permissions.isEmpty() && allowedSections.stream().noneMatch(permissions::contains)) {
                 return deny(response, "SECTION_FORBIDDEN",
                     "No tenés permiso para esta sección.");
             }
@@ -205,9 +208,9 @@ public class UserStatusInterceptor implements HandlerInterceptor {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private String resolveSection(String method, String path) {
+    private List<String> resolveAllowedSections(String method, String path) {
         for (SectionRule rule : SECTION_RULES) {
-            if (rule.matches(method, path)) return rule.section();
+            if (rule.matches(method, path)) return rule.allowedSections();
         }
         return null;
     }

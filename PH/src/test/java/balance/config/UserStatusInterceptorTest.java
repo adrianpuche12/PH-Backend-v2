@@ -312,7 +312,7 @@ class UserStatusInterceptorTest {
         assertThat(interceptor.preHandle(req, res, null)).isTrue();
     }
 
-    // ── 17. INVENTORY: acceso a stock ────────────────────────────────────────
+    // ── 17. INVENTORY: stock bloqueado sin INVENTORY ni POS ─────────────────
 
     @Test
     void inventory_stock_path_blocked_without_permission() throws Exception {
@@ -320,11 +320,68 @@ class UserStatusInterceptorTest {
         req.setMethod("GET");
         req.setRequestURI("/api/v2/stores/1/stock");
 
-        AppUser u = activeUser("user-sub", List.of("POS", "SALES_HISTORY"), List.of(1L));
+        AppUser u = activeUser("user-sub", List.of("SALES_HISTORY"), List.of(1L));
         when(userRepository.findByKeycloakId("user-sub")).thenReturn(Optional.of(u));
 
         assertThat(interceptor.preHandle(req, res, null)).isFalse();
         assertThat(res.getContentAsString()).contains("SECTION_FORBIDDEN");
+    }
+
+    // ── 17b. POS puede leer stock para mostrar productos en el POS ───────────
+
+    @Test
+    void pos_user_can_read_stock() throws Exception {
+        bearer("user-sub", false);
+        req.setMethod("GET");
+        req.setRequestURI("/api/v2/stores/1/stock");
+
+        AppUser u = activeUser("user-sub", List.of("POS"), List.of(1L));
+        when(userRepository.findByKeycloakId("user-sub")).thenReturn(Optional.of(u));
+
+        assertThat(interceptor.preHandle(req, res, null)).isTrue();
+    }
+
+    // ── 17c. POS no puede ajustar stock (solo INVENTORY) ─────────────────────
+
+    @Test
+    void pos_user_cannot_adjust_stock() throws Exception {
+        bearer("user-sub", false);
+        req.setMethod("POST");
+        req.setRequestURI("/api/v2/stores/1/stock/adjustment");
+
+        AppUser u = activeUser("user-sub", List.of("POS"), List.of(1L));
+        when(userRepository.findByKeycloakId("user-sub")).thenReturn(Optional.of(u));
+
+        assertThat(interceptor.preHandle(req, res, null)).isFalse();
+        assertThat(res.getContentAsString()).contains("SECTION_FORBIDDEN");
+    }
+
+    // ── 17d. POS puede ver ventas y egresos de su turno activo ───────────────
+
+    @Test
+    void pos_user_can_read_shift_sales() throws Exception {
+        bearer("user-sub", false);
+        req.setMethod("GET");
+        req.setRequestURI("/api/v2/shifts/5/sales");
+
+        AppUser u = activeUser("user-sub", List.of("POS"), List.of(1L));
+        when(userRepository.findByKeycloakId("user-sub")).thenReturn(Optional.of(u));
+        when(shiftRepository.findStoreIdByShiftId(5L)).thenReturn(Optional.of(1L));
+
+        assertThat(interceptor.preHandle(req, res, null)).isTrue();
+    }
+
+    @Test
+    void pos_user_can_read_shift_expenses() throws Exception {
+        bearer("user-sub", false);
+        req.setMethod("GET");
+        req.setRequestURI("/api/v2/shifts/5/expenses");
+
+        AppUser u = activeUser("user-sub", List.of("POS"), List.of(1L));
+        when(userRepository.findByKeycloakId("user-sub")).thenReturn(Optional.of(u));
+        when(shiftRepository.findStoreIdByShiftId(5L)).thenReturn(Optional.of(1L));
+
+        assertThat(interceptor.preHandle(req, res, null)).isTrue();
     }
 
     // ── 18. TRANSACTIONS: query param storeId ────────────────────────────────
