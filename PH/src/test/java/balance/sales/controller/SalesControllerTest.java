@@ -269,7 +269,7 @@ class SalesControllerTest {
 
     @Test
     void closeShift_returns400WhenNoOpenSales() throws Exception {
-        when(salesService.closeShift(eq(1L), any(), any()))
+        when(salesService.closeShift(eq(1L), any(), any(), any()))
                 .thenThrow(new IllegalStateException("No hay ventas abiertas para cerrar en este turno"));
 
         String body = objectMapper.writeValueAsString(Map.of("username", "admin"));
