@@ -168,7 +168,9 @@ public class SalesController {
             if (body.get("declaredCashAmount") != null) {
                 declaredCash = new java.math.BigDecimal(body.get("declaredCashAmount").toString());
             }
-            return ResponseEntity.ok(salesService.closeShift(shiftId, username, declaredCash));
+            String notes = body.get("notes") instanceof String s ? s.trim() : null;
+            if (notes != null && notes.isEmpty()) notes = null;
+            return ResponseEntity.ok(salesService.closeShift(shiftId, username, declaredCash, notes));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
