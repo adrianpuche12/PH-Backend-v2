@@ -503,7 +503,7 @@ public class SalesService {
      * @throws IllegalStateException si el turno ya está cerrado o no hay ventas
      */
     @Transactional
-    public DailyClosingResponseDTO closeShift(Long shiftId, String username, BigDecimal declaredCashAmount) {
+    public DailyClosingResponseDTO closeShift(Long shiftId, String username, BigDecimal declaredCashAmount, String notes) {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
 
@@ -571,6 +571,7 @@ public class SalesService {
         shift.setTotalShiftExpenses(expenses);
         shift.setDeclaredCashAmount(declared);
         shift.setCashDifference(difference);
+        if (notes != null && !notes.isBlank()) shift.setNotes(notes.substring(0, Math.min(notes.length(), 500)));
         shiftRepository.save(shift);
 
         return new DailyClosingResponseDTO(

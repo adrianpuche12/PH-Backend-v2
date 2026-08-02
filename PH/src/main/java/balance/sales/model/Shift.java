@@ -56,6 +56,10 @@ public class Shift {
     @Column(precision = 12, scale = 2)
     private BigDecimal cashDifference;       // declaredCashAmount - (openingCashAmount + totalCashSales)
 
+    // Observaciones opcionales al cierre
+    @Column(length = 500)
+    private String notes;
+
     // Depósito bancario
     private Boolean deposited = false;
 
@@ -105,4 +109,7 @@ public class Shift {
 
     public Long getDepositId() { return depositId; }
     public void setDepositId(Long depositId) { this.depositId = depositId; }
+
+    public String getNotes() { return notes; }
+    public void setNotes(String notes) { this.notes = notes; }
 }
