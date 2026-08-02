@@ -56,6 +56,7 @@ public class AllOperationsDTO {
     private java.math.BigDecimal totalShiftExpenses;
     private java.math.BigDecimal declaredCashAmount;
     private java.math.BigDecimal cashDifference;
+    private String shiftNotes;
 
     // Constructores para cada tipo de operación
     public static AllOperationsDTO fromClosingDeposit(balance.model.ClosingDeposit deposit) {
@@ -288,6 +289,9 @@ public class AllOperationsDTO {
     public java.math.BigDecimal getCashDifference() { return cashDifference; }
     public void setCashDifference(java.math.BigDecimal cashDifference) { this.cashDifference = cashDifference; }
 
+    public String getShiftNotes() { return shiftNotes; }
+    public void setShiftNotes(String shiftNotes) { this.shiftNotes = shiftNotes; }
+
     /** Enriquece el DTO con los datos del turno vinculado. Solo aplica a tipo CLOSING. */
     public void enrichWithShift(balance.sales.model.Shift shift, int salesCount) {
         this.shiftId             = shift.getId();
@@ -301,6 +305,7 @@ public class AllOperationsDTO {
         this.totalShiftExpenses  = shift.getTotalShiftExpenses();
         this.declaredCashAmount  = shift.getDeclaredCashAmount();
         this.cashDifference      = shift.getCashDifference();
+        this.shiftNotes          = shift.getNotes();
     }
 
 
