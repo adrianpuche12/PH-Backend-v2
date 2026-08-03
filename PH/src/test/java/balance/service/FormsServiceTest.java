@@ -17,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,7 +48,7 @@ class FormsServiceTest {
 
         service.saveClosingDeposit(deposit);
 
-        assertThat(deposit.getDepositDate()).isEqualTo(LocalDate.now());
+        assertThat(deposit.getDepositDate()).isEqualTo(LocalDate.now(ZoneId.of("America/Tegucigalpa")));
     }
 
     @Test
@@ -72,7 +73,7 @@ class FormsServiceTest {
 
         service.saveSupplierPayment(payment);
 
-        assertThat(payment.getPaymentDate()).isEqualTo(LocalDate.now());
+        assertThat(payment.getPaymentDate()).isEqualTo(LocalDate.now(ZoneId.of("America/Tegucigalpa")));
     }
 
     // ── saveSalaryPayment ─────────────────────────────────────────────────────
@@ -85,7 +86,7 @@ class FormsServiceTest {
 
         service.saveSalaryPayment(payment);
 
-        assertThat(payment.getSalaryDate()).isEqualTo(LocalDate.now());
+        assertThat(payment.getSalaryDate()).isEqualTo(LocalDate.now(ZoneId.of("America/Tegucigalpa")));
     }
 
     // ── updateClosingDeposit ──────────────────────────────────────────────────
