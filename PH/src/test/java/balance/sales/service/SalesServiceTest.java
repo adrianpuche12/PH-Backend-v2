@@ -546,14 +546,16 @@ class SalesServiceTest {
         when(saleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        salesService.closeShift(1L, "admin", new BigDecimal("80.00"), null);
+        // Cajera declara L 79 (tiene un faltante de L 1 respecto al esperado de L 80)
+        salesService.closeShift(1L, "admin", new BigDecimal("79.00"), null);
 
         // Capturar el ClosingDeposit que se envió a formsService
         ArgumentCaptor<ClosingDeposit> captor = ArgumentCaptor.forClass(ClosingDeposit.class);
         verify(formsService).saveClosingDeposit(captor.capture());
 
-        // totalCash=100, expenses=20 → depósito esperado=80 (NO 151 que sería el total bruto)
-        assertThat(captor.getValue().getAmount()).isEqualByComparingTo("80.00");
+        // El depósito debe ser lo que la cajera declaró (L 79), no el esperado (L 80)
+        // ni el total bruto (L 151 = 100 cash + 51 card)
+        assertThat(captor.getValue().getAmount()).isEqualByComparingTo("79.00");
     }
 
     @Test

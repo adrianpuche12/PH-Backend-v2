@@ -546,7 +546,7 @@ public class SalesService {
         ClosingDeposit saved = null;
         if (!openSales.isEmpty()) {
             ClosingDeposit deposit = new ClosingDeposit();
-            deposit.setAmount(totalCash.subtract(expenses));
+            deposit.setAmount(declared);
             deposit.setClosingsCount(openSales.size());
             deposit.setDepositDate(LocalDate.now());
             deposit.setPeriodStart(LocalDate.now());
