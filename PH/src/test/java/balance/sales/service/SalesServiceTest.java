@@ -461,7 +461,7 @@ class SalesServiceTest {
     void closeShift_throwsWhenShiftAlreadyClosed() {
         when(shiftRepository.findById(1L)).thenReturn(Optional.of(buildShift(1L, "CLOSED")));
 
-        assertThatThrownBy(() -> salesService.closeShift(1L, "admin", null))
+        assertThatThrownBy(() -> salesService.closeShift(1L, "admin", null, null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("turno ya está cerrado");
     }
@@ -477,7 +477,7 @@ class SalesServiceTest {
 
         // No debe lanzar excepcion, no debe crear ClosingDeposit (amount/closingsCount serian 0,
         // lo que violaria @DecimalMin/@Min en ClosingDeposit) y closingDepositId queda null
-        var result = salesService.closeShift(1L, "admin", BigDecimal.ZERO);
+        var result = salesService.closeShift(1L, "admin", BigDecimal.ZERO, null);
 
         verify(formsService, never()).saveClosingDeposit(any());
         assertThat(result.getClosingDepositId()).isNull();
@@ -504,7 +504,7 @@ class SalesServiceTest {
         when(saleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        salesService.closeShift(1L, "admin", null);
+        salesService.closeShift(1L, "admin", null, null);
 
         assertThat(sale1.getStatus()).isEqualTo("CONFIRMED");
         assertThat(sale2.getStatus()).isEqualTo("CONFIRMED");
@@ -538,7 +538,7 @@ class SalesServiceTest {
         when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         // La cajera declara L 20 (solo ventas, sin contar el fondo)
-        var result = salesService.closeShift(1L, "admin", new BigDecimal("20.00"));
+        var result = salesService.closeShift(1L, "admin", new BigDecimal("20.00"), null);
 
         assertThat(result.getExpectedCashAmount()).isEqualByComparingTo("20.00");
         assertThat(result.getCashDifference()).isEqualByComparingTo("0.00");

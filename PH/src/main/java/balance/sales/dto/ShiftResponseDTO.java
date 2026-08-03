@@ -20,6 +20,7 @@ public class ShiftResponseDTO {
     private BigDecimal totalShiftExpenses;
     private BigDecimal declaredCashAmount;
     private BigDecimal cashDifference;
+    private String notes;
 
     public static ShiftResponseDTO from(Shift s) {
         ShiftResponseDTO dto = new ShiftResponseDTO();
@@ -35,6 +36,7 @@ public class ShiftResponseDTO {
         dto.totalShiftExpenses  = s.getTotalShiftExpenses();
         dto.declaredCashAmount  = s.getDeclaredCashAmount();
         dto.cashDifference      = s.getCashDifference();
+        dto.notes               = s.getNotes();
         if (s.getStore() != null) {
             dto.storeId   = s.getStore().getId();
             dto.storeName = s.getStore().getName();
@@ -56,4 +58,5 @@ public class ShiftResponseDTO {
     public BigDecimal getTotalCardSales() { return totalCardSales; }
     public BigDecimal getDeclaredCashAmount() { return declaredCashAmount; }
     public BigDecimal getCashDifference() { return cashDifference; }
+    public String getNotes() { return notes; }
 }
