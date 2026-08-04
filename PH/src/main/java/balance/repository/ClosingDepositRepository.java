@@ -29,6 +29,9 @@ public interface ClosingDepositRepository extends JpaRepository<ClosingDeposit, 
     // Todos los pendientes de un local
     List<ClosingDeposit> findByStoreIdAndDepositStatusOrderByDepositDateDesc(Long storeId, String depositStatus);
 
+    // Cierres asociados a un BankDeposit
+    List<ClosingDeposit> findByBankDepositId(Long bankDepositId);
+
     // Cuántos cierres quedan asociados a un BankDeposit (usado al borrar en cascada)
     long countByBankDepositId(Long bankDepositId);
 

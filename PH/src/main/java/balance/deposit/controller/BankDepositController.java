@@ -3,6 +3,7 @@ package balance.deposit.controller;
 import balance.deposit.dto.CreateDepositRequest;
 import balance.deposit.dto.DepositResponse;
 import balance.deposit.dto.PendingClosingResponse;
+import balance.deposit.dto.UpdateDepositRequest;
 import balance.deposit.service.BankDepositService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,5 +75,28 @@ public class BankDepositController {
     @GetMapping("/mine")
     public ResponseEntity<List<DepositResponse>> getMine(@RequestParam String username) {
         return ResponseEntity.ok(service.getByUser(username));
+    }
+
+    // DELETE /api/v2/deposits/{id}
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        try {
+            service.deleteDeposit(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // PUT /api/v2/deposits/{id}
+    @PutMapping("/{id}")
+    public ResponseEntity<DepositResponse> update(
+            @PathVariable Long id,
+            @RequestBody UpdateDepositRequest req) {
+        try {
+            return ResponseEntity.ok(service.updateDeposit(id, req));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
