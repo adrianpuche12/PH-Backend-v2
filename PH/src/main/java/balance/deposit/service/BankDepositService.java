@@ -157,7 +157,10 @@ public class BankDepositService {
         BankDeposit deposit = depositRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Depósito no encontrado"));
 
-        if (req.getDepositDate() != null) deposit.setDepositDate(req.getDepositDate());
+        if (req.getDepositDate() != null) {
+            deposit.setDepositDate(req.getDepositDate());
+            closingDepositRepo.updateDepositDateByBankDepositId(id, req.getDepositDate());
+        }
         if (req.getDeclaredAmount() != null) {
             deposit.setDeclaredAmount(req.getDeclaredAmount());
             BigDecimal difference = req.getDeclaredAmount().subtract(deposit.getExpectedCash());

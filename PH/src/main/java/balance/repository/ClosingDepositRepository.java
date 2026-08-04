@@ -44,4 +44,9 @@ public interface ClosingDepositRepository extends JpaRepository<ClosingDeposit, 
     @Modifying
     @Query(value = "UPDATE closing_deposits SET image_uri = :imageUri WHERE bank_deposit_id = :bankDepositId", nativeQuery = true)
     void updateImageUriByBankDepositId(Long bankDepositId, String imageUri);
+
+    // Propaga la fecha de depósito a todos los cierres de un BankDeposit
+    @Modifying
+    @Query(value = "UPDATE closing_deposits SET deposit_date = :depositDate WHERE bank_deposit_id = :bankDepositId", nativeQuery = true)
+    void updateDepositDateByBankDepositId(Long bankDepositId, java.time.LocalDate depositDate);
 }
