@@ -74,31 +74,54 @@ public class FormsService {
     // Usa batch queries para evitar N+1: 2 queries totales en lugar de 2 por cada cierre.
 
     private void enrichClosingDTOs(List<AllOperationsDTO> dtos) {
+        // Enriquecer con datos del turno vinculado
         List<Long> shiftIds = dtos.stream()
             .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getClosingShiftId() != null)
             .map(AllOperationsDTO::getClosingShiftId)
             .collect(Collectors.toList());
 
-        if (shiftIds.isEmpty()) return;
+        if (!shiftIds.isEmpty()) {
+            Map<Long, Shift> shiftMap = shiftRepository.findAllById(shiftIds).stream()
+                .collect(Collectors.toMap(Shift::getId, s -> s));
 
-        Map<Long, Shift> shiftMap = shiftRepository.findAllById(shiftIds).stream()
-            .collect(Collectors.toMap(Shift::getId, s -> s));
+            Map<Long, Long> countsMap = saleRepository.countByShiftIdIn(shiftIds).stream()
+                .collect(Collectors.toMap(
+                    row -> (Long) row[0],
+                    row -> (Long) row[1]
+                ));
 
-        Map<Long, Long> countsMap = saleRepository.countByShiftIdIn(shiftIds).stream()
-            .collect(Collectors.toMap(
-                row -> (Long) row[0],
-                row -> (Long) row[1]
-            ));
+            dtos.stream()
+                .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getClosingShiftId() != null)
+                .forEach(dto -> {
+                    Shift shift = shiftMap.get(dto.getClosingShiftId());
+                    if (shift != null) {
+                        int count = countsMap.getOrDefault(dto.getClosingShiftId(), 0L).intValue();
+                        dto.enrichWithShift(shift, count);
+                    }
+                });
+        }
 
-        dtos.stream()
-            .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getClosingShiftId() != null)
-            .forEach(dto -> {
-                Shift shift = shiftMap.get(dto.getClosingShiftId());
-                if (shift != null) {
-                    int count = countsMap.getOrDefault(dto.getClosingShiftId(), 0L).intValue();
-                    dto.enrichWithShift(shift, count);
-                }
-            });
+        // Enriquecer cierres depositados con BankDeposit.declaredAmount
+        List<Long> bankDepositIds = dtos.stream()
+            .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getBankDepositId() != null)
+            .map(AllOperationsDTO::getBankDepositId)
+            .distinct()
+            .collect(Collectors.toList());
+
+        if (!bankDepositIds.isEmpty()) {
+            Map<Long, java.math.BigDecimal> declaredMap = bankDepositRepository.findAllById(bankDepositIds).stream()
+                .collect(Collectors.toMap(
+                    balance.deposit.model.BankDeposit::getId,
+                    balance.deposit.model.BankDeposit::getDeclaredAmount
+                ));
+
+            dtos.stream()
+                .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getBankDepositId() != null)
+                .forEach(dto -> {
+                    java.math.BigDecimal declared = declaredMap.get(dto.getBankDepositId());
+                    if (declared != null) dto.setBankDeclaredAmount(declared);
+                });
+        }
     }
 
     // Métodos para obtener operaciones
