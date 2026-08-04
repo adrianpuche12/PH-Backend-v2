@@ -3,7 +3,9 @@ package balance.service;
 import balance.dto.GastoAdminRequestDTO;
 import balance.dto.GastoAdminResponseDTO;
 import balance.model.*;
+import balance.deposit.repository.BankDepositRepository;
 import balance.repository.*;
+import balance.sales.model.Sale;
 import balance.sales.repository.SaleRepository;
 import balance.sales.repository.ShiftRepository;
 import org.junit.jupiter.api.Test;
@@ -36,6 +38,7 @@ class FormsServiceTest {
     @Mock private StoreRepository          storeRepository;
     @Mock private ShiftRepository          shiftRepository;
     @Mock private SaleRepository           saleRepository;
+    @Mock private BankDepositRepository    bankDepositRepository;
     @InjectMocks private FormsService service;
 
     // ── saveClosingDeposit ────────────────────────────────────────────────────
@@ -118,21 +121,59 @@ class FormsServiceTest {
     // ── deleteClosingDeposit ──────────────────────────────────────────────────
 
     @Test
-    void deleteClosingDeposit_deletesWhenExists() {
-        when(closingDepositRepository.existsById(1L)).thenReturn(true);
-
-        service.deleteClosingDeposit(1L);
-
-        verify(closingDepositRepository).deleteById(1L);
-    }
-
-    @Test
     void deleteClosingDeposit_throwsWhenNotFound() {
-        when(closingDepositRepository.existsById(99L)).thenReturn(false);
+        when(closingDepositRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.deleteClosingDeposit(99L))
             .isInstanceOf(ResponseStatusException.class);
-        verify(closingDepositRepository, never()).deleteById(any());
+        verify(closingDepositRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteClosingDeposit_sinTurno_soloEliminaElCierre() {
+        // Cierre manual (sin shiftId ni bankDepositId)
+        ClosingDeposit deposit = new ClosingDeposit();
+        deposit.setAmount(new BigDecimal("100.00"));
+        when(closingDepositRepository.findById(1L)).thenReturn(Optional.of(deposit));
+
+        service.deleteClosingDeposit(1L);
+
+        verify(closingDepositRepository).delete(deposit);
+        verify(saleRepository, never()).deleteAll(any(List.class));
+        verify(shiftRepository, never()).deleteById(any());
+        verify(bankDepositRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteClosingDeposit_conTurno_eliminaCascada() {
+        // Cierre del POS con shiftId vinculado
+        ClosingDeposit deposit = new ClosingDeposit();
+        deposit.setAmount(new BigDecimal("200.00"));
+        deposit.setShiftId(12L);
+        when(closingDepositRepository.findById(5L)).thenReturn(Optional.of(deposit));
+        when(saleRepository.findByShiftIdOrderByCreatedAtDesc(12L)).thenReturn(List.of(new Sale()));
+        when(shiftRepository.existsById(12L)).thenReturn(true);
+
+        service.deleteClosingDeposit(5L);
+
+        verify(saleRepository).deleteAll(any(List.class));
+        verify(shiftRepository).deleteById(12L);
+        verify(closingDepositRepository).delete(deposit);
+    }
+
+    @Test
+    void deleteClosingDeposit_bancarioVacio_eliminaBankDeposit() {
+        // Cierre DEPOSITED sin turno vinculado: al borrarlo el BankDeposit queda vacío
+        ClosingDeposit deposit = new ClosingDeposit();
+        deposit.setAmount(new BigDecimal("300.00"));
+        deposit.setBankDepositId(7L);
+        when(closingDepositRepository.findById(3L)).thenReturn(Optional.of(deposit));
+        when(closingDepositRepository.countByBankDepositId(7L)).thenReturn(0L);
+
+        service.deleteClosingDeposit(3L);
+
+        verify(closingDepositRepository).delete(deposit);
+        verify(bankDepositRepository).deleteById(7L);
     }
 
     // ── deleteSupplierPayment ─────────────────────────────────────────────────

@@ -30,6 +30,8 @@ import balance.model.Transaction;
 import balance.repository.GastoAdminRepository;
 import balance.repository.TransactionRepository;
 import balance.repository.StoreRepository;
+import balance.deposit.repository.BankDepositRepository;
+import balance.sales.model.Sale;
 import balance.sales.model.Shift;
 import balance.sales.repository.ShiftRepository;
 import balance.sales.repository.SaleRepository;
@@ -64,6 +66,9 @@ public class FormsService {
 
     @Autowired
     private SaleRepository saleRepository;
+
+    @Autowired
+    private BankDepositRepository bankDepositRepository;
 
     // ── Helper: enriquece los CLOSING DTOs con datos del turno vinculado ────────
     // Usa batch queries para evitar N+1: 2 queries totales en lugar de 2 por cada cierre.
@@ -273,10 +278,31 @@ public class FormsService {
 
     // Métodos de eliminación (DELETE)
     public void deleteClosingDeposit(Long id) {
-        if (!closingDepositRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "ClosingDeposit no encontrado con id " + id);
+        ClosingDeposit deposit = closingDepositRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ClosingDeposit no encontrado con id " + id));
+
+        Long shiftId       = deposit.getShiftId();
+        Long bankDepositId = deposit.getBankDepositId();
+
+        // 1. Borrar ventas del turno vinculado (SaleItems se borran por cascade JPA)
+        if (shiftId != null) {
+            List<Sale> sales = saleRepository.findByShiftIdOrderByCreatedAtDesc(shiftId);
+            if (!sales.isEmpty()) {
+                saleRepository.deleteAll(sales);
+            }
+            if (shiftRepository.existsById(shiftId)) {
+                shiftRepository.deleteById(shiftId);
+            }
         }
-        closingDepositRepository.deleteById(id);
+
+        // 2. Borrar el cierre
+        closingDepositRepository.delete(deposit);
+
+        // 3. Si era parte de un depósito bancario y quedó vacío, borrarlo también
+        if (bankDepositId != null &&
+                closingDepositRepository.countByBankDepositId(bankDepositId) == 0) {
+            bankDepositRepository.deleteById(bankDepositId);
+        }
     }
 
     public void deleteSupplierPayment(Long id) {
