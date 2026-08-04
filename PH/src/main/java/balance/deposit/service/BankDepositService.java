@@ -164,7 +164,10 @@ public class BankDepositService {
             deposit.setDifference(difference);
             deposit.setStatus(difference.compareTo(BigDecimal.ZERO) == 0 ? "CONFIRMED" : "DISCREPANCY");
         }
-        if (req.getImageUri() != null) deposit.setImageUri(req.getImageUri());
+        if (req.getImageUri() != null) {
+            deposit.setImageUri(req.getImageUri());
+            closingDepositRepo.updateImageUriByBankDepositId(id, req.getImageUri());
+        }
         if (req.getNotes() != null) deposit.setNotes(req.getNotes());
 
         return DepositResponse.from(depositRepo.save(deposit));
