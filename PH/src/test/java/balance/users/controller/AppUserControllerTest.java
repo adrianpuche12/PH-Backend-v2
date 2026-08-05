@@ -342,6 +342,29 @@ class AppUserControllerTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    void updatePermissions_returns400WhenKeyMissing() throws Exception {
+        mockMvc.perform(put("/api/v2/users/1/permissions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("El campo 'permissions' es obligatorio"));
+
+        verifyNoInteractions(userService);
+    }
+
+    @Test
+    void updatePermissions_returns400WhenInvalidSection() throws Exception {
+        when(userService.updatePermissions(eq(1L), eq(List.of("TYPO_SECCION"))))
+                .thenThrow(new IllegalArgumentException("Permisos inválidos: [TYPO_SECCION]"));
+
+        mockMvc.perform(put("/api/v2/users/1/permissions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("permissions", List.of("TYPO_SECCION")))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").exists());
+    }
+
     // â"€â"€ PUT /api/v2/users/{id}/store-access â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @Test

@@ -3,10 +3,14 @@ package balance.deposit.service;
 import balance.deposit.dto.CreateDepositRequest;
 import balance.deposit.dto.DepositResponse;
 import balance.deposit.dto.PendingClosingResponse;
+import balance.deposit.dto.UpdateDepositRequest;
 import balance.deposit.model.BankDeposit;
 import balance.deposit.repository.BankDepositRepository;
 import balance.model.ClosingDeposit;
 import balance.repository.ClosingDepositRepository;
+import balance.sales.model.Sale;
+import balance.sales.repository.SaleRepository;
+import balance.sales.repository.ShiftRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +27,8 @@ public class BankDepositService {
 
     @Autowired private BankDepositRepository depositRepo;
     @Autowired private ClosingDepositRepository closingDepositRepo;
+    @Autowired private SaleRepository saleRepository;
+    @Autowired private ShiftRepository shiftRepository;
 
     // Cierres PENDING de un local en un rango de fechas
     public List<PendingClosingResponse> getPendingClosings(Long storeId, LocalDate from, LocalDate to) {
@@ -124,5 +130,49 @@ public class BankDepositService {
     public List<DepositResponse> getByUser(String username) {
         return depositRepo.findByCreatedByOrderByCreatedAtDesc(username)
                 .stream().map(DepositResponse::from).collect(Collectors.toList());
+    }
+
+    // Eliminar depósito bancario en cascada (cierres, turnos, ventas)
+    @Transactional
+    public void deleteDeposit(Long id) {
+        BankDeposit deposit = depositRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Depósito no encontrado"));
+
+        List<ClosingDeposit> closings = closingDepositRepo.findByBankDepositId(id);
+        for (ClosingDeposit c : closings) {
+            Long shiftId = c.getShiftId();
+            if (shiftId != null) {
+                List<Sale> sales = saleRepository.findByShiftIdOrderByCreatedAtDesc(shiftId);
+                if (!sales.isEmpty()) saleRepository.deleteAll(sales);
+                if (shiftRepository.existsById(shiftId)) shiftRepository.deleteById(shiftId);
+            }
+        }
+        closingDepositRepo.deleteAll(closings);
+        depositRepo.delete(deposit);
+    }
+
+    // Editar depósito bancario (fecha, monto, imagen, notas)
+    @Transactional
+    public DepositResponse updateDeposit(Long id, UpdateDepositRequest req) {
+        BankDeposit deposit = depositRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Depósito no encontrado"));
+
+        if (req.getDepositDate() != null) {
+            deposit.setDepositDate(req.getDepositDate());
+            closingDepositRepo.updateDepositDateByBankDepositId(id, req.getDepositDate());
+        }
+        if (req.getDeclaredAmount() != null) {
+            deposit.setDeclaredAmount(req.getDeclaredAmount());
+            BigDecimal difference = req.getDeclaredAmount().subtract(deposit.getExpectedCash());
+            deposit.setDifference(difference);
+            deposit.setStatus(difference.compareTo(BigDecimal.ZERO) == 0 ? "CONFIRMED" : "DISCREPANCY");
+        }
+        if (req.getImageUri() != null) {
+            deposit.setImageUri(req.getImageUri());
+            closingDepositRepo.updateImageUriByBankDepositId(id, req.getImageUri());
+        }
+        if (req.getNotes() != null) deposit.setNotes(req.getNotes());
+
+        return DepositResponse.from(depositRepo.save(deposit));
     }
 }

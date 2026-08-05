@@ -40,6 +40,7 @@ public class AllOperationsDTO {
     // Estado del depósito bancario (solo para CLOSING)
     private String depositStatus;
     private Long bankDepositId;
+    private java.math.BigDecimal bankDeclaredAmount;
 
     // shiftId guardado en ClosingDeposit — usado internamente por enrichClosingDTOs
     private Long closingShiftId;
@@ -251,6 +252,9 @@ public class AllOperationsDTO {
 
     public Long getBankDepositId() { return bankDepositId; }
     public void setBankDepositId(Long bankDepositId) { this.bankDepositId = bankDepositId; }
+
+    public java.math.BigDecimal getBankDeclaredAmount() { return bankDeclaredAmount; }
+    public void setBankDeclaredAmount(java.math.BigDecimal bankDeclaredAmount) { this.bankDeclaredAmount = bankDeclaredAmount; }
 
     public Long getClosingShiftId() { return closingShiftId; }
     public void setClosingShiftId(Long closingShiftId) { this.closingShiftId = closingShiftId; }

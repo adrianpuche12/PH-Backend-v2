@@ -546,11 +546,11 @@ public class SalesService {
         ClosingDeposit saved = null;
         if (!openSales.isEmpty()) {
             ClosingDeposit deposit = new ClosingDeposit();
-            deposit.setAmount(totalAmount);
+            deposit.setAmount(declared);
             deposit.setClosingsCount(openSales.size());
-            deposit.setDepositDate(LocalDate.now());
-            deposit.setPeriodStart(LocalDate.now());
-            deposit.setPeriodEnd(LocalDate.now());
+            deposit.setDepositDate(LocalDate.now(HONDURAS_TZ));
+            deposit.setPeriodStart(LocalDate.now(HONDURAS_TZ));
+            deposit.setPeriodEnd(LocalDate.now(HONDURAS_TZ));
             deposit.setUsername(username);
             deposit.setStore(shift.getStore());
             deposit.setShiftId(shiftId);

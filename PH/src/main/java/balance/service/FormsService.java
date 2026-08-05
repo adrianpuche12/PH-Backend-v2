@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,8 @@ import balance.model.Transaction;
 import balance.repository.GastoAdminRepository;
 import balance.repository.TransactionRepository;
 import balance.repository.StoreRepository;
+import balance.deposit.repository.BankDepositRepository;
+import balance.sales.model.Sale;
 import balance.sales.model.Shift;
 import balance.sales.repository.ShiftRepository;
 import balance.sales.repository.SaleRepository;
@@ -37,6 +40,8 @@ import balance.sales.repository.SaleRepository;
 @Service
 @Transactional
 public class FormsService {
+
+    private static final ZoneId HONDURAS_TZ = ZoneId.of("America/Tegucigalpa");
 
     @Autowired
     private GastoAdminRepository gastoAdminRepository;
@@ -62,42 +67,68 @@ public class FormsService {
     @Autowired
     private SaleRepository saleRepository;
 
+    @Autowired
+    private BankDepositRepository bankDepositRepository;
+
     // ── Helper: enriquece los CLOSING DTOs con datos del turno vinculado ────────
     // Usa batch queries para evitar N+1: 2 queries totales en lugar de 2 por cada cierre.
 
     private void enrichClosingDTOs(List<AllOperationsDTO> dtos) {
+        // Enriquecer con datos del turno vinculado
         List<Long> shiftIds = dtos.stream()
             .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getClosingShiftId() != null)
             .map(AllOperationsDTO::getClosingShiftId)
             .collect(Collectors.toList());
 
-        if (shiftIds.isEmpty()) return;
+        if (!shiftIds.isEmpty()) {
+            Map<Long, Shift> shiftMap = shiftRepository.findAllById(shiftIds).stream()
+                .collect(Collectors.toMap(Shift::getId, s -> s));
 
-        Map<Long, Shift> shiftMap = shiftRepository.findAllById(shiftIds).stream()
-            .collect(Collectors.toMap(Shift::getId, s -> s));
+            Map<Long, Long> countsMap = saleRepository.countByShiftIdIn(shiftIds).stream()
+                .collect(Collectors.toMap(
+                    row -> (Long) row[0],
+                    row -> (Long) row[1]
+                ));
 
-        Map<Long, Long> countsMap = saleRepository.countByShiftIdIn(shiftIds).stream()
-            .collect(Collectors.toMap(
-                row -> (Long) row[0],
-                row -> (Long) row[1]
-            ));
+            dtos.stream()
+                .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getClosingShiftId() != null)
+                .forEach(dto -> {
+                    Shift shift = shiftMap.get(dto.getClosingShiftId());
+                    if (shift != null) {
+                        int count = countsMap.getOrDefault(dto.getClosingShiftId(), 0L).intValue();
+                        dto.enrichWithShift(shift, count);
+                    }
+                });
+        }
 
-        dtos.stream()
-            .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getClosingShiftId() != null)
-            .forEach(dto -> {
-                Shift shift = shiftMap.get(dto.getClosingShiftId());
-                if (shift != null) {
-                    int count = countsMap.getOrDefault(dto.getClosingShiftId(), 0L).intValue();
-                    dto.enrichWithShift(shift, count);
-                }
-            });
+        // Enriquecer cierres depositados con BankDeposit.declaredAmount
+        List<Long> bankDepositIds = dtos.stream()
+            .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getBankDepositId() != null)
+            .map(AllOperationsDTO::getBankDepositId)
+            .distinct()
+            .collect(Collectors.toList());
+
+        if (!bankDepositIds.isEmpty()) {
+            Map<Long, java.math.BigDecimal> declaredMap = bankDepositRepository.findAllById(bankDepositIds).stream()
+                .collect(Collectors.toMap(
+                    balance.deposit.model.BankDeposit::getId,
+                    balance.deposit.model.BankDeposit::getDeclaredAmount
+                ));
+
+            dtos.stream()
+                .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getBankDepositId() != null)
+                .forEach(dto -> {
+                    java.math.BigDecimal declared = declaredMap.get(dto.getBankDepositId());
+                    if (declared != null) dto.setBankDeclaredAmount(declared);
+                });
+        }
     }
 
     // Métodos para obtener operaciones
     public List<AllOperationsDTO> getAllOperations() {
         // Sin filtro de fecha: limitar a los últimos 90 días para evitar traer toda la historia.
         // El usuario puede usar el filtro de fechas para ver períodos anteriores.
-        LocalDate endDate   = LocalDate.now();
+        LocalDate endDate   = LocalDate.now(HONDURAS_TZ);
         LocalDate startDate = endDate.minusDays(90);
         return getOperationsByDateRange(startDate, endDate);
     }
@@ -132,7 +163,7 @@ public class FormsService {
 
     // Método para filtrar por store — mismo límite de 90 días que getAllOperations()
     public List<AllOperationsDTO> getOperationsByStore(Long storeId) {
-        LocalDate endDate   = LocalDate.now();
+        LocalDate endDate   = LocalDate.now(HONDURAS_TZ);
         LocalDate startDate = endDate.minusDays(90);
         return getOperationsByDateRangeAndStore(startDate, endDate, storeId);
     }
@@ -169,7 +200,7 @@ public class FormsService {
     // Métodos para guardar operaciones
     public ClosingDeposit saveClosingDeposit(ClosingDeposit deposit) {
         if (deposit.getDepositDate() == null) {
-            deposit.setDepositDate(LocalDate.now());
+            deposit.setDepositDate(LocalDate.now(HONDURAS_TZ));
         }
         return closingDepositRepository.save(deposit);
     }
@@ -186,7 +217,7 @@ public class FormsService {
 
     public SupplierPayment saveSupplierPayment(SupplierPayment payment) {
         if (payment.getPaymentDate() == null) {
-            payment.setPaymentDate(LocalDate.now());
+            payment.setPaymentDate(LocalDate.now(HONDURAS_TZ));
         }
         return supplierPaymentRepository.save(payment);
     }
@@ -201,7 +232,7 @@ public class FormsService {
 
     public SalaryPayment saveSalaryPayment(SalaryPayment payment) {
         if (payment.getSalaryDate() == null) {
-            payment.setSalaryDate(LocalDate.now());
+            payment.setSalaryDate(LocalDate.now(HONDURAS_TZ));
         }
         return salaryPaymentRepository.save(payment);
     }
@@ -270,10 +301,31 @@ public class FormsService {
 
     // Métodos de eliminación (DELETE)
     public void deleteClosingDeposit(Long id) {
-        if (!closingDepositRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "ClosingDeposit no encontrado con id " + id);
+        ClosingDeposit deposit = closingDepositRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ClosingDeposit no encontrado con id " + id));
+
+        Long shiftId       = deposit.getShiftId();
+        Long bankDepositId = deposit.getBankDepositId();
+
+        // 1. Borrar ventas del turno vinculado (SaleItems se borran por cascade JPA)
+        if (shiftId != null) {
+            List<Sale> sales = saleRepository.findByShiftIdOrderByCreatedAtDesc(shiftId);
+            if (!sales.isEmpty()) {
+                saleRepository.deleteAll(sales);
+            }
+            if (shiftRepository.existsById(shiftId)) {
+                shiftRepository.deleteById(shiftId);
+            }
         }
-        closingDepositRepository.deleteById(id);
+
+        // 2. Borrar el cierre
+        closingDepositRepository.delete(deposit);
+
+        // 3. Si era parte de un depósito bancario y quedó vacío, borrarlo también
+        if (bankDepositId != null &&
+                closingDepositRepository.countByBankDepositId(bankDepositId) == 0) {
+            bankDepositRepository.deleteById(bankDepositId);
+        }
     }
 
     public void deleteSupplierPayment(Long id) {

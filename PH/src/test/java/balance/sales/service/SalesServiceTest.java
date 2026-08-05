@@ -513,6 +513,52 @@ class SalesServiceTest {
     }
 
     @Test
+    void closeShift_depositAmountIsNetCash_totalCashMinusExpenses() {
+        // El ClosingDeposit debe guardar el efectivo neto: totalCash - gastos del turno.
+        // NO el total de la venta (que incluye tarjeta y recargo).
+        Shift shift = buildShift(1L, "OPEN");
+
+        Sale saleCash = new Sale();
+        saleCash.setStatus("OPEN");
+        saleCash.setTotal(new BigDecimal("100.00"));
+        saleCash.setCashAmount(new BigDecimal("100.00"));
+        saleCash.setCardAmount(BigDecimal.ZERO);
+        saleCash.setSubtotal(new BigDecimal("100.00"));
+        saleCash.setIsv(BigDecimal.ZERO);
+        saleCash.setStore(buildStore(1L, "Danli"));
+
+        Sale saleCard = new Sale();
+        saleCard.setStatus("OPEN");
+        saleCard.setTotal(new BigDecimal("51.00")); // 50 + 2% recargo
+        saleCard.setCashAmount(BigDecimal.ZERO);
+        saleCard.setCardAmount(new BigDecimal("51.00"));
+        saleCard.setSubtotal(new BigDecimal("50.00"));
+        saleCard.setIsv(BigDecimal.ZERO);
+        saleCard.setStore(buildStore(1L, "Danli"));
+
+        ClosingDeposit deposit = new ClosingDeposit();
+        deposit.setId(5L);
+
+        when(shiftRepository.findById(1L)).thenReturn(Optional.of(shift));
+        when(saleRepository.findOpenByShiftId(1L)).thenReturn(List.of(saleCash, saleCard));
+        when(shiftExpenseRepository.sumAmountByShiftId(1L)).thenReturn(new BigDecimal("20.00"));
+        when(formsService.saveClosingDeposit(any())).thenReturn(deposit);
+        when(saleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Cajera declara L 79 (tiene un faltante de L 1 respecto al esperado de L 80)
+        salesService.closeShift(1L, "admin", new BigDecimal("79.00"), null);
+
+        // Capturar el ClosingDeposit que se envió a formsService
+        ArgumentCaptor<ClosingDeposit> captor = ArgumentCaptor.forClass(ClosingDeposit.class);
+        verify(formsService).saveClosingDeposit(captor.capture());
+
+        // El depósito debe ser lo que la cajera declaró (L 79), no el esperado (L 80)
+        // ni el total bruto (L 151 = 100 cash + 51 card)
+        assertThat(captor.getValue().getAmount()).isEqualByComparingTo("79.00");
+    }
+
+    @Test
     void closeShift_cashDifferenceExcludesFondoInicial() {
         // El fondo inicial (L 1000) NO debe sumarse al esperado.
         // Cajera con L 1000 fondo + L 20 ventas efectivo declara solo L 20 → caja cuadrada.
