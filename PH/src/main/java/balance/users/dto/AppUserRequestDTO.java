@@ -1,6 +1,5 @@
 package balance.users.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 import java.util.ArrayList;
@@ -14,13 +13,13 @@ public class AppUserRequestDTO {
     @NotBlank(message = "El username es obligatorio")
     private String username;
 
-    @NotBlank(message = "El email es obligatorio")
-    @Email(message = "El email no tiene formato válido")
+    @NotBlank(message = "La contraseña es obligatoria")
+    private String password;
+
     private String email;
 
-    /** ADMIN, ENCARGADO, CONTADOR, SOCIO */
-    @NotBlank(message = "El rol es obligatorio")
-    private String role;
+    /** ADMIN, ENCARGADO, CONTADOR, SOCIO — default: ENCARGADO */
+    private String role = "ENCARGADO";
 
     /** Local principal (opcional, para empleados con local asignado) */
     private Long storeId;
@@ -36,6 +35,9 @@ public class AppUserRequestDTO {
 
     public String getUsername()              { return username; }
     public void setUsername(String v)        { this.username = v; }
+
+    public String getPassword()              { return password; }
+    public void setPassword(String v)        { this.password = v; }
 
     public String getEmail()                 { return email; }
     public void setEmail(String v)           { this.email = v; }

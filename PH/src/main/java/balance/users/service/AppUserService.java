@@ -62,19 +62,21 @@ public class AppUserService {
             );
         }
 
-        String tempPassword = generatePassword();
-        String kcRole = "ADMIN".equalsIgnoreCase(dto.getRole()) ? "admin" : "user";
+        String password = dto.getPassword();
+        String role     = dto.getRole() != null ? dto.getRole().toUpperCase() : "ENCARGADO";
+        String email    = dto.getEmail() != null && !dto.getEmail().isBlank()
+                          ? dto.getEmail().trim()
+                          : username + "@lospolloshermanos.hn";
+        String kcRole   = "ADMIN".equalsIgnoreCase(role) ? "admin" : "user";
 
-        String keycloakId = keycloakAdmin.createUser(
-            username, dto.getFullName(), dto.getEmail(), tempPassword, kcRole
-        );
+        String keycloakId = keycloakAdmin.createUser(username, dto.getFullName(), email, password, kcRole);
 
         AppUser user = new AppUser();
         user.setKeycloakId(keycloakId);
         user.setFullName(dto.getFullName().trim());
         user.setUsername(username);
-        user.setEmail(dto.getEmail());
-        user.setRole(dto.getRole().toUpperCase());
+        user.setEmail(email);
+        user.setRole(role);
         user.setFirstLogin(true);
         user.setStore(primaryStore);
         user.setAccessibleStores(accessibleStores);
@@ -82,10 +84,9 @@ public class AppUserService {
         user.setStatus("ACTIVE");
 
         AppUser saved = userRepository.save(user);
-        emailService.sendWelcomeEmail(dto.getEmail(), dto.getFullName(), username, tempPassword);
 
         AppUserResponseDTO response = AppUserResponseDTO.from(saved);
-        response.setTempPassword(tempPassword);
+        response.setTempPassword(password);
         return response;
     }
 
