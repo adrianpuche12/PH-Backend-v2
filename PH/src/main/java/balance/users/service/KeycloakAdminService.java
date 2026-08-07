@@ -228,19 +228,10 @@ public class KeycloakAdminService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(token);
 
-        try {
-            restTemplate.exchange(
-                url, HttpMethod.PUT,
-                new HttpEntity<>(Map.of("type", "password", "value", newPassword, "temporary", false), headers),
-                Void.class
-            );
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
-                throw new IllegalArgumentException("Usuario no encontrado en Keycloak");
-            }
-            // 400 = política de contraseña rechazada u otro error de validación
-            String body = e.getResponseBodyAsString();
-            throw new IllegalArgumentException("Keycloak rechazó la contraseña: " + body);
-        }
+        restTemplate.exchange(
+            url, HttpMethod.PUT,
+            new HttpEntity<>(Map.of("type", "password", "value", newPassword, "temporary", false), headers),
+            Void.class
+        );
     }
 }

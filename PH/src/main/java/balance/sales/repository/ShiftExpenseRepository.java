@@ -7,7 +7,6 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 public interface ShiftExpenseRepository extends JpaRepository<ShiftExpense, Long> {
 
@@ -15,7 +14,4 @@ public interface ShiftExpenseRepository extends JpaRepository<ShiftExpense, Long
 
     @Query("SELECT COALESCE(SUM(e.amount), 0) FROM ShiftExpense e WHERE e.shift.id = :shiftId")
     BigDecimal sumAmountByShiftId(@Param("shiftId") Long shiftId);
-
-    @Query("SELECT e.shift.store.id FROM ShiftExpense e WHERE e.id = :expenseId")
-    Optional<Long> findStoreIdByExpenseId(@Param("expenseId") Long expenseId);
 }

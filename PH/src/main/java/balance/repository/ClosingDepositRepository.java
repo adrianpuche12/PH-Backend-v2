@@ -29,24 +29,8 @@ public interface ClosingDepositRepository extends JpaRepository<ClosingDeposit, 
     // Todos los pendientes de un local
     List<ClosingDeposit> findByStoreIdAndDepositStatusOrderByDepositDateDesc(Long storeId, String depositStatus);
 
-    // Cierres asociados a un BankDeposit
-    List<ClosingDeposit> findByBankDepositId(Long bankDepositId);
-
-    // Cuántos cierres quedan asociados a un BankDeposit (usado al borrar en cascada)
-    long countByBankDepositId(Long bankDepositId);
-
     // Actualiza directamente via SQL para evitar problemas de dirty-checking JPA
     @Modifying
     @Query(value = "UPDATE closing_deposits SET deposit_status = :status, bank_deposit_id = :bankDepositId, image_uri = :imageUri WHERE id = :id", nativeQuery = true)
     void updateDepositInfo(Long id, String status, Long bankDepositId, String imageUri);
-
-    // Propaga la imagen del comprobante a todos los cierres de un BankDeposit
-    @Modifying
-    @Query(value = "UPDATE closing_deposits SET image_uri = :imageUri WHERE bank_deposit_id = :bankDepositId", nativeQuery = true)
-    void updateImageUriByBankDepositId(Long bankDepositId, String imageUri);
-
-    // Propaga la fecha de depósito a todos los cierres de un BankDeposit
-    @Modifying
-    @Query(value = "UPDATE closing_deposits SET deposit_date = :depositDate WHERE bank_deposit_id = :bankDepositId", nativeQuery = true)
-    void updateDepositDateByBankDepositId(Long bankDepositId, java.time.LocalDate depositDate);
 }
