@@ -2,6 +2,7 @@ package balance.sales.service;
 
 import balance.model.Store;
 import balance.repository.StoreRepository;
+import balance.sales.dto.ShiftEditDTO;
 import balance.sales.dto.ShiftResponseDTO;
 import java.math.BigDecimal;
 import balance.sales.model.Shift;
@@ -107,6 +108,36 @@ public class ShiftService {
                 .map(ShiftResponseDTO::from)
                 .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
     }
+
+    @Transactional
+    public ShiftResponseDTO editShift(Long shiftId, ShiftEditDTO dto) {
+        Shift shift = shiftRepository.findById(shiftId)
+                .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
+
+        if (dto.getUsername()           != null) shift.setUsername(dto.getUsername().trim());
+        if (dto.getOpenedAt()           != null) shift.setOpenedAt(dto.getOpenedAt());
+        if (dto.getClosedAt()           != null) shift.setClosedAt(dto.getClosedAt());
+        if (dto.getOpeningCashAmount()  != null) shift.setOpeningCashAmount(dto.getOpeningCashAmount());
+        if (dto.getTotalCashSales()     != null) shift.setTotalCashSales(dto.getTotalCashSales());
+        if (dto.getTotalCardSales()     != null) shift.setTotalCardSales(dto.getTotalCardSales());
+        if (dto.getTotalShiftExpenses() != null) shift.setTotalShiftExpenses(dto.getTotalShiftExpenses());
+        if (dto.getDeclaredCashAmount() != null) shift.setDeclaredCashAmount(dto.getDeclaredCashAmount());
+        shift.setNotes(dto.getNotes()); // permite borrar notas enviando null
+
+        // Recalcular diferencia si hay datos suficientes
+        BigDecimal declared = shift.getDeclaredCashAmount();
+        if (declared != null) {
+            BigDecimal opening  = orZero(shift.getOpeningCashAmount());
+            BigDecimal cash     = orZero(shift.getTotalCashSales());
+            BigDecimal expenses = orZero(shift.getTotalShiftExpenses());
+            shift.setCashDifference(declared.subtract(opening.add(cash).subtract(expenses)));
+        }
+
+        shiftRepository.save(shift);
+        return ShiftResponseDTO.from(shift);
+    }
+
+    private BigDecimal orZero(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
 
     /** Genera código único de turno: T-YYYYMMDD-HHmmss-DAN
      *  Incluye segundos para garantizar unicidad incluso con turnos consecutivos. */
