@@ -1,5 +1,6 @@
 package balance.sales.controller;
 
+import balance.sales.dto.ShiftEditDTO;
 import balance.sales.dto.ShiftResponseDTO;
 import balance.sales.service.ShiftService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,6 +86,19 @@ public class ShiftController {
             return ResponseEntity.ok(shiftService.getById(shiftId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    // Editar valores de un cierre
+    @PutMapping("/shifts/{shiftId}/edit")
+    public ResponseEntity<?> editShift(@PathVariable Long shiftId,
+                                        @RequestBody ShiftEditDTO dto) {
+        try {
+            return ResponseEntity.ok(shiftService.editShift(shiftId, dto));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No se pudo editar el turno: " + e.getMessage()));
         }
     }
 }
