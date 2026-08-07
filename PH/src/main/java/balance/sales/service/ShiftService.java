@@ -127,10 +127,9 @@ public class ShiftService {
         // Recalcular diferencia si hay datos suficientes
         BigDecimal declared = shift.getDeclaredCashAmount();
         if (declared != null) {
-            BigDecimal opening  = orZero(shift.getOpeningCashAmount());
             BigDecimal cash     = orZero(shift.getTotalCashSales());
             BigDecimal expenses = orZero(shift.getTotalShiftExpenses());
-            shift.setCashDifference(declared.subtract(opening.add(cash).subtract(expenses)));
+            shift.setCashDifference(declared.subtract(cash.subtract(expenses)));
         }
 
         shiftRepository.save(shift);
