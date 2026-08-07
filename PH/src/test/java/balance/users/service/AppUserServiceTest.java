@@ -54,7 +54,7 @@ class AppUserServiceTest {
         AppUserRequestDTO dto = new AppUserRequestDTO();
         dto.setUsername(username);
         dto.setFullName(fullName);
-        dto.setEmail(username + "@test.com");
+        dto.setPassword("pass123");
         dto.setRole("ENCARGADO");
         dto.setStoreId(storeId);
         return dto;
@@ -367,22 +367,6 @@ class AppUserServiceTest {
         appUserService.create(dto);
 
         verify(keycloakAdmin).createUser(any(), any(), any(), any(), eq("user"));
-    }
-
-    @Test
-    void create_sendsWelcomeEmail() {
-        when(userRepository.existsByUsername("cajero01")).thenReturn(false);
-        when(storeRepository.findById(1L)).thenReturn(Optional.of(buildStore(1L, "Danli")));
-        when(keycloakAdmin.createUser(any(), any(), any(), any(), any())).thenReturn("kc-uuid");
-        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        AppUserRequestDTO dto = buildRequest("cajero01", "Cajero", 1L);
-        dto.setEmail("cajero01@test.com");
-        appUserService.create(dto);
-
-        verify(emailService).sendWelcomeEmail(
-            eq("cajero01@test.com"), eq("Cajero"), eq("cajero01"), any()
-        );
     }
 
     @Test

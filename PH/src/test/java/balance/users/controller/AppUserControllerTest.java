@@ -94,8 +94,7 @@ class AppUserControllerTest {
         String body = objectMapper.writeValueAsString(Map.of(
                 "fullName", "Cajero Uno",
                 "username", "cajero01",
-                "email", "cajero01@test.com",
-                "role", "ENCARGADO",
+                "password", "pass123",
                 "storeId", 1
         ));
 
@@ -114,8 +113,7 @@ class AppUserControllerTest {
         String body = objectMapper.writeValueAsString(Map.of(
                 "fullName", "Cajero Uno",
                 "username", "cajero01",
-                "email", "cajero01@test.com",
-                "role", "ENCARGADO",
+                "password", "pass123",
                 "storeId", 1
         ));
 
@@ -151,8 +149,7 @@ class AppUserControllerTest {
         String body = objectMapper.writeValueAsString(Map.of(
                 "fullName", "Cajero",
                 "username", "cajero01",
-                "email", "cajero01@test.com",
-                "role", "ENCARGADO",
+                "password", "pass123",
                 "storeId", 1
         ));
 
