@@ -28,7 +28,7 @@ class ShiftControllerTest {
 
     @MockBean private ShiftService shiftService;
 
-    // â”€â”€ POST /api/v2/stores/{storeId}/shifts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- POST /api/v2/stores/{storeId}/shifts -----------------------------------------------
 
     @Test
     void openShift_returns200WhenSuccessful() throws Exception {
@@ -77,7 +77,7 @@ class ShiftControllerTest {
         verify(shiftService).openShift(eq(1L), eq("unknown"), any());
     }
 
-    // â”€â”€ PUT /api/v2/shifts/{shiftId}/close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- PUT /api/v2/shifts/{shiftId}/close ------------------------------------------------
 
     @Test
     void closeShift_returns200WhenSuccessful() throws Exception {
@@ -91,14 +91,14 @@ class ShiftControllerTest {
     @Test
     void closeShift_returns400WhenAlreadyClosed() throws Exception {
         when(shiftService.closeShift(1L))
-                .thenThrow(new IllegalStateException("El turno ya estÃ¡ cerrado"));
+                .thenThrow(new IllegalStateException("El turno ya esta cerrado"));
 
         mockMvc.perform(put("/api/v2/shifts/1/close"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").exists());
     }
 
-    // â”€â”€ GET /api/v2/shifts/active/{storeId} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- GET /api/v2/shifts/active/{storeId} -----------------------------------------------
 
     @Test
     void getActiveShift_returns200WhenShiftExists() throws Exception {
@@ -117,7 +117,26 @@ class ShiftControllerTest {
                 .andExpect(status().isNoContent());
     }
 
-    // â”€â”€ GET /api/v2/stores/{storeId}/shifts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- GET /api/v2/shifts/active (fallback admin, sin storeId) --------------------------
+
+    @Test
+    void getActiveShiftByUser_returns200WhenShiftExists() throws Exception {
+        when(shiftService.getActiveShiftByUsername("admin")).thenReturn(buildShiftResponse("OPEN"));
+
+        mockMvc.perform(get("/api/v2/shifts/active").param("username", "admin"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("OPEN"));
+    }
+
+    @Test
+    void getActiveShiftByUser_returns204WhenNoActiveShift() throws Exception {
+        when(shiftService.getActiveShiftByUsername("admin")).thenReturn(null);
+
+        mockMvc.perform(get("/api/v2/shifts/active").param("username", "admin"))
+                .andExpect(status().isNoContent());
+    }
+
+    // -- GET /api/v2/stores/{storeId}/shifts -----------------------------------------------
 
     @Test
     void getHistory_returns200WithList() throws Exception {
@@ -139,7 +158,7 @@ class ShiftControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
-    // â”€â”€ GET /api/v2/shifts/{shiftId} â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- GET /api/v2/shifts/{shiftId} ------------------------------------------------------
 
     @Test
     void getById_returns200WhenFound() throws Exception {
@@ -158,7 +177,7 @@ class ShiftControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // â”€â”€ Helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Helper ----------------------------------------------------------------------------
 
     private ShiftResponseDTO buildShiftResponse(String status) {
         ShiftResponseDTO dto = new ShiftResponseDTO();
@@ -170,4 +189,3 @@ class ShiftControllerTest {
         return dto;
     }
 }
-

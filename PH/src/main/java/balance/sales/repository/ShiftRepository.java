@@ -31,6 +31,9 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
     // Para "Mis ventas": shifts de un usuario en todos los locales
     Page<Shift> findByUsernameOrderByOpenedAtDesc(String username, Pageable pageable);
 
+    // Turno abierto de un usuario en cualquier local (fallback para admin)
+    Optional<Shift> findByUsernameAndStatus(String username, String status);
+
     /**
      * Consulta unificada con filtros opcionales: username, rango de fechas (openedAt).
      * Pasar null para omitir cualquier filtro.
