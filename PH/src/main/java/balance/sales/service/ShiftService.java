@@ -67,6 +67,12 @@ public class ShiftService {
                 .orElse(null);
     }
 
+    public ShiftResponseDTO getActiveShiftByUsername(String username) {
+        return shiftRepository.findByUsernameAndStatus(username, "OPEN")
+                .map(ShiftResponseDTO::from)
+                .orElse(null);
+    }
+
     public List<ShiftResponseDTO> getShiftHistory(Long storeId, String username,
                                                     LocalDate from, LocalDate to,
                                                     int page, int size) {
