@@ -58,6 +58,14 @@ public class ShiftController {
         return ResponseEntity.ok(dto);
     }
 
+    // Turno abierto de un usuario en cualquier local (fallback para admin)
+    @GetMapping("/shifts/active")
+    public ResponseEntity<?> getActiveShiftByUser(@RequestParam String username) {
+        ShiftResponseDTO dto = shiftService.getActiveShiftByUsername(username);
+        if (dto == null) return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(dto);
+    }
+
     // Historial de turnos de un local — filtros opcionales: username, from, to (yyyy-MM-dd)
     @GetMapping("/stores/{storeId}/shifts")
     public ResponseEntity<List<ShiftResponseDTO>> getHistory(
