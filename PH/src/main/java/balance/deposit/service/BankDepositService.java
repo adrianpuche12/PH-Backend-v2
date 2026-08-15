@@ -88,12 +88,14 @@ public class BankDepositService {
 
         BankDeposit saved = depositRepo.save(deposit);
 
-        // Borrar imágenes individuales de R2 y marcar cierres como depositados
+        // Borrar fotos individuales de cierre de R2 y marcar cierres como depositados.
+        // El imageUri del cierre pasa a ser el comprobante del depósito bancario,
+        // para que el DEPOSIT_GROUP en el frontend pueda mostrar la miniatura.
         for (ClosingDeposit c : closings) {
             if (c.getImageUri() != null) {
                 r2StorageService.delete(c.getImageUri());
             }
-            closingDepositRepo.updateDepositInfo(c.getId(), "DEPOSITED", saved.getId(), null);
+            closingDepositRepo.updateDepositInfo(c.getId(), "DEPOSITED", saved.getId(), saved.getImageUri());
         }
 
         return DepositResponse.from(saved);
