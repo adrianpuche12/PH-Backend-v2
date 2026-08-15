@@ -170,7 +170,9 @@ public class SalesController {
             }
             String notes = body.get("notes") instanceof String s ? s.trim() : null;
             if (notes != null && notes.isEmpty()) notes = null;
-            return ResponseEntity.ok(salesService.closeShift(shiftId, username, declaredCash, notes));
+            String imageUri = body.get("imageUri") instanceof String img ? img.trim() : null;
+            if (imageUri != null && imageUri.isEmpty()) imageUri = null;
+            return ResponseEntity.ok(salesService.closeShift(shiftId, username, declaredCash, notes, imageUri));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
