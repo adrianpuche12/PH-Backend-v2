@@ -23,6 +23,7 @@ public class BankDepositService {
 
     @Autowired private BankDepositRepository depositRepo;
     @Autowired private ClosingDepositRepository closingDepositRepo;
+    @Autowired private balance.storage.service.R2StorageService r2StorageService;
 
     // Cierres PENDING de un local en un rango de fechas
     public List<PendingClosingResponse> getPendingClosings(Long storeId, LocalDate from, LocalDate to) {
@@ -87,9 +88,12 @@ public class BankDepositService {
 
         BankDeposit saved = depositRepo.save(deposit);
 
-        // Marcar los cierres como depositados y propagar la imagen del comprobante via SQL directo
+        // Borrar imágenes individuales de R2 y marcar cierres como depositados
         for (ClosingDeposit c : closings) {
-            closingDepositRepo.updateDepositInfo(c.getId(), "DEPOSITED", saved.getId(), saved.getImageUri());
+            if (c.getImageUri() != null) {
+                r2StorageService.delete(c.getImageUri());
+            }
+            closingDepositRepo.updateDepositInfo(c.getId(), "DEPOSITED", saved.getId(), null);
         }
 
         return DepositResponse.from(saved);
