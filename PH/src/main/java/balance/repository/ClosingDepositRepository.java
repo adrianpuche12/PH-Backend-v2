@@ -29,6 +29,9 @@ public interface ClosingDepositRepository extends JpaRepository<ClosingDeposit, 
     // Todos los pendientes de un local
     List<ClosingDeposit> findByStoreIdAndDepositStatusOrderByDepositDateDesc(Long storeId, String depositStatus);
 
+    // Cierre vinculado a un turno específico
+    List<ClosingDeposit> findByShiftId(Long shiftId);
+
     // Actualiza directamente via SQL para evitar problemas de dirty-checking JPA
     @Modifying
     @Query(value = "UPDATE closing_deposits SET deposit_status = :status, bank_deposit_id = :bankDepositId, image_uri = :imageUri WHERE id = :id", nativeQuery = true)

@@ -1,11 +1,17 @@
 package balance.sales.service;
 
+import balance.model.ClosingDeposit;
 import balance.model.Store;
+import balance.repository.ClosingDepositRepository;
 import balance.repository.StoreRepository;
 import balance.sales.dto.ShiftEditDTO;
 import balance.sales.dto.ShiftResponseDTO;
 import java.math.BigDecimal;
+import balance.sales.model.Sale;
+import balance.sales.model.SaleItem;
 import balance.sales.model.Shift;
+import balance.sales.repository.SaleItemRepository;
+import balance.sales.repository.SaleRepository;
 import balance.sales.repository.ShiftRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +33,9 @@ public class ShiftService {
 
     @Autowired private ShiftRepository shiftRepository;
     @Autowired private StoreRepository storeRepository;
+    @Autowired private SaleRepository saleRepository;
+    @Autowired private SaleItemRepository saleItemRepository;
+    @Autowired private ClosingDepositRepository closingDepositRepository;
 
     @Transactional
     public ShiftResponseDTO openShift(Long storeId, String username, BigDecimal openingCashAmount) {
@@ -120,9 +129,11 @@ public class ShiftService {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
 
+        boolean dateChanged = false;
+
         if (dto.getUsername()           != null) shift.setUsername(dto.getUsername().trim());
-        if (dto.getOpenedAt()           != null) shift.setOpenedAt(dto.getOpenedAt());
-        if (dto.getClosedAt()           != null) shift.setClosedAt(dto.getClosedAt());
+        if (dto.getOpenedAt()           != null) { shift.setOpenedAt(dto.getOpenedAt()); dateChanged = true; }
+        if (dto.getClosedAt()           != null) { shift.setClosedAt(dto.getClosedAt()); dateChanged = true; }
         if (dto.getOpeningCashAmount()  != null) shift.setOpeningCashAmount(dto.getOpeningCashAmount());
         if (dto.getTotalCashSales()     != null) shift.setTotalCashSales(dto.getTotalCashSales());
         if (dto.getTotalCardSales()     != null) shift.setTotalCardSales(dto.getTotalCardSales());
@@ -139,10 +150,44 @@ public class ShiftService {
         }
 
         shiftRepository.save(shift);
+
+        // Sincronizar fechas del ClosingDeposit vinculado si cambió alguna fecha del turno
+        if (dateChanged) {
+            List<ClosingDeposit> closings = closingDepositRepository.findByShiftId(shiftId);
+            for (ClosingDeposit cd : closings) {
+                if (shift.getOpenedAt() != null)
+                    cd.setPeriodStart(shift.getOpenedAt().toLocalDate());
+                if (shift.getClosedAt() != null) {
+                    cd.setPeriodEnd(shift.getClosedAt().toLocalDate());
+                    cd.setDepositDate(shift.getClosedAt().toLocalDate());
+                }
+                closingDepositRepository.save(cd);
+            }
+        }
+
         return ShiftResponseDTO.from(shift);
     }
 
     private BigDecimal orZero(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
+
+    @Transactional
+    public void deleteShift(Long shiftId) {
+        Shift shift = shiftRepository.findById(shiftId)
+                .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
+
+        // Borrar en cascada: SaleItems → Sales → ClosingDeposit → Shift
+        List<Sale> sales = saleRepository.findByShiftIdOrderByCreatedAtDesc(shiftId);
+        for (Sale sale : sales) {
+            List<SaleItem> items = saleItemRepository.findBySaleId(sale.getId());
+            saleItemRepository.deleteAll(items);
+        }
+        saleRepository.deleteAll(sales);
+
+        List<ClosingDeposit> closings = closingDepositRepository.findByShiftId(shiftId);
+        closingDepositRepository.deleteAll(closings);
+
+        shiftRepository.delete(shift);
+    }
 
     /** Genera código único de turno: T-YYYYMMDD-HHmmss-DAN
      *  Incluye segundos para garantizar unicidad incluso con turnos consecutivos. */

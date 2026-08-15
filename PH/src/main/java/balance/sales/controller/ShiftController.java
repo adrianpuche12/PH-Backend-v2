@@ -109,5 +109,18 @@ public class ShiftController {
             return ResponseEntity.badRequest().body(Map.of("error", "No se pudo editar el turno: " + e.getMessage()));
         }
     }
+
+    // Eliminar turno con todos sus datos (ventas, ítems, cierre de caja)
+    @DeleteMapping("/shifts/{shiftId}")
+    public ResponseEntity<?> deleteShift(@PathVariable Long shiftId) {
+        try {
+            shiftService.deleteShift(shiftId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No se pudo eliminar el turno: " + e.getMessage()));
+        }
+    }
 }
 
