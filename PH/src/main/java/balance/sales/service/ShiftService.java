@@ -129,9 +129,11 @@ public class ShiftService {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
 
+        boolean dateChanged = false;
+
         if (dto.getUsername()           != null) shift.setUsername(dto.getUsername().trim());
-        if (dto.getOpenedAt()           != null) shift.setOpenedAt(dto.getOpenedAt());
-        if (dto.getClosedAt()           != null) shift.setClosedAt(dto.getClosedAt());
+        if (dto.getOpenedAt()           != null) { shift.setOpenedAt(dto.getOpenedAt()); dateChanged = true; }
+        if (dto.getClosedAt()           != null) { shift.setClosedAt(dto.getClosedAt()); dateChanged = true; }
         if (dto.getOpeningCashAmount()  != null) shift.setOpeningCashAmount(dto.getOpeningCashAmount());
         if (dto.getTotalCashSales()     != null) shift.setTotalCashSales(dto.getTotalCashSales());
         if (dto.getTotalCardSales()     != null) shift.setTotalCardSales(dto.getTotalCardSales());
@@ -148,6 +150,21 @@ public class ShiftService {
         }
 
         shiftRepository.save(shift);
+
+        // Sincronizar fechas del ClosingDeposit vinculado si cambió alguna fecha del turno
+        if (dateChanged) {
+            List<ClosingDeposit> closings = closingDepositRepository.findByShiftId(shiftId);
+            for (ClosingDeposit cd : closings) {
+                if (shift.getOpenedAt() != null)
+                    cd.setPeriodStart(shift.getOpenedAt().toLocalDate());
+                if (shift.getClosedAt() != null) {
+                    cd.setPeriodEnd(shift.getClosedAt().toLocalDate());
+                    cd.setDepositDate(shift.getClosedAt().toLocalDate());
+                }
+                closingDepositRepository.save(cd);
+            }
+        }
+
         return ShiftResponseDTO.from(shift);
     }
 
