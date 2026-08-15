@@ -503,7 +503,7 @@ public class SalesService {
      * @throws IllegalStateException si el turno ya está cerrado o no hay ventas
      */
     @Transactional
-    public DailyClosingResponseDTO closeShift(Long shiftId, String username, BigDecimal declaredCashAmount, String notes) {
+    public DailyClosingResponseDTO closeShift(Long shiftId, String username, BigDecimal declaredCashAmount, String notes, String imageUri) {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
 
@@ -554,6 +554,7 @@ public class SalesService {
             deposit.setUsername(username);
             deposit.setStore(shift.getStore());
             deposit.setShiftId(shiftId);
+            if (imageUri != null) deposit.setImageUri(imageUri);
             saved = formsService.saveClosingDeposit(deposit);
         }
 

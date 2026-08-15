@@ -17,6 +17,7 @@ public class PendingClosingResponse {
     private Integer closingsCount;
     private BigDecimal amount;
     private String depositStatus;
+    private String imageUri;
 
     public static PendingClosingResponse from(ClosingDeposit c) {
         PendingClosingResponse r = new PendingClosingResponse();
@@ -30,6 +31,7 @@ public class PendingClosingResponse {
         r.closingsCount = c.getClosingsCount();
         r.amount        = c.getAmount();
         r.depositStatus = c.getDepositStatus();
+        r.imageUri      = c.getImageUri();
         return r;
     }
 
@@ -43,4 +45,5 @@ public class PendingClosingResponse {
     public Integer getClosingsCount() { return closingsCount; }
     public BigDecimal getAmount() { return amount; }
     public String getDepositStatus() { return depositStatus; }
+    public String getImageUri() { return imageUri; }
 }
