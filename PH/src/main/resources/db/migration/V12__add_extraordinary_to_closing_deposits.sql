@@ -1,0 +1,2 @@
+ALTER TABLE closing_deposits
+    ADD COLUMN IF NOT EXISTS extraordinary BOOLEAN NOT NULL DEFAULT FALSE;
