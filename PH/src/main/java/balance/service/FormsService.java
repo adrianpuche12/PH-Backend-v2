@@ -62,6 +62,9 @@ public class FormsService {
     @Autowired
     private SaleRepository saleRepository;
 
+    @Autowired
+    private balance.storage.service.R2StorageService r2StorageService;
+
     // ── Helper: enriquece los CLOSING DTOs con datos del turno vinculado ────────
     // Usa batch queries para evitar N+1: 2 queries totales en lugar de 2 por cada cierre.
 
@@ -182,7 +185,19 @@ public class FormsService {
         return closingDepositRepository.findAllOrderByDepositDateDesc();
     }
 
-
+    public void updateClosingDepositImage(Long id, String newImageUri) {
+        ClosingDeposit closing = closingDepositRepository.findById(id)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Cierre no encontrado"));
+        if (!"PENDING".equals(closing.getDepositStatus())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Solo se puede actualizar la imagen de un cierre pendiente");
+        }
+        if (closing.getImageUri() != null) {
+            r2StorageService.delete(closing.getImageUri());
+        }
+        closingDepositRepository.updateImageUri(id, newImageUri);
+    }
 
     public SupplierPayment saveSupplierPayment(SupplierPayment payment) {
         if (payment.getPaymentDate() == null) {

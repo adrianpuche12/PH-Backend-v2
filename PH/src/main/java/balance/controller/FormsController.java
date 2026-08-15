@@ -60,6 +60,18 @@ public class FormsController {
     public ResponseEntity<List<ClosingDeposit>> getAllClosingDeposits() {
         return ResponseEntity.ok(formsService.getAllClosingDeposits());
     }
+
+    @PatchMapping("/closing-deposits/{id}/image")
+    public ResponseEntity<Void> updateClosingDepositImage(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, String> body) {
+        String imageUri = body.get("imageUri");
+        if (imageUri == null || imageUri.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        formsService.updateClosingDepositImage(id, imageUri);
+        return ResponseEntity.ok().build();
+    }
     /**
      * Obtiene todos los depósitos de cierre en un rango de fechas.
      * 
