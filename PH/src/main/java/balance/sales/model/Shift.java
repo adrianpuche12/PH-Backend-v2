@@ -30,7 +30,6 @@ public class Shift {
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
-    @Column(updatable = false)
     private LocalDateTime openedAt;
 
     private LocalDateTime closedAt;
