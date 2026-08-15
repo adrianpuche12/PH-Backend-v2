@@ -41,6 +41,9 @@ public class AllOperationsDTO {
     private String depositStatus;
     private Long bankDepositId;
 
+    // Cierre extraordinario (manual, no generado por turno POS)
+    private Boolean extraordinary;
+
     // shiftId guardado en ClosingDeposit — usado internamente por enrichClosingDTOs
     private Long closingShiftId;
 
@@ -78,7 +81,8 @@ public class AllOperationsDTO {
         dto.setImageUri(deposit.getImageUri());
         dto.setDepositStatus(deposit.getDepositStatus());
         dto.setBankDepositId(deposit.getBankDepositId());
-        dto.setClosingShiftId(deposit.getShiftId());   // link al turno que generó este cierre
+        dto.setClosingShiftId(deposit.getShiftId());
+        dto.setExtraordinary(Boolean.TRUE.equals(deposit.getExtraordinary()));
         return dto;
     }
 
@@ -251,6 +255,9 @@ public class AllOperationsDTO {
 
     public Long getBankDepositId() { return bankDepositId; }
     public void setBankDepositId(Long bankDepositId) { this.bankDepositId = bankDepositId; }
+
+    public Boolean getExtraordinary() { return extraordinary; }
+    public void setExtraordinary(Boolean extraordinary) { this.extraordinary = extraordinary; }
 
     public Long getClosingShiftId() { return closingShiftId; }
     public void setClosingShiftId(Long closingShiftId) { this.closingShiftId = closingShiftId; }
