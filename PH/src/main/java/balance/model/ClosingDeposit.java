@@ -51,6 +51,9 @@ public class ClosingDeposit {
     @Column(name = "shift_id")
     private Long shiftId;
 
+    @Column(nullable = false)
+    private Boolean extraordinary = false;
+
     @ManyToOne(fetch = jakarta.persistence.FetchType.EAGER)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
@@ -135,5 +138,8 @@ public class ClosingDeposit {
 
     public Long getShiftId() { return shiftId; }
     public void setShiftId(Long shiftId) { this.shiftId = shiftId; }
+
+    public Boolean getExtraordinary() { return extraordinary; }
+    public void setExtraordinary(Boolean extraordinary) { this.extraordinary = extraordinary != null && extraordinary; }
 }
 
