@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,8 @@ import balance.sales.repository.SaleRepository;
 @Service
 @Transactional
 public class FormsService {
+
+    private static final ZoneId HONDURAS_TZ = ZoneId.of("America/Tegucigalpa");
 
     @Autowired
     private GastoAdminRepository gastoAdminRepository;
@@ -100,7 +103,7 @@ public class FormsService {
     public List<AllOperationsDTO> getAllOperations() {
         // Sin filtro de fecha: limitar a los últimos 90 días para evitar traer toda la historia.
         // El usuario puede usar el filtro de fechas para ver períodos anteriores.
-        LocalDate endDate   = LocalDate.now();
+        LocalDate endDate   = LocalDate.now(HONDURAS_TZ);
         LocalDate startDate = endDate.minusDays(90);
         return getOperationsByDateRange(startDate, endDate);
     }
@@ -135,7 +138,7 @@ public class FormsService {
 
     // Método para filtrar por store — mismo límite de 90 días que getAllOperations()
     public List<AllOperationsDTO> getOperationsByStore(Long storeId) {
-        LocalDate endDate   = LocalDate.now();
+        LocalDate endDate   = LocalDate.now(HONDURAS_TZ);
         LocalDate startDate = endDate.minusDays(90);
         return getOperationsByDateRangeAndStore(startDate, endDate, storeId);
     }
@@ -172,7 +175,7 @@ public class FormsService {
     // Métodos para guardar operaciones
     public ClosingDeposit saveClosingDeposit(ClosingDeposit deposit) {
         if (deposit.getDepositDate() == null) {
-            deposit.setDepositDate(LocalDate.now());
+            deposit.setDepositDate(LocalDate.now(HONDURAS_TZ));
         }
         return closingDepositRepository.save(deposit);
     }
@@ -201,7 +204,7 @@ public class FormsService {
 
     public SupplierPayment saveSupplierPayment(SupplierPayment payment) {
         if (payment.getPaymentDate() == null) {
-            payment.setPaymentDate(LocalDate.now());
+            payment.setPaymentDate(LocalDate.now(HONDURAS_TZ));
         }
         return supplierPaymentRepository.save(payment);
     }
@@ -216,7 +219,7 @@ public class FormsService {
 
     public SalaryPayment saveSalaryPayment(SalaryPayment payment) {
         if (payment.getSalaryDate() == null) {
-            payment.setSalaryDate(LocalDate.now());
+            payment.setSalaryDate(LocalDate.now(HONDURAS_TZ));
         }
         return salaryPaymentRepository.save(payment);
     }
