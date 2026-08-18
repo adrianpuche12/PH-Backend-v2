@@ -3,6 +3,7 @@ import balance.model.ClosingDeposit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
@@ -41,4 +42,9 @@ public interface ClosingDepositRepository extends JpaRepository<ClosingDeposit, 
     @Modifying
     @Query(value = "UPDATE closing_deposits SET image_uri = :imageUri WHERE id = :id", nativeQuery = true)
     void updateImageUri(Long id, String imageUri);
+
+    // Revierte todos los cierres de un depósito bancario a PENDING (al eliminar el depósito)
+    @Modifying
+    @Query(value = "UPDATE closing_deposits SET deposit_status = 'PENDING', bank_deposit_id = NULL, image_uri = NULL WHERE bank_deposit_id = :bankDepositId", nativeQuery = true)
+    void revertByBankDepositId(@Param("bankDepositId") Long bankDepositId);
 }

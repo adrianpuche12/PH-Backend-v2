@@ -75,4 +75,15 @@ public class BankDepositController {
     public ResponseEntity<List<DepositResponse>> getMine(@RequestParam String username) {
         return ResponseEntity.ok(service.getByUser(username));
     }
+
+    // DELETE /api/v2/deposits/{id}
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        try {
+            service.deleteDeposit(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 }

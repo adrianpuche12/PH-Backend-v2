@@ -131,4 +131,21 @@ public class BankDepositService {
         return depositRepo.findByCreatedByOrderByCreatedAtDesc(username)
                 .stream().map(DepositResponse::from).collect(Collectors.toList());
     }
+
+    // Eliminar depósito bancario y revertir cierres asociados a PENDING
+    @Transactional
+    public void deleteDeposit(Long depositId) {
+        BankDeposit deposit = depositRepo.findById(depositId)
+                .orElseThrow(() -> new IllegalArgumentException("Depósito no encontrado"));
+
+        // Revertir todos los cierres asociados: PENDING, sin bankDepositId, sin imageUri
+        closingDepositRepo.revertByBankDepositId(depositId);
+
+        // Eliminar el comprobante del depósito de R2 si existe
+        if (deposit.getImageUri() != null) {
+            r2StorageService.delete(deposit.getImageUri());
+        }
+
+        depositRepo.delete(deposit);
+    }
 }
