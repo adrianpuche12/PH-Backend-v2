@@ -44,6 +44,9 @@ public class AllOperationsDTO {
     // Cierre extraordinario (manual, no generado por turno POS)
     private Boolean extraordinary;
 
+    // Observación del depósito bancario (solo para CLOSING con depositStatus=DEPOSITED)
+    private String bankDepositNotes;
+
     // shiftId guardado en ClosingDeposit — usado internamente por enrichClosingDTOs
     private Long closingShiftId;
 
@@ -258,6 +261,9 @@ public class AllOperationsDTO {
 
     public Boolean getExtraordinary() { return extraordinary; }
     public void setExtraordinary(Boolean extraordinary) { this.extraordinary = extraordinary; }
+
+    public String getBankDepositNotes() { return bankDepositNotes; }
+    public void setBankDepositNotes(String bankDepositNotes) { this.bankDepositNotes = bankDepositNotes; }
 
     public Long getClosingShiftId() { return closingShiftId; }
     public void setClosingShiftId(Long closingShiftId) { this.closingShiftId = closingShiftId; }

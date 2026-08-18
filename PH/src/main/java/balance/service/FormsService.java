@@ -68,6 +68,9 @@ public class FormsService {
     @Autowired
     private balance.storage.service.R2StorageService r2StorageService;
 
+    @Autowired
+    private balance.deposit.repository.BankDepositRepository bankDepositRepository;
+
     // ── Helper: enriquece los CLOSING DTOs con datos del turno vinculado ────────
     // Usa batch queries para evitar N+1: 2 queries totales en lugar de 2 por cada cierre.
 
@@ -97,6 +100,25 @@ public class FormsService {
                     dto.enrichWithShift(shift, count);
                 }
             });
+
+        // Enriquecer con las notas del depósito bancario (batch: 1 query)
+        List<Long> bankDepositIds = dtos.stream()
+            .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getBankDepositId() != null)
+            .map(AllOperationsDTO::getBankDepositId)
+            .distinct()
+            .collect(Collectors.toList());
+
+        if (!bankDepositIds.isEmpty()) {
+            Map<Long, String> notesMap = bankDepositRepository.findAllById(bankDepositIds).stream()
+                .filter(bd -> bd.getNotes() != null && !bd.getNotes().isBlank())
+                .collect(Collectors.toMap(
+                    balance.deposit.model.BankDeposit::getId,
+                    balance.deposit.model.BankDeposit::getNotes
+                ));
+            dtos.stream()
+                .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getBankDepositId() != null)
+                .forEach(dto -> dto.setBankDepositNotes(notesMap.get(dto.getBankDepositId())));
+        }
     }
 
     // Métodos para obtener operaciones
