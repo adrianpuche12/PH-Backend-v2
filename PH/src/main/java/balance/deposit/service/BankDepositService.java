@@ -145,7 +145,7 @@ public class BankDepositService {
         deposit.setCreatedBy(username);
         deposit.setDepositDate(depositDate);
         deposit.setStoreIds(storeId.toString());
-        deposit.setShiftIds("EXTRAORDINARY");
+        deposit.setShiftIds("");
         deposit.setExpectedCash(amount);
         deposit.setDeclaredAmount(amount);
         deposit.setDifference(BigDecimal.ZERO);
