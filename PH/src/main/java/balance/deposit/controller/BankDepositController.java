@@ -11,6 +11,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -74,5 +75,32 @@ public class BankDepositController {
     @GetMapping("/mine")
     public ResponseEntity<List<DepositResponse>> getMine(@RequestParam String username) {
         return ResponseEntity.ok(service.getByUser(username));
+    }
+
+    // POST /api/v2/deposits/extraordinary
+    // Crea un depósito extraordinario directo (admin only): amount + storeId + depositDate
+    // No requiere cierres pendientes — genera el ClosingDeposit y BankDeposit en una sola operación.
+    @PostMapping("/extraordinary")
+    public ResponseEntity<DepositResponse> createExtraordinary(
+            @RequestParam String username,
+            @RequestParam Long storeId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate depositDate,
+            @RequestParam BigDecimal amount) {
+        try {
+            return ResponseEntity.ok(service.createExtraordinaryDeposit(username, storeId, depositDate, amount));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // DELETE /api/v2/deposits/{id}
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        try {
+            service.deleteDeposit(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
