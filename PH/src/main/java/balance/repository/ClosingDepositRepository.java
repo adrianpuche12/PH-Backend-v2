@@ -43,8 +43,16 @@ public interface ClosingDepositRepository extends JpaRepository<ClosingDeposit, 
     @Query(value = "UPDATE closing_deposits SET image_uri = :imageUri WHERE id = :id", nativeQuery = true)
     void updateImageUri(Long id, String imageUri);
 
+    // Todos los cierres vinculados a un depósito bancario (por bankDepositId)
+    List<ClosingDeposit> findByBankDepositId(Long bankDepositId);
+
     // Revierte todos los cierres de un depósito bancario a PENDING (al eliminar el depósito)
     @Modifying
     @Query(value = "UPDATE closing_deposits SET deposit_status = 'PENDING', bank_deposit_id = NULL, image_uri = NULL WHERE bank_deposit_id = :bankDepositId", nativeQuery = true)
     void revertByBankDepositId(@Param("bankDepositId") Long bankDepositId);
+
+    // Elimina todos los cierres vinculados a un depósito bancario (para depósitos extraordinarios)
+    @Modifying
+    @Query(value = "DELETE FROM closing_deposits WHERE bank_deposit_id = :bankDepositId", nativeQuery = true)
+    void deleteByBankDepositId(@Param("bankDepositId") Long bankDepositId);
 }

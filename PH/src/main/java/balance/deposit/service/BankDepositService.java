@@ -6,7 +6,9 @@ import balance.deposit.dto.PendingClosingResponse;
 import balance.deposit.model.BankDeposit;
 import balance.deposit.repository.BankDepositRepository;
 import balance.model.ClosingDeposit;
+import balance.model.Store;
 import balance.repository.ClosingDepositRepository;
+import balance.repository.StoreRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +25,7 @@ public class BankDepositService {
 
     @Autowired private BankDepositRepository depositRepo;
     @Autowired private ClosingDepositRepository closingDepositRepo;
+    @Autowired private StoreRepository storeRepository;
     @Autowired private balance.storage.service.R2StorageService r2StorageService;
 
     // Cierres PENDING de un local en un rango de fechas
@@ -132,16 +135,59 @@ public class BankDepositService {
                 .stream().map(DepositResponse::from).collect(Collectors.toList());
     }
 
-    // Eliminar depósito bancario y revertir cierres asociados a PENDING
+    // Crear depósito extraordinario directo (sin cierres pendientes — solo admin)
+    @Transactional
+    public DepositResponse createExtraordinaryDeposit(String username, Long storeId, LocalDate depositDate, BigDecimal amount) {
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new IllegalArgumentException("Local no encontrado: " + storeId));
+
+        BankDeposit deposit = new BankDeposit();
+        deposit.setCreatedBy(username);
+        deposit.setDepositDate(depositDate);
+        deposit.setStoreIds(storeId.toString());
+        deposit.setShiftIds("EXTRAORDINARY");
+        deposit.setExpectedCash(amount);
+        deposit.setDeclaredAmount(amount);
+        deposit.setDifference(BigDecimal.ZERO);
+        deposit.setStatus("CONFIRMED");
+
+        BankDeposit saved = depositRepo.save(deposit);
+
+        ClosingDeposit closing = new ClosingDeposit();
+        closing.setAmount(amount);
+        closing.setDepositDate(depositDate);
+        closing.setPeriodStart(depositDate);
+        closing.setPeriodEnd(depositDate);
+        closing.setClosingsCount(1);
+        closing.setExtraordinary(true);
+        closing.setDepositStatus("DEPOSITED");
+        closing.setBankDepositId(saved.getId());
+        closing.setUsername(username);
+        closing.setStore(store);
+
+        closingDepositRepo.save(closing);
+
+        return DepositResponse.from(saved);
+    }
+
+    // Eliminar depósito bancario.
+    // Si todos los cierres son extraordinarios (creados junto con el depósito), se eliminan.
+    // Si son cierres normales, se revierten a PENDING para que puedan depositarse nuevamente.
     @Transactional
     public void deleteDeposit(Long depositId) {
         BankDeposit deposit = depositRepo.findById(depositId)
                 .orElseThrow(() -> new IllegalArgumentException("Depósito no encontrado"));
 
-        // Revertir todos los cierres asociados: PENDING, sin bankDepositId, sin imageUri
-        closingDepositRepo.revertByBankDepositId(depositId);
+        List<ClosingDeposit> closings = closingDepositRepo.findByBankDepositId(depositId);
+        boolean allExtraordinary = !closings.isEmpty()
+                && closings.stream().allMatch(c -> Boolean.TRUE.equals(c.getExtraordinary()));
 
-        // Eliminar el comprobante del depósito de R2 si existe
+        if (allExtraordinary) {
+            closingDepositRepo.deleteByBankDepositId(depositId);
+        } else {
+            closingDepositRepo.revertByBankDepositId(depositId);
+        }
+
         if (deposit.getImageUri() != null) {
             r2StorageService.delete(deposit.getImageUri());
         }
