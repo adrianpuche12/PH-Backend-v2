@@ -94,6 +94,18 @@ public class BankDepositController {
         }
     }
 
+    // PATCH /api/v2/deposits/extraordinary/{id}
+    @PatchMapping("/extraordinary/{id}")
+    public ResponseEntity<DepositResponse> updateExtraordinary(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, Object> updates) {
+        try {
+            return ResponseEntity.ok(service.updateExtraordinaryDeposit(id, updates));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     // DELETE /api/v2/deposits/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
