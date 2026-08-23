@@ -86,9 +86,22 @@ public class BankDepositController {
             @RequestParam Long storeId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate depositDate,
             @RequestParam BigDecimal amount,
-            @RequestParam(required = false) String imageUri) {
+            @RequestParam(required = false) String imageUri,
+            @RequestParam(required = false) String notes) {
         try {
-            return ResponseEntity.ok(service.createExtraordinaryDeposit(username, storeId, depositDate, amount, imageUri));
+            return ResponseEntity.ok(service.createExtraordinaryDeposit(username, storeId, depositDate, amount, imageUri, notes));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // PATCH /api/v2/deposits/extraordinary/{id}
+    @PatchMapping("/extraordinary/{id}")
+    public ResponseEntity<DepositResponse> updateExtraordinary(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, Object> updates) {
+        try {
+            return ResponseEntity.ok(service.updateExtraordinaryDeposit(id, updates));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }

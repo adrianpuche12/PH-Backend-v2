@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -137,7 +138,7 @@ public class BankDepositService {
 
     // Crear depósito extraordinario directo (sin cierres pendientes — solo admin)
     @Transactional
-    public DepositResponse createExtraordinaryDeposit(String username, Long storeId, LocalDate depositDate, BigDecimal amount, String imageUri) {
+    public DepositResponse createExtraordinaryDeposit(String username, Long storeId, LocalDate depositDate, BigDecimal amount, String imageUri, String notes) {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new IllegalArgumentException("Local no encontrado: " + storeId));
 
@@ -151,6 +152,7 @@ public class BankDepositService {
         deposit.setDifference(BigDecimal.ZERO);
         deposit.setStatus("CONFIRMED");
         deposit.setImageUri(imageUri);
+        deposit.setNotes(notes);
 
         BankDeposit saved = depositRepo.save(deposit);
 
@@ -168,6 +170,57 @@ public class BankDepositService {
         closing.setImageUri(imageUri);
 
         closingDepositRepo.save(closing);
+
+        return DepositResponse.from(saved);
+    }
+
+    // Actualizar depósito extraordinario (amount, depositDate, imageUri, notes).
+    // Actualiza en cascada el ClosingDeposit vinculado.
+    @Transactional
+    public DepositResponse updateExtraordinaryDeposit(Long depositId, Map<String, Object> updates) {
+        BankDeposit deposit = depositRepo.findById(depositId)
+                .orElseThrow(() -> new IllegalArgumentException("Depósito no encontrado"));
+
+        List<ClosingDeposit> closings = closingDepositRepo.findByBankDepositId(depositId);
+        boolean allExtraordinary = !closings.isEmpty()
+                && closings.stream().allMatch(c -> Boolean.TRUE.equals(c.getExtraordinary()));
+        if (!allExtraordinary) {
+            throw new IllegalArgumentException("El depósito no es extraordinario");
+        }
+
+        if (updates.containsKey("declaredAmount") && updates.get("declaredAmount") != null) {
+            BigDecimal amount = new BigDecimal(updates.get("declaredAmount").toString());
+            deposit.setExpectedCash(amount);
+            deposit.setDeclaredAmount(amount);
+            deposit.setDifference(BigDecimal.ZERO);
+        }
+        if (updates.containsKey("depositDate") && updates.get("depositDate") != null) {
+            LocalDate date = LocalDate.parse(updates.get("depositDate").toString());
+            deposit.setDepositDate(date);
+        }
+        if (updates.containsKey("imageUri")) {
+            deposit.setImageUri(updates.get("imageUri") != null ? updates.get("imageUri").toString() : null);
+        }
+        if (updates.containsKey("notes")) {
+            deposit.setNotes(updates.get("notes") != null ? updates.get("notes").toString() : null);
+        }
+        BankDeposit saved = depositRepo.save(deposit);
+
+        for (ClosingDeposit closing : closings) {
+            if (updates.containsKey("declaredAmount") && updates.get("declaredAmount") != null) {
+                closing.setAmount(new BigDecimal(updates.get("declaredAmount").toString()));
+            }
+            if (updates.containsKey("depositDate") && updates.get("depositDate") != null) {
+                LocalDate date = LocalDate.parse(updates.get("depositDate").toString());
+                closing.setDepositDate(date);
+                closing.setPeriodStart(date);
+                closing.setPeriodEnd(date);
+            }
+            if (updates.containsKey("imageUri")) {
+                closing.setImageUri(updates.get("imageUri") != null ? updates.get("imageUri").toString() : null);
+            }
+            closingDepositRepo.save(closing);
+        }
 
         return DepositResponse.from(saved);
     }
