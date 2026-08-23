@@ -85,9 +85,10 @@ public class BankDepositController {
             @RequestParam String username,
             @RequestParam Long storeId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate depositDate,
-            @RequestParam BigDecimal amount) {
+            @RequestParam BigDecimal amount,
+            @RequestParam(required = false) String imageUri) {
         try {
-            return ResponseEntity.ok(service.createExtraordinaryDeposit(username, storeId, depositDate, amount));
+            return ResponseEntity.ok(service.createExtraordinaryDeposit(username, storeId, depositDate, amount, imageUri));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
