@@ -138,7 +138,7 @@ public class BankDepositService {
 
     // Crear depósito extraordinario directo (sin cierres pendientes — solo admin)
     @Transactional
-    public DepositResponse createExtraordinaryDeposit(String username, Long storeId, LocalDate depositDate, BigDecimal amount, String imageUri) {
+    public DepositResponse createExtraordinaryDeposit(String username, Long storeId, LocalDate depositDate, BigDecimal amount, String imageUri, String notes) {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new IllegalArgumentException("Local no encontrado: " + storeId));
 
@@ -152,6 +152,7 @@ public class BankDepositService {
         deposit.setDifference(BigDecimal.ZERO);
         deposit.setStatus("CONFIRMED");
         deposit.setImageUri(imageUri);
+        deposit.setNotes(notes);
 
         BankDeposit saved = depositRepo.save(deposit);
 
