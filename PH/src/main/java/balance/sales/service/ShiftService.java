@@ -10,8 +10,10 @@ import java.math.BigDecimal;
 import balance.sales.model.Sale;
 import balance.sales.model.SaleItem;
 import balance.sales.model.Shift;
+import balance.sales.model.ShiftExpense;
 import balance.sales.repository.SaleItemRepository;
 import balance.sales.repository.SaleRepository;
+import balance.sales.repository.ShiftExpenseRepository;
 import balance.sales.repository.ShiftRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +38,7 @@ public class ShiftService {
     @Autowired private SaleRepository saleRepository;
     @Autowired private SaleItemRepository saleItemRepository;
     @Autowired private ClosingDepositRepository closingDepositRepository;
+    @Autowired private ShiftExpenseRepository shiftExpenseRepository;
 
     @Transactional
     public ShiftResponseDTO openShift(Long storeId, String username, BigDecimal openingCashAmount) {
@@ -185,6 +188,9 @@ public class ShiftService {
 
         List<ClosingDeposit> closings = closingDepositRepository.findByShiftId(shiftId);
         closingDepositRepository.deleteAll(closings);
+
+        List<ShiftExpense> expenses = shiftExpenseRepository.findByShiftIdOrderByCreatedAtAsc(shiftId);
+        shiftExpenseRepository.deleteAll(expenses);
 
         shiftRepository.delete(shift);
     }
