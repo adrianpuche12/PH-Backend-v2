@@ -59,11 +59,15 @@ public class OperationsController {
             result = formsService.getAllOperations();
         }
 
-        // Paginación en memoria
-        int from = page * size;
-        if (from >= result.size()) return ResponseEntity.ok(List.of());
-        int to   = Math.min(from + size, result.size());
-        return ResponseEntity.ok(result.subList(from, to));
+        // Sin fechas: paginar (query sin límite puede ser miles de registros)
+        // Con fechas: devolver todo (la DB ya acota el resultado)
+        if (startDate == null || endDate == null) {
+            int from = page * size;
+            if (from >= result.size()) return ResponseEntity.ok(List.of());
+            int to = Math.min(from + size, result.size());
+            return ResponseEntity.ok(result.subList(from, to));
+        }
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/mine")
