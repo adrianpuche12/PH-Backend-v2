@@ -132,7 +132,8 @@ public class ShiftService {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
 
-        boolean dateChanged = false;
+        boolean dateChanged   = false;
+        boolean amountChanged = dto.getDeclaredCashAmount() != null;
 
         if (dto.getUsername()           != null) shift.setUsername(dto.getUsername().trim());
         if (dto.getOpenedAt()           != null) { shift.setOpenedAt(dto.getOpenedAt()); dateChanged = true; }
@@ -141,7 +142,7 @@ public class ShiftService {
         if (dto.getTotalCashSales()     != null) shift.setTotalCashSales(dto.getTotalCashSales());
         if (dto.getTotalCardSales()     != null) shift.setTotalCardSales(dto.getTotalCardSales());
         if (dto.getTotalShiftExpenses() != null) shift.setTotalShiftExpenses(dto.getTotalShiftExpenses());
-        if (dto.getDeclaredCashAmount() != null) shift.setDeclaredCashAmount(dto.getDeclaredCashAmount());
+        if (amountChanged)                        shift.setDeclaredCashAmount(dto.getDeclaredCashAmount());
         shift.setNotes(dto.getNotes()); // permite borrar notas enviando null
 
         // Recalcular diferencia si hay datos suficientes
@@ -154,15 +155,20 @@ public class ShiftService {
 
         shiftRepository.save(shift);
 
-        // Sincronizar fechas del ClosingDeposit vinculado si cambió alguna fecha del turno
-        if (dateChanged) {
+        // Sincronizar ClosingDeposit vinculado si cambió fecha o efectivo declarado
+        if (dateChanged || amountChanged) {
             List<ClosingDeposit> closings = closingDepositRepository.findByShiftId(shiftId);
             for (ClosingDeposit cd : closings) {
-                if (shift.getOpenedAt() != null)
-                    cd.setPeriodStart(shift.getOpenedAt().toLocalDate());
-                if (shift.getClosedAt() != null) {
-                    cd.setPeriodEnd(shift.getClosedAt().toLocalDate());
-                    cd.setDepositDate(shift.getClosedAt().toLocalDate());
+                if (amountChanged && "PENDING".equals(cd.getDepositStatus())) {
+                    cd.setAmount(shift.getDeclaredCashAmount());
+                }
+                if (dateChanged) {
+                    if (shift.getOpenedAt() != null)
+                        cd.setPeriodStart(shift.getOpenedAt().toLocalDate());
+                    if (shift.getClosedAt() != null) {
+                        cd.setPeriodEnd(shift.getClosedAt().toLocalDate());
+                        cd.setDepositDate(shift.getClosedAt().toLocalDate());
+                    }
                 }
                 closingDepositRepository.save(cd);
             }
