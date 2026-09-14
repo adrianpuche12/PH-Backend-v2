@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 public class UserStatusInterceptor implements HandlerInterceptor {
 
     private static final Logger log = LoggerFactory.getLogger(UserStatusInterceptor.class);
-    private static final Pattern STORE_ID_PATTERN = Pattern.compile("/stores/(\\d+)");
+    private static final Pattern STORE_ID_PATTERN = Pattern.compile("/stores?/(\\d+)");
 
     @Autowired(required = false)
     private AppUserRepository userRepository;
@@ -43,7 +43,13 @@ public class UserStatusInterceptor implements HandlerInterceptor {
         String keycloakId = extractSub(authHeader.substring(7));
         if (keycloakId == null) return true;
 
-        Optional<AppUser> userOpt = userRepository.findByKeycloakId(keycloakId);
+        Optional<AppUser> userOpt;
+        try {
+            userOpt = userRepository.findByKeycloakId(keycloakId);
+        } catch (Exception e) {
+            log.error("Error al verificar permisos de usuario keycloakId={}: {}", keycloakId, e.getMessage());
+            return true;  // fail-open: si la DB falla, no bloqueamos todo el sistema
+        }
         // Sin registro en DB → admin u otro rol sin restricciones → pasar
         if (userOpt.isEmpty()) return true;
 
@@ -57,19 +63,19 @@ public class UserStatusInterceptor implements HandlerInterceptor {
         String uri = request.getRequestURI();
         List<String> userPermissions = user.getPermissions();
 
+        String required = resolveRequiredPermission(uri);
+
         // 2. Verificar permiso de sección (solo si el usuario tiene restricciones)
-        if (!userPermissions.isEmpty()) {
-            String required = resolveRequiredPermission(uri);
-            if (required != null && !userPermissions.contains(required)) {
-                return deny(response, "SECTION_FORBIDDEN", "No tienes acceso a esta sección.");
-            }
+        if (!userPermissions.isEmpty() && required != null && !userPermissions.contains(required)) {
+            return deny(response, "SECTION_FORBIDDEN", "No tienes acceso a esta sección.");
         }
 
-        // 3. Verificar acceso al local (solo si el usuario tiene locales restringidos)
+        // 3. Verificar acceso al local — solo aplica cuando hay sección en juego
+        // (endpoints de metadatos como GET /stores/{id} quedan siempre accesibles)
         List<Long> accessibleStoreIds = user.getAccessibleStores().stream()
                 .map(s -> s.getId())
                 .toList();
-        if (!accessibleStoreIds.isEmpty()) {
+        if (!accessibleStoreIds.isEmpty() && required != null) {
             Long requestedStore = extractStoreId(request, uri);
             if (requestedStore != null && !accessibleStoreIds.contains(requestedStore)) {
                 return deny(response, "STORE_FORBIDDEN", "No tienes acceso a este local.");
