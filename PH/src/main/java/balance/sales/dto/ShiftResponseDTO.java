@@ -21,6 +21,7 @@ public class ShiftResponseDTO {
     private BigDecimal declaredCashAmount;
     private BigDecimal cashDifference;
     private String notes;
+    private String imageUri;
 
     public static ShiftResponseDTO from(Shift s) {
         ShiftResponseDTO dto = new ShiftResponseDTO();
@@ -59,4 +60,6 @@ public class ShiftResponseDTO {
     public BigDecimal getDeclaredCashAmount() { return declaredCashAmount; }
     public BigDecimal getCashDifference() { return cashDifference; }
     public String getNotes() { return notes; }
+    public String getImageUri() { return imageUri; }
+    public void setImageUri(String imageUri) { this.imageUri = imageUri; }
 }

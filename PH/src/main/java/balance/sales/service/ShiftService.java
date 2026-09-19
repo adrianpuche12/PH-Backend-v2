@@ -97,28 +97,48 @@ public class ShiftService {
             var fromDt = (from != null ? from : LocalDate.of(2000, 1, 1)).atStartOfDay();
             var toDt   = (to   != null ? to   : LocalDate.of(2099, 12, 31)).atTime(LocalTime.MAX);
             if (hasUsername) {
-                return shiftRepository
+                var dtos = shiftRepository
                         .findByStoreIdAndUsernameAndOpenedAtBetweenOrderByOpenedAtDesc(storeId, username, fromDt, toDt, pageable)
                         .stream().map(ShiftResponseDTO::from).toList();
+                enrichWithImageUri(dtos);
+                return dtos;
             }
-            return shiftRepository
+            var dtos = shiftRepository
                     .findByStoreIdAndOpenedAtBetweenOrderByOpenedAtDesc(storeId, fromDt, toDt, pageable)
                     .stream().map(ShiftResponseDTO::from).toList();
+            enrichWithImageUri(dtos);
+            return dtos;
         }
 
         if (hasUsername) {
-            return shiftRepository.findByStoreIdAndUsernameOrderByOpenedAtDesc(storeId, username, pageable)
+            var dtos = shiftRepository.findByStoreIdAndUsernameOrderByOpenedAtDesc(storeId, username, pageable)
                     .stream().map(ShiftResponseDTO::from).toList();
+            enrichWithImageUri(dtos);
+            return dtos;
         }
 
-        return shiftRepository.findByStoreIdOrderByOpenedAtDesc(storeId, pageable)
+        var dtos = shiftRepository.findByStoreIdOrderByOpenedAtDesc(storeId, pageable)
                 .stream().map(ShiftResponseDTO::from).toList();
+        enrichWithImageUri(dtos);
+        return dtos;
     }
 
     public List<ShiftResponseDTO> getShiftsByUsername(String username, int page, int size) {
         var pageable = PageRequest.of(page, size);
-        return shiftRepository.findByUsernameOrderByOpenedAtDesc(username, pageable)
+        var dtos = shiftRepository.findByUsernameOrderByOpenedAtDesc(username, pageable)
                 .stream().map(ShiftResponseDTO::from).toList();
+        enrichWithImageUri(dtos);
+        return dtos;
+    }
+
+    private void enrichWithImageUri(List<ShiftResponseDTO> dtos) {
+        for (ShiftResponseDTO dto : dtos) {
+            closingDepositRepository.findByShiftId(dto.getId())
+                    .stream()
+                    .filter(c -> c.getImageUri() != null)
+                    .findFirst()
+                    .ifPresent(c -> dto.setImageUri(c.getImageUri()));
+        }
     }
 
     public ShiftResponseDTO getById(Long shiftId) {
