@@ -543,7 +543,7 @@ public class SalesService {
 
         // Crear ClosingDeposit en sistema V1 vinculado a este turno
         // (solo si hubo ventas: ClosingDeposit exige amount >= 0.01 y closingsCount >= 1)
-        log.info("[closeShift] shiftId={} openSales={} imageUri={}", shiftId, openSales.size(), imageUri);
+        System.out.println("[DEBUG-closeShift] shiftId=" + shiftId + " openSales=" + openSales.size() + " imageUri=" + imageUri);
         ClosingDeposit saved = null;
         if (!openSales.isEmpty()) {
             ClosingDeposit deposit = new ClosingDeposit();
@@ -557,7 +557,7 @@ public class SalesService {
             deposit.setShiftId(shiftId);
             if (imageUri != null) deposit.setImageUri(imageUri);
             saved = formsService.saveClosingDeposit(deposit);
-            log.info("[closeShift] ClosingDeposit saved id={} imageUri={}", saved.getId(), saved.getImageUri());
+            System.out.println("[DEBUG-closeShift] ClosingDeposit id=" + saved.getId() + " imageUri=" + saved.getImageUri());
         }
 
         // Marcar ventas como CONFIRMED

@@ -137,8 +137,7 @@ public class ShiftService {
     private void enrichWithImageUri(List<ShiftResponseDTO> dtos) {
         for (ShiftResponseDTO dto : dtos) {
             var deposits = closingDepositRepository.findByShiftId(dto.getId());
-            log.info("[enrichWithImageUri] shiftId={} deposits={} imageUris={}", dto.getId(), deposits.size(),
-                    deposits.stream().map(c -> c.getImageUri()).toList());
+            System.out.println("[DEBUG-enrich] shiftId=" + dto.getId() + " deposits=" + deposits.size() + " uris=" + deposits.stream().map(c -> c.getImageUri()).toList());
             deposits.stream()
                     .filter(c -> c.getImageUri() != null)
                     .findFirst()
