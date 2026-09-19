@@ -66,8 +66,8 @@ public class DebugController {
     @GetMapping("/version")
     public Map<String, String> getVersion() {
         return Map.of(
-            "version", "saveRecipe-nativeSQL-v1",
-            "build", "2026-07-28"
+            "version", "jpa-closingdeposits-v2",
+            "build", "2026-09-20"
         );
     }
 
