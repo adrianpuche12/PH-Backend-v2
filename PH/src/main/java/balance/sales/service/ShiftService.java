@@ -15,6 +15,8 @@ import balance.sales.repository.SaleItemRepository;
 import balance.sales.repository.SaleRepository;
 import balance.sales.repository.ShiftExpenseRepository;
 import balance.sales.repository.ShiftRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,7 @@ import java.util.Optional;
 @Service
 public class ShiftService {
 
+    private static final Logger log = LoggerFactory.getLogger(ShiftService.class);
     private static final ZoneId HONDURAS_TZ = ZoneId.of("America/Tegucigalpa");
 
     @Autowired private ShiftRepository shiftRepository;
@@ -133,8 +136,10 @@ public class ShiftService {
 
     private void enrichWithImageUri(List<ShiftResponseDTO> dtos) {
         for (ShiftResponseDTO dto : dtos) {
-            closingDepositRepository.findByShiftId(dto.getId())
-                    .stream()
+            var deposits = closingDepositRepository.findByShiftId(dto.getId());
+            log.info("[enrichWithImageUri] shiftId={} deposits={} imageUris={}", dto.getId(), deposits.size(),
+                    deposits.stream().map(c -> c.getImageUri()).toList());
+            deposits.stream()
                     .filter(c -> c.getImageUri() != null)
                     .findFirst()
                     .ifPresent(c -> dto.setImageUri(c.getImageUri()));
