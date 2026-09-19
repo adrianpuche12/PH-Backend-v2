@@ -34,21 +34,24 @@ public class DebugController {
      * Accede a esta información en: http://[tu-host]:[tu-puerto]/debug/datasource
      */
     @GetMapping("/closing-deposits")
-    public List<Map<String, Object>> getRecentClosingDeposits() throws java.sql.SQLException {
-        List<Map<String, Object>> result = new java.util.ArrayList<>();
-        try (Connection conn = dataSource.getConnection();
-             var stmt = conn.prepareStatement(
-                 "SELECT id, shift_id, image_uri, deposit_date, amount FROM closing_deposits ORDER BY id DESC LIMIT 10")) {
-            var rs = stmt.executeQuery();
-            while (rs.next()) {
-                Map<String, Object> m = new HashMap<>();
-                m.put("id", rs.getLong("id"));
-                m.put("shiftId", rs.getObject("shift_id"));
-                m.put("imageUri", rs.getString("image_uri"));
-                m.put("depositDate", rs.getString("deposit_date"));
-                m.put("amount", rs.getBigDecimal("amount"));
-                result.add(m);
+    public Object getRecentClosingDeposits() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        try (Connection conn = dataSource.getConnection()) {
+            String sql = "SELECT id, shift_id, image_uri, deposit_date, amount FROM closing_deposits ORDER BY id DESC LIMIT 10";
+            try (java.sql.PreparedStatement stmt = conn.prepareStatement(sql);
+                 java.sql.ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", rs.getLong("id"));
+                    m.put("shiftId", rs.getObject("shift_id"));
+                    m.put("imageUri", rs.getString("image_uri"));
+                    m.put("depositDate", rs.getString("deposit_date"));
+                    m.put("amount", rs.getBigDecimal("amount"));
+                    result.add(m);
+                }
             }
+        } catch (Exception e) {
+            return Map.of("sqlError", e.getClass().getName() + ": " + e.getMessage());
         }
         return result;
     }
