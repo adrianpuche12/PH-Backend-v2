@@ -1,7 +1,10 @@
 package balance.controller;
 
+import balance.model.ClosingDeposit;
+import balance.repository.ClosingDepositRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -11,7 +14,9 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Controlador de diagnóstico para verificar la configuración de la base de datos.
@@ -23,14 +28,32 @@ public class DebugController {
     
     @Autowired
     private DataSource dataSource;
-    
+
     @Autowired
     private Environment environment;
+
+    @Autowired
+    private ClosingDepositRepository closingDepositRepository;
     
     /**
      * Endpoint para obtener información detallada sobre la conexión a la base de datos.
      * Accede a esta información en: http://[tu-host]:[tu-puerto]/debug/datasource
      */
+    @GetMapping("/closing-deposits")
+    public List<Map<String, Object>> getRecentClosingDeposits() {
+        var page = closingDepositRepository.findAll(PageRequest.of(0, 10,
+                org.springframework.data.domain.Sort.by("id").descending()));
+        return page.getContent().stream().map(cd -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", cd.getId());
+            m.put("shiftId", cd.getShiftId());
+            m.put("imageUri", cd.getImageUri());
+            m.put("depositDate", cd.getDepositDate() != null ? cd.getDepositDate().toString() : null);
+            m.put("amount", cd.getAmount());
+            return m;
+        }).collect(Collectors.toList());
+    }
+
     @GetMapping("/version")
     public Map<String, String> getVersion() {
         return Map.of(
