@@ -73,7 +73,7 @@ public class DebugController {
         info.put("jdbcUrl", environment.getProperty("spring.datasource.url"));
         info.put("username", environment.getProperty("spring.datasource.username"));
         
-        // Información real de la conexión
+        // Información real de la conexión + query de diagnóstico closing_deposits
         try (Connection conn = dataSource.getConnection()) {
             info.put("conexionRealUrl", conn.getMetaData().getURL());
             info.put("conexionRealUsername", conn.getMetaData().getUserName());
@@ -81,11 +81,26 @@ public class DebugController {
             info.put("nombreProductoBD", conn.getMetaData().getDatabaseProductName());
             info.put("versionProductoBD", conn.getMetaData().getDatabaseProductVersion());
             info.put("claseDataSource", dataSource.getClass().getName());
+
+            // Diagnóstico: últimos 5 cierres con imageUri
+            try (var stmt = conn.prepareStatement(
+                    "SELECT id, shift_id, image_uri, deposit_date FROM closing_deposits ORDER BY id DESC LIMIT 5");
+                 var rs = stmt.executeQuery()) {
+                StringBuilder sb = new StringBuilder();
+                while (rs.next()) {
+                    sb.append("id=").append(rs.getLong("id"))
+                      .append(" shiftId=").append(rs.getObject("shift_id"))
+                      .append(" imageUri=").append(rs.getString("image_uri"))
+                      .append(" date=").append(rs.getString("deposit_date"))
+                      .append(" | ");
+                }
+                info.put("closingDeposits", sb.length() > 0 ? sb.toString() : "EMPTY");
+            }
         } catch (SQLException e) {
             info.put("error", e.getMessage());
             info.put("stackTrace", Arrays.toString(e.getStackTrace()));
         }
-        
+
         return info;
     }
 }
