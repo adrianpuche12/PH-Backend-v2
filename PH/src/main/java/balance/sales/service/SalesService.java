@@ -573,6 +573,7 @@ public class SalesService {
         shift.setDeclaredCashAmount(declared);
         shift.setCashDifference(difference);
         if (notes != null && !notes.isBlank()) shift.setNotes(notes.substring(0, Math.min(notes.length(), 500)));
+        if (imageUri != null && !imageUri.isBlank()) shift.setImageUri(imageUri);
         shiftRepository.save(shift);
 
         return new DailyClosingResponseDTO(
