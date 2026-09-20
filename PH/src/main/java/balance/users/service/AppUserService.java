@@ -62,22 +62,25 @@ public class AppUserService {
             );
         }
 
-        String password = dto.getPassword();
-        String role     = dto.getRole() != null ? dto.getRole().toUpperCase() : "ENCARGADO";
-        String email    = dto.getEmail() != null && !dto.getEmail().isBlank()
-                          ? dto.getEmail().trim()
-                          : username + "@lospolloshermanos.hn";
-        String kcRole   = "ADMIN".equalsIgnoreCase(role) ? "admin" : "user";
+        String password  = dto.getPassword();
+        String role      = dto.getRole() != null ? dto.getRole().toUpperCase() : "ENCARGADO";
+        String realEmail = dto.getEmail() != null && !dto.getEmail().isBlank()
+                           ? dto.getEmail().trim()
+                           : username + "@lospolloshermanos.hn";
+        // En Keycloak siempre usamos un email técnico único (username@dominio) para evitar
+        // bloqueos por duplicado de email cuando varios usuarios comparten el mismo contacto.
+        String kcEmail   = username + "@lospolloshermanos.hn";
+        String kcRole    = "ADMIN".equalsIgnoreCase(role) ? "admin" : "user";
 
         String keycloakId;
         try {
-            keycloakId = keycloakAdmin.createUser(username, dto.getFullName(), email, password, kcRole);
+            keycloakId = keycloakAdmin.createUser(username, dto.getFullName(), kcEmail, password, kcRole);
         } catch (IllegalArgumentException kcEx) {
             // 409 de Keycloak pero sin registro en DB local → huérfano de creación parcial anterior
             String orphanId = keycloakAdmin.findKeycloakIdByUsername(username);
             if (orphanId != null) {
                 keycloakAdmin.deleteUser(orphanId);
-                keycloakId = keycloakAdmin.createUser(username, dto.getFullName(), email, password, kcRole);
+                keycloakId = keycloakAdmin.createUser(username, dto.getFullName(), kcEmail, password, kcRole);
             } else {
                 throw kcEx;
             }
@@ -87,7 +90,7 @@ public class AppUserService {
         user.setKeycloakId(keycloakId);
         user.setFullName(dto.getFullName().trim());
         user.setUsername(username);
-        user.setEmail(email);
+        user.setEmail(realEmail);
         user.setRole(role);
         user.setFirstLogin(true);
         user.setStore(primaryStore);
