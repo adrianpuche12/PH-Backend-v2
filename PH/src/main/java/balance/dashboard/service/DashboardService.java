@@ -29,12 +29,16 @@ public class DashboardService {
     @Autowired private InventoryStockRepository stockRepository;
     @Autowired private ProductRepository        productRepository;
 
-    public DashboardDTO getDashboard() {
+    public DashboardDTO getDashboard(List<Long> storeIds) {
         LocalDate today = LocalDate.now(HONDURAS_TZ);
 
-        List<Store> activeStores = storeRepository.findAll().stream()
+        List<Store> allActive = storeRepository.findAll().stream()
                 .filter(s -> Boolean.TRUE.equals(s.getActive()))
                 .toList();
+
+        List<Store> activeStores = (storeIds == null || storeIds.isEmpty())
+                ? allActive
+                : allActive.stream().filter(s -> storeIds.contains(s.getId())).toList();
 
         List<Long> activeStoreIds = activeStores.stream().map(Store::getId).toList();
 

@@ -1,5 +1,6 @@
 package balance.config;
 
+import balance.users.model.AppUser;
 import balance.users.repository.AppUserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,12 +12,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class UserStatusInterceptor implements HandlerInterceptor {
 
     private static final Logger log = LoggerFactory.getLogger(UserStatusInterceptor.class);
+    private static final Pattern STORE_ID_PATTERN = Pattern.compile("/stores?/(\\d+)");
 
     @Autowired(required = false)
     private AppUserRepository userRepository;
@@ -32,26 +38,136 @@ public class UserStatusInterceptor implements HandlerInterceptor {
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) return true;
 
-        if (userRepository == null) return true;  // contexto de test sin JPA
+        if (userRepository == null) return true;
 
         String keycloakId = extractSub(authHeader.substring(7));
         if (keycloakId == null) return true;
 
-        boolean suspended = userRepository.findByKeycloakId(keycloakId)
-                .map(u -> "SUSPENDED".equals(u.getStatus()))
-                .orElse(false);
+        Optional<AppUser> userOpt;
+        try {
+            userOpt = userRepository.findByKeycloakId(keycloakId);
+        } catch (Exception e) {
+            log.error("Error al verificar permisos de usuario keycloakId={}: {}", keycloakId, e.getMessage());
+            return true;  // fail-open: si la DB falla, no bloqueamos todo el sistema
+        }
+        // Sin registro en DB → admin u otro rol sin restricciones → pasar
+        if (userOpt.isEmpty()) return true;
 
-        if (suspended) {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write(
-                "{\"error\":\"ACCOUNT_SUSPENDED\"," +
-                "\"message\":\"Tu cuenta fue suspendida. Contacta al encargado.\"}"
-            );
-            return false;
+        AppUser user = userOpt.get();
+
+        // 1. Verificar suspensión
+        if ("SUSPENDED".equals(user.getStatus())) {
+            return deny(response, "ACCOUNT_SUSPENDED", "Tu cuenta fue suspendida. Contacta al encargado.");
+        }
+
+        String uri = request.getRequestURI();
+        List<String> userPermissions = user.getPermissions();
+
+        List<String> required = resolveRequiredPermissions(uri);
+
+        // 2. Verificar permiso de sección (solo si el usuario tiene restricciones)
+        // El usuario pasa si tiene AL MENOS UNO de los permisos aceptados para esa ruta.
+        if (!userPermissions.isEmpty() && !required.isEmpty() &&
+                required.stream().noneMatch(userPermissions::contains)) {
+            return deny(response, "SECTION_FORBIDDEN", "No tienes acceso a esta sección.");
+        }
+
+        // 3. Verificar acceso al local — solo aplica cuando hay sección en juego
+        // (endpoints de metadatos como GET /stores/{id} quedan siempre accesibles)
+        List<Long> accessibleStoreIds = user.getAccessibleStores().stream()
+                .map(s -> s.getId())
+                .toList();
+        if (!accessibleStoreIds.isEmpty() && !required.isEmpty()) {
+            Long requestedStore = extractStoreId(request, uri);
+            if (requestedStore != null && !accessibleStoreIds.contains(requestedStore)) {
+                return deny(response, "STORE_FORBIDDEN", "No tienes acceso a este local.");
+            }
         }
 
         return true;
+    }
+
+    /**
+     * Devuelve los permisos aceptados para acceder a la URI (cualquiera alcanza).
+     * Lista vacía = sin restricción (usuarios legacy sin permisos configurados).
+     *
+     * Permisos definidos:
+     *   POS            – crear/cerrar turnos, registrar ventas
+     *   SALES_HISTORY  – ver historial de turnos y ventas (lectura)
+     *   INVENTORY      – stock de locales
+     *   DASHBOARD      – panel de métricas
+     *   TRANSACTIONS   – depósitos, operaciones, balance
+     *   SALARY_PAYMENTS / SUPPLIER_PAYMENTS / CATALOG
+     */
+    private List<String> resolveRequiredPermissions(String uri) {
+        // Historial de turnos/ventas: accesible con POS O SALES_HISTORY
+        if (uri.matches(".*/stores/\\d+/shifts.*") ||
+            uri.matches(".*/stores/\\d+/sales.*")) {
+            return List.of("POS", "SALES_HISTORY");
+        }
+        // POS: crear/cerrar turno y registrar venta (rutas genéricas sin storeId)
+        if (uri.startsWith("/api/v2/shifts") ||
+            uri.startsWith("/api/v2/sales") ||
+            uri.startsWith("/api/forms/closing-deposits")) {
+            return List.of("POS");
+        }
+        // INVENTORY: stock del local — POS también puede leer stock (necesario para operar caja)
+        if (uri.matches(".*/stores/\\d+/stock.*")) {
+            return List.of("POS", "INVENTORY");
+        }
+        // DASHBOARD
+        if (uri.startsWith("/api/v2/dashboard")) {
+            return List.of("DASHBOARD");
+        }
+        // TRANSACTIONS
+        if (uri.startsWith("/api/transactions") ||
+            uri.startsWith("/transactions") ||
+            uri.startsWith("/api/v2/deposits") ||
+            uri.startsWith("/api/operations")) {
+            return List.of("TRANSACTIONS");
+        }
+        // SALARY_PAYMENTS
+        if (uri.startsWith("/api/salary-payments") ||
+            uri.startsWith("/api/forms/salary-payments")) {
+            return List.of("SALARY_PAYMENTS");
+        }
+        // SUPPLIER_PAYMENTS
+        if (uri.startsWith("/api/supplier-payments") ||
+            uri.startsWith("/api/forms/supplier-payments")) {
+            return List.of("SUPPLIER_PAYMENTS");
+        }
+        // CATALOG: lectura de categorías/productos del local accesible con POS (para operar caja)
+        if (uri.matches(".*/stores/\\d+/products.*") ||
+            uri.matches(".*/stores/\\d+/categories.*")) {
+            return List.of("POS", "CATALOG");
+        }
+        // CATALOG: gestión global de productos/categorías (sin storeId)
+        if (uri.startsWith("/api/v2/products") ||
+            uri.startsWith("/api/v2/categories")) {
+            return List.of("CATALOG");
+        }
+        return List.of();
+    }
+
+    private Long extractStoreId(HttpServletRequest request, String uri) {
+        Matcher m = STORE_ID_PATTERN.matcher(uri);
+        if (m.find()) {
+            try { return Long.parseLong(m.group(1)); } catch (NumberFormatException ignored) {}
+        }
+        String param = request.getParameter("storeId");
+        if (param != null && !param.isBlank()) {
+            try { return Long.parseLong(param); } catch (NumberFormatException ignored) {}
+        }
+        return null;
+    }
+
+    private boolean deny(HttpServletResponse response, String error, String message) throws Exception {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write(
+            "{\"error\":\"" + error + "\",\"message\":\"" + message + "\"}"
+        );
+        return false;
     }
 
     @SuppressWarnings("unchecked")

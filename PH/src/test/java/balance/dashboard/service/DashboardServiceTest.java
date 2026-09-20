@@ -67,7 +67,7 @@ class DashboardServiceTest {
     void getDashboard_returnsEmptyWhenNoActiveStores() {
         when(storeRepository.findAll()).thenReturn(List.of());
 
-        DashboardDTO result = service.getDashboard();
+        DashboardDTO result = service.getDashboard(null);
 
         assertThat(result.getStores()).isEmpty();
         assertThat(result.getTotalSalesToday()).isZero();
@@ -78,14 +78,14 @@ class DashboardServiceTest {
 
     @Test
     void getDashboard_buildsDTOForStoreWithoutActiveShift() {
-        Store store = buildStore(1L, "Danlí");
+        Store store = buildStore(1L, "Danli");
         when(storeRepository.findAll()).thenReturn(List.of(store));
         stubEmptyStore(1L);
         when(stockRepository.countLowStockByStoreId(1L)).thenReturn(2L);
         when(saleRepository.countByStoreIdsAndSaleDate(anyList(), any(LocalDate.class))).thenReturn(0L);
         when(saleRepository.sumTotalByStoreIdsAndSaleDate(anyList(), any(LocalDate.class))).thenReturn(BigDecimal.ZERO);
 
-        DashboardDTO result = service.getDashboard();
+        DashboardDTO result = service.getDashboard(null);
 
         assertThat(result.getStores()).hasSize(1);
         assertThat(result.getStores().get(0).isHasActiveShift()).isFalse();
@@ -97,7 +97,7 @@ class DashboardServiceTest {
 
     @Test
     void getDashboard_includesActiveShiftDataInStoreDTO() {
-        Store store = buildStore(1L, "Danlí");
+        Store store = buildStore(1L, "Danli");
         Shift shift = buildShift(10L, "T-20260603-0900-DAN", "cajero01");
 
         when(storeRepository.findAll()).thenReturn(List.of(store));
@@ -110,7 +110,7 @@ class DashboardServiceTest {
         when(saleRepository.countByStoreIdsAndSaleDate(anyList(), any(LocalDate.class))).thenReturn(1L);
         when(saleRepository.sumTotalByStoreIdsAndSaleDate(anyList(), any(LocalDate.class))).thenReturn(new BigDecimal("90.00"));
 
-        DashboardDTO result = service.getDashboard();
+        DashboardDTO result = service.getDashboard(null);
 
         StoreDashboardDTO storeDto = result.getStores().get(0);
         assertThat(storeDto.isHasActiveShift()).isTrue();
@@ -120,11 +120,11 @@ class DashboardServiceTest {
         assertThat(storeDto.getShiftSalesTotal()).isEqualByComparingTo("90.00");
     }
 
-    // ── Múltiples turnos en el mismo local ───────────────────────────────────
+    // ── Multiples turnos en el mismo local ────────────────────────────────────
 
     @Test
     void getDashboard_handlesMultipleActiveShiftsForSameStore() {
-        Store store = buildStore(1L, "Danlí");
+        Store store = buildStore(1L, "Danli");
         Shift shift1 = buildShift(10L, "T-20260603-0900-DAN", "cajero01");
         Shift shift2 = buildShift(11L, "T-20260603-0905-DAN", "cajero02");
 
@@ -140,7 +140,7 @@ class DashboardServiceTest {
         when(saleRepository.countByStoreIdsAndSaleDate(anyList(), any(LocalDate.class))).thenReturn(2L);
         when(saleRepository.sumTotalByStoreIdsAndSaleDate(anyList(), any(LocalDate.class))).thenReturn(new BigDecimal("80.00"));
 
-        DashboardDTO result = service.getDashboard();
+        DashboardDTO result = service.getDashboard(null);
 
         StoreDashboardDTO storeDto = result.getStores().get(0);
         assertThat(storeDto.isHasActiveShift()).isTrue();
@@ -153,12 +153,12 @@ class DashboardServiceTest {
         assertThat(result.getTotalActiveShifts()).isEqualTo(2L);
     }
 
-    // ── Múltiples locales — totales globales ──────────────────────────────────
+    // ── Multiples locales - totales globales ──────────────────────────────────
 
     @Test
     void getDashboard_aggregatesTotalsAcrossAllStores() {
-        Store s1 = buildStore(1L, "Danlí");
-        Store s2 = buildStore(2L, "El Paraíso");
+        Store s1 = buildStore(1L, "Danli");
+        Store s2 = buildStore(2L, "El Paraiso");
 
         when(storeRepository.findAll()).thenReturn(List.of(s1, s2));
         stubEmptyStore(1L);
@@ -166,7 +166,7 @@ class DashboardServiceTest {
         when(saleRepository.countByStoreIdsAndSaleDate(anyList(), any(LocalDate.class))).thenReturn(3L);
         when(saleRepository.sumTotalByStoreIdsAndSaleDate(anyList(), any(LocalDate.class))).thenReturn(new BigDecimal("150.00"));
 
-        DashboardDTO result = service.getDashboard();
+        DashboardDTO result = service.getDashboard(null);
 
         assertThat(result.getTotalSalesToday()).isEqualTo(3L);
         assertThat(result.getTotalAmountToday()).isEqualByComparingTo("150.00");
@@ -185,7 +185,7 @@ class DashboardServiceTest {
         when(saleRepository.countByStoreIdsAndSaleDate(anyList(), any(LocalDate.class))).thenReturn(0L);
         when(saleRepository.sumTotalByStoreIdsAndSaleDate(anyList(), any(LocalDate.class))).thenReturn(BigDecimal.ZERO);
 
-        DashboardDTO result = service.getDashboard();
+        DashboardDTO result = service.getDashboard(null);
 
         assertThat(result.getStores()).hasSize(1);
         assertThat(result.getStores().get(0).getStoreName()).isEqualTo("Activo");
@@ -195,7 +195,7 @@ class DashboardServiceTest {
 
     @Test
     void getDashboard_handlesNullSumFromShiftWithNoSales() {
-        Store store = buildStore(1L, "Danlí");
+        Store store = buildStore(1L, "Danli");
         Shift shift = buildShift(10L, "T-20260603-0900-DAN", "cajero01");
 
         when(storeRepository.findAll()).thenReturn(List.of(store));
@@ -208,7 +208,7 @@ class DashboardServiceTest {
         when(saleRepository.countByStoreIdsAndSaleDate(anyList(), any(LocalDate.class))).thenReturn(0L);
         when(saleRepository.sumTotalByStoreIdsAndSaleDate(anyList(), any(LocalDate.class))).thenReturn(BigDecimal.ZERO);
 
-        DashboardDTO result = service.getDashboard();
+        DashboardDTO result = service.getDashboard(null);
 
         assertThat(result.getStores().get(0).getShiftSalesTotal()).isEqualByComparingTo(BigDecimal.ZERO);
     }

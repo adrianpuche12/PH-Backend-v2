@@ -204,6 +204,25 @@ public class KeycloakAdminService {
         }
     }
 
+    // ── Buscar usuario por username ───────────────────────────────────────────
+
+    /** Devuelve el keycloakId del usuario con ese username, o null si no existe. */
+    public String findKeycloakIdByUsername(String username) {
+        String token = getAdminToken();
+        String url   = keycloakUrl + "/admin/realms/" + realm + "/users?username="
+                       + username + "&exact=true";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+
+        ResponseEntity<List> response = restTemplate.exchange(
+            url, HttpMethod.GET, new HttpEntity<>(headers), List.class
+        );
+        if (response.getBody() == null || response.getBody().isEmpty()) return null;
+        Map<?, ?> user = (Map<?, ?>) response.getBody().get(0);
+        return user.get("id") != null ? user.get("id").toString() : null;
+    }
+
     // ── Eliminar usuario ──────────────────────────────────────────────────────
 
     /** Elimina permanentemente un usuario de Keycloak. */

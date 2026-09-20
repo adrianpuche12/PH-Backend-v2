@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v2/dashboard")
 public class DashboardController {
@@ -13,10 +15,11 @@ public class DashboardController {
     @Autowired
     private DashboardService dashboardService;
 
-    /** Resumen global del sistema para el admin: turnos activos, ventas del dÃ­a e inventario. */
+    /** Resumen del sistema. Sin parámetros: todos los locales (admin). Con ?storeIds=1,2: filtrado por local (socio). */
     @GetMapping
-    public ResponseEntity<DashboardDTO> getDashboard() {
-        return ResponseEntity.ok(dashboardService.getDashboard());
+    public ResponseEntity<DashboardDTO> getDashboard(
+            @RequestParam(required = false) List<Long> storeIds) {
+        return ResponseEntity.ok(dashboardService.getDashboard(storeIds));
     }
 }
 
