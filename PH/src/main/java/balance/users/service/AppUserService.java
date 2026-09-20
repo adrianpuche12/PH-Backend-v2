@@ -69,7 +69,19 @@ public class AppUserService {
                           : username + "@lospolloshermanos.hn";
         String kcRole   = "ADMIN".equalsIgnoreCase(role) ? "admin" : "user";
 
-        String keycloakId = keycloakAdmin.createUser(username, dto.getFullName(), email, password, kcRole);
+        String keycloakId;
+        try {
+            keycloakId = keycloakAdmin.createUser(username, dto.getFullName(), email, password, kcRole);
+        } catch (IllegalArgumentException kcEx) {
+            // 409 de Keycloak pero sin registro en DB local → huérfano de creación parcial anterior
+            String orphanId = keycloakAdmin.findKeycloakIdByUsername(username);
+            if (orphanId != null) {
+                keycloakAdmin.deleteUser(orphanId);
+                keycloakId = keycloakAdmin.createUser(username, dto.getFullName(), email, password, kcRole);
+            } else {
+                throw kcEx;
+            }
+        }
 
         AppUser user = new AppUser();
         user.setKeycloakId(keycloakId);
