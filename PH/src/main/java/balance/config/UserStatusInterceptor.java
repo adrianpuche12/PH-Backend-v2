@@ -63,10 +63,12 @@ public class UserStatusInterceptor implements HandlerInterceptor {
         String uri = request.getRequestURI();
         List<String> userPermissions = user.getPermissions();
 
-        String required = resolveRequiredPermission(uri);
+        List<String> required = resolveRequiredPermissions(uri);
 
         // 2. Verificar permiso de sección (solo si el usuario tiene restricciones)
-        if (!userPermissions.isEmpty() && required != null && !userPermissions.contains(required)) {
+        // El usuario pasa si tiene AL MENOS UNO de los permisos aceptados para esa ruta.
+        if (!userPermissions.isEmpty() && !required.isEmpty() &&
+                required.stream().noneMatch(userPermissions::contains)) {
             return deny(response, "SECTION_FORBIDDEN", "No tienes acceso a esta sección.");
         }
 
@@ -75,7 +77,7 @@ public class UserStatusInterceptor implements HandlerInterceptor {
         List<Long> accessibleStoreIds = user.getAccessibleStores().stream()
                 .map(s -> s.getId())
                 .toList();
-        if (!accessibleStoreIds.isEmpty() && required != null) {
+        if (!accessibleStoreIds.isEmpty() && !required.isEmpty()) {
             Long requestedStore = extractStoreId(request, uri);
             if (requestedStore != null && !accessibleStoreIds.contains(requestedStore)) {
                 return deny(response, "STORE_FORBIDDEN", "No tienes acceso a este local.");
@@ -86,51 +88,62 @@ public class UserStatusInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * Devuelve el permiso requerido para acceder a la URI, o null si no hay restricción.
-     * Lógica vacía = acceso total (usuarios legacy sin permisos configurados).
+     * Devuelve los permisos aceptados para acceder a la URI (cualquiera alcanza).
+     * Lista vacía = sin restricción (usuarios legacy sin permisos configurados).
+     *
+     * Permisos definidos:
+     *   POS            – crear/cerrar turnos, registrar ventas
+     *   SALES_HISTORY  – ver historial de turnos y ventas (lectura)
+     *   INVENTORY      – stock de locales
+     *   DASHBOARD      – panel de métricas
+     *   TRANSACTIONS   – depósitos, operaciones, balance
+     *   SALARY_PAYMENTS / SUPPLIER_PAYMENTS / CATALOG
      */
-    private String resolveRequiredPermission(String uri) {
-        // POS: turnos, ventas y cierre de turno
+    private List<String> resolveRequiredPermissions(String uri) {
+        // Historial de turnos/ventas: accesible con POS O SALES_HISTORY
+        if (uri.matches(".*/stores/\\d+/shifts.*") ||
+            uri.matches(".*/stores/\\d+/sales.*")) {
+            return List.of("POS", "SALES_HISTORY");
+        }
+        // POS: crear/cerrar turno y registrar venta (rutas genéricas sin storeId)
         if (uri.startsWith("/api/v2/shifts") ||
             uri.startsWith("/api/v2/sales") ||
-            uri.matches(".*/stores/\\d+/shifts.*") ||
-            uri.matches(".*/stores/\\d+/sales.*") ||
             uri.startsWith("/api/forms/closing-deposits")) {
-            return "POS";
+            return List.of("POS");
         }
-        // INVENTORY: stock de locales
+        // INVENTORY
         if (uri.matches(".*/stores/\\d+/stock.*")) {
-            return "INVENTORY";
+            return List.of("INVENTORY");
         }
         // DASHBOARD
         if (uri.startsWith("/api/v2/dashboard")) {
-            return "DASHBOARD";
+            return List.of("DASHBOARD");
         }
-        // TRANSACTIONS: depósitos bancarios, operaciones, balance legacy
+        // TRANSACTIONS
         if (uri.startsWith("/api/transactions") ||
             uri.startsWith("/transactions") ||
             uri.startsWith("/api/v2/deposits") ||
             uri.startsWith("/api/operations")) {
-            return "TRANSACTIONS";
+            return List.of("TRANSACTIONS");
         }
         // SALARY_PAYMENTS
         if (uri.startsWith("/api/salary-payments") ||
             uri.startsWith("/api/forms/salary-payments")) {
-            return "SALARY_PAYMENTS";
+            return List.of("SALARY_PAYMENTS");
         }
         // SUPPLIER_PAYMENTS
         if (uri.startsWith("/api/supplier-payments") ||
             uri.startsWith("/api/forms/supplier-payments")) {
-            return "SUPPLIER_PAYMENTS";
+            return List.of("SUPPLIER_PAYMENTS");
         }
-        // CATALOG: productos y categorías
+        // CATALOG
         if (uri.startsWith("/api/v2/products") ||
             uri.startsWith("/api/v2/categories") ||
             uri.matches(".*/stores/\\d+/products.*") ||
             uri.matches(".*/stores/\\d+/categories.*")) {
-            return "CATALOG";
+            return List.of("CATALOG");
         }
-        return null;
+        return List.of();
     }
 
     private Long extractStoreId(HttpServletRequest request, String uri) {
