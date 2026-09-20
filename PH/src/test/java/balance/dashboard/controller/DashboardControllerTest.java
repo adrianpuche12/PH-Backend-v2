@@ -1,4 +1,4 @@
-package balance.dashboard.controller;
+﻿package balance.dashboard.controller;
 
 import balance.dashboard.dto.DashboardDTO;
 import balance.dashboard.service.DashboardService;
@@ -23,13 +23,13 @@ class DashboardControllerTest {
     @Autowired private ObjectMapper      objectMapper;
     @MockBean  private DashboardService  service;
 
-    // ── GET /api/v2/dashboard ─────────────────────────────────────────────────
+    // â”€â”€ GET /api/v2/dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Test
     void getDashboard_returns200WithDashboardData() throws Exception {
         DashboardDTO dto = new DashboardDTO(List.of(), 5L, new BigDecimal("1200.00"));
 
-        when(service.getDashboard()).thenReturn(dto);
+        when(service.getDashboard(null)).thenReturn(dto);
 
         mockMvc.perform(get("/api/v2/dashboard"))
                 .andExpect(status().isOk())
@@ -41,7 +41,7 @@ class DashboardControllerTest {
     void getDashboard_returns200WithEmptyStores() throws Exception {
         DashboardDTO dto = new DashboardDTO(List.of(), 0L, BigDecimal.ZERO);
 
-        when(service.getDashboard()).thenReturn(dto);
+        when(service.getDashboard(null)).thenReturn(dto);
 
         mockMvc.perform(get("/api/v2/dashboard"))
                 .andExpect(status().isOk())
@@ -51,7 +51,7 @@ class DashboardControllerTest {
 
     @Test
     void getDashboard_callsServiceOnce() throws Exception {
-        when(service.getDashboard())
+        when(service.getDashboard(null))
                 .thenReturn(new DashboardDTO(List.of(), 0L, BigDecimal.ZERO));
 
         mockMvc.perform(get("/api/v2/dashboard"));
