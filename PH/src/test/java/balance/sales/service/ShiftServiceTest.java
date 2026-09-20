@@ -162,7 +162,7 @@ class ShiftServiceTest {
         when(shiftRepository.findById(1L)).thenReturn(Optional.of(shift));
         when(shiftRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        ShiftResponseDTO result = shiftService.closeShift(1L);
+        ShiftResponseDTO result = shiftService.closeShift(1L, null);
 
         assertThat(result.getStatus()).isEqualTo("CLOSED");
         assertThat(shift.getClosedAt()).isNotNull();
@@ -177,7 +177,7 @@ class ShiftServiceTest {
     void closeShift_throwsWhenShiftNotFound() {
         when(shiftRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> shiftService.closeShift(99L))
+        assertThatThrownBy(() -> shiftService.closeShift(99L, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Turno no encontrado");
     }
@@ -189,7 +189,7 @@ class ShiftServiceTest {
 
         when(shiftRepository.findById(1L)).thenReturn(Optional.of(shift));
 
-        assertThatThrownBy(() -> shiftService.closeShift(1L))
+        assertThatThrownBy(() -> shiftService.closeShift(1L, null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("ya está cerrado");
     }

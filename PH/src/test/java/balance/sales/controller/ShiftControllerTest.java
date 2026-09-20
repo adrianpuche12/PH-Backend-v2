@@ -81,7 +81,7 @@ class ShiftControllerTest {
 
     @Test
     void closeShift_returns200WhenSuccessful() throws Exception {
-        when(shiftService.closeShift(1L)).thenReturn(buildShiftResponse("CLOSED"));
+        when(shiftService.closeShift(eq(1L), any())).thenReturn(buildShiftResponse("CLOSED"));
 
         mockMvc.perform(put("/api/v2/shifts/1/close"))
                 .andExpect(status().isOk())
@@ -90,7 +90,7 @@ class ShiftControllerTest {
 
     @Test
     void closeShift_returns400WhenAlreadyClosed() throws Exception {
-        when(shiftService.closeShift(1L))
+        when(shiftService.closeShift(eq(1L), any()))
                 .thenThrow(new IllegalStateException("El turno ya esta cerrado"));
 
         mockMvc.perform(put("/api/v2/shifts/1/close"))

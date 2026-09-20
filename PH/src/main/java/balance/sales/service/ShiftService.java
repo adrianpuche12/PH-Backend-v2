@@ -64,7 +64,7 @@ public class ShiftService {
     }
 
     @Transactional
-    public ShiftResponseDTO closeShift(Long shiftId) {
+    public ShiftResponseDTO closeShift(Long shiftId, String imageUri) {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new IllegalArgumentException("Turno no encontrado"));
         if ("CLOSED".equals(shift.getStatus())) {
@@ -72,6 +72,7 @@ public class ShiftService {
         }
         shift.setStatus("CLOSED");
         shift.setClosedAt(LocalDateTime.now(HONDURAS_TZ));
+        if (imageUri != null && !imageUri.isBlank()) shift.setImageUri(imageUri);
         shiftRepository.save(shift);
         return ShiftResponseDTO.from(shift);
     }
@@ -136,10 +137,14 @@ public class ShiftService {
 
     private void enrichWithImageUri(List<ShiftResponseDTO> dtos) {
         for (ShiftResponseDTO dto : dtos) {
-            closingDepositRepository.findByShiftId(dto.getId()).stream()
-                    .filter(c -> c.getImageUri() != null)
-                    .findFirst()
-                    .ifPresent(c -> dto.setImageUri(c.getImageUri()));
+            // imageUri already set from Shift entity in ShiftResponseDTO.from()
+            // Fall back to ClosingDeposit image for legacy shifts that predate the column
+            if (dto.getImageUri() == null) {
+                closingDepositRepository.findByShiftId(dto.getId()).stream()
+                        .filter(c -> c.getImageUri() != null)
+                        .findFirst()
+                        .ifPresent(c -> dto.setImageUri(c.getImageUri()));
+            }
         }
     }
 

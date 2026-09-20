@@ -41,9 +41,11 @@ public class ShiftController {
 
     // Cerrar turno (solo cierra el turno, sin procesar ventas)
     @PutMapping("/shifts/{shiftId}/close")
-    public ResponseEntity<?> closeShift(@PathVariable Long shiftId) {
+    public ResponseEntity<?> closeShift(@PathVariable Long shiftId,
+                                         @RequestBody(required = false) Map<String, Object> body) {
         try {
-            return ResponseEntity.ok(shiftService.closeShift(shiftId));
+            String imageUri = body != null ? (String) body.get("imageUri") : null;
+            return ResponseEntity.ok(shiftService.closeShift(shiftId, imageUri));
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

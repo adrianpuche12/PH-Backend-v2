@@ -38,6 +38,7 @@ public class ShiftResponseDTO {
         dto.declaredCashAmount  = s.getDeclaredCashAmount();
         dto.cashDifference      = s.getCashDifference();
         dto.notes               = s.getNotes();
+        dto.imageUri            = s.getImageUri();
         if (s.getStore() != null) {
             dto.storeId   = s.getStore().getId();
             dto.storeName = s.getStore().getName();
