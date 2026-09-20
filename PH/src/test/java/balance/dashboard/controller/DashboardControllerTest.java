@@ -1,4 +1,4 @@
-﻿package balance.dashboard.controller;
+package balance.dashboard.controller;
 
 import balance.dashboard.dto.DashboardDTO;
 import balance.dashboard.service.DashboardService;
@@ -23,7 +23,7 @@ class DashboardControllerTest {
     @Autowired private ObjectMapper      objectMapper;
     @MockBean  private DashboardService  service;
 
-    // â”€â”€ GET /api/v2/dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── GET /api/v2/dashboard ─────────────────────────────────────────────────
 
     @Test
     void getDashboard_returns200WithDashboardData() throws Exception {
@@ -56,6 +56,6 @@ class DashboardControllerTest {
 
         mockMvc.perform(get("/api/v2/dashboard"));
 
-        verify(service, times(1)).getDashboard();
+        verify(service, times(1)).getDashboard(null);
     }
 }
