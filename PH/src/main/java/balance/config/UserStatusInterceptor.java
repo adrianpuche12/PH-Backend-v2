@@ -111,9 +111,9 @@ public class UserStatusInterceptor implements HandlerInterceptor {
             uri.startsWith("/api/forms/closing-deposits")) {
             return List.of("POS");
         }
-        // INVENTORY
+        // INVENTORY: stock del local — POS también puede leer stock (necesario para operar caja)
         if (uri.matches(".*/stores/\\d+/stock.*")) {
-            return List.of("INVENTORY");
+            return List.of("POS", "INVENTORY");
         }
         // DASHBOARD
         if (uri.startsWith("/api/v2/dashboard")) {
@@ -136,11 +136,14 @@ public class UserStatusInterceptor implements HandlerInterceptor {
             uri.startsWith("/api/forms/supplier-payments")) {
             return List.of("SUPPLIER_PAYMENTS");
         }
-        // CATALOG
-        if (uri.startsWith("/api/v2/products") ||
-            uri.startsWith("/api/v2/categories") ||
-            uri.matches(".*/stores/\\d+/products.*") ||
+        // CATALOG: lectura de categorías/productos del local accesible con POS (para operar caja)
+        if (uri.matches(".*/stores/\\d+/products.*") ||
             uri.matches(".*/stores/\\d+/categories.*")) {
+            return List.of("POS", "CATALOG");
+        }
+        // CATALOG: gestión global de productos/categorías (sin storeId)
+        if (uri.startsWith("/api/v2/products") ||
+            uri.startsWith("/api/v2/categories")) {
             return List.of("CATALOG");
         }
         return List.of();
