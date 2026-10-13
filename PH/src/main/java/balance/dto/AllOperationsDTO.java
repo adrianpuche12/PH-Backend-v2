@@ -47,6 +47,10 @@ public class AllOperationsDTO {
     // Observación del depósito bancario (solo para CLOSING con depositStatus=DEPOSITED)
     private String bankDepositNotes;
 
+    // Monto declarado en el banco (BankDeposit.declaredAmount) — igual para todos los
+    // cierres del mismo depósito. El frontend lo usa para construir el DEPOSIT_GROUP.
+    private java.math.BigDecimal bankDeclaredAmount;
+
     // shiftId guardado en ClosingDeposit — usado internamente por enrichClosingDTOs
     private Long closingShiftId;
 
@@ -264,6 +268,9 @@ public class AllOperationsDTO {
 
     public String getBankDepositNotes() { return bankDepositNotes; }
     public void setBankDepositNotes(String bankDepositNotes) { this.bankDepositNotes = bankDepositNotes; }
+
+    public java.math.BigDecimal getBankDeclaredAmount() { return bankDeclaredAmount; }
+    public void setBankDeclaredAmount(java.math.BigDecimal bankDeclaredAmount) { this.bankDeclaredAmount = bankDeclaredAmount; }
 
     public Long getClosingShiftId() { return closingShiftId; }
     public void setClosingShiftId(Long closingShiftId) { this.closingShiftId = closingShiftId; }

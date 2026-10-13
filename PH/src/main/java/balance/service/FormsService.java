@@ -109,15 +109,28 @@ public class FormsService {
             .collect(Collectors.toList());
 
         if (!bankDepositIds.isEmpty()) {
-            Map<Long, String> notesMap = bankDepositRepository.findAllById(bankDepositIds).stream()
+            List<balance.deposit.model.BankDeposit> bankDeposits = bankDepositRepository.findAllById(bankDepositIds);
+
+            Map<Long, String> notesMap = bankDeposits.stream()
                 .filter(bd -> bd.getNotes() != null && !bd.getNotes().isBlank())
                 .collect(Collectors.toMap(
                     balance.deposit.model.BankDeposit::getId,
                     balance.deposit.model.BankDeposit::getNotes
                 ));
+
+            Map<Long, java.math.BigDecimal> declaredAmountMap = bankDeposits.stream()
+                .filter(bd -> bd.getDeclaredAmount() != null)
+                .collect(Collectors.toMap(
+                    balance.deposit.model.BankDeposit::getId,
+                    balance.deposit.model.BankDeposit::getDeclaredAmount
+                ));
+
             dtos.stream()
                 .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getBankDepositId() != null)
-                .forEach(dto -> dto.setBankDepositNotes(notesMap.get(dto.getBankDepositId())));
+                .forEach(dto -> {
+                    dto.setBankDepositNotes(notesMap.get(dto.getBankDepositId()));
+                    dto.setBankDeclaredAmount(declaredAmountMap.get(dto.getBankDepositId()));
+                });
         }
     }
 
