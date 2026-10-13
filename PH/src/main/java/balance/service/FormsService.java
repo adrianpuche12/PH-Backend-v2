@@ -119,6 +119,7 @@ public class FormsService {
                 ));
 
             Map<Long, java.math.BigDecimal> declaredAmountMap = bankDeposits.stream()
+                .filter(bd -> bd.getDeclaredAmount() != null)
                 .collect(Collectors.toMap(
                     balance.deposit.model.BankDeposit::getId,
                     balance.deposit.model.BankDeposit::getDeclaredAmount
