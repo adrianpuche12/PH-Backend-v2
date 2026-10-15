@@ -80,26 +80,26 @@ public class FormsService {
             .map(AllOperationsDTO::getClosingShiftId)
             .collect(Collectors.toList());
 
-        if (shiftIds.isEmpty()) return;
+        if (!shiftIds.isEmpty()) {
+            Map<Long, Shift> shiftMap = shiftRepository.findAllById(shiftIds).stream()
+                .collect(Collectors.toMap(Shift::getId, s -> s));
 
-        Map<Long, Shift> shiftMap = shiftRepository.findAllById(shiftIds).stream()
-            .collect(Collectors.toMap(Shift::getId, s -> s));
+            Map<Long, Long> countsMap = saleRepository.countByShiftIdIn(shiftIds).stream()
+                .collect(Collectors.toMap(
+                    row -> (Long) row[0],
+                    row -> (Long) row[1]
+                ));
 
-        Map<Long, Long> countsMap = saleRepository.countByShiftIdIn(shiftIds).stream()
-            .collect(Collectors.toMap(
-                row -> (Long) row[0],
-                row -> (Long) row[1]
-            ));
-
-        dtos.stream()
-            .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getClosingShiftId() != null)
-            .forEach(dto -> {
-                Shift shift = shiftMap.get(dto.getClosingShiftId());
-                if (shift != null) {
-                    int count = countsMap.getOrDefault(dto.getClosingShiftId(), 0L).intValue();
-                    dto.enrichWithShift(shift, count);
-                }
-            });
+            dtos.stream()
+                .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getClosingShiftId() != null)
+                .forEach(dto -> {
+                    Shift shift = shiftMap.get(dto.getClosingShiftId());
+                    if (shift != null) {
+                        int count = countsMap.getOrDefault(dto.getClosingShiftId(), 0L).intValue();
+                        dto.enrichWithShift(shift, count);
+                    }
+                });
+        }
 
         // Enriquecer con las notas del depósito bancario (batch: 1 query)
         List<Long> bankDepositIds = dtos.stream()
