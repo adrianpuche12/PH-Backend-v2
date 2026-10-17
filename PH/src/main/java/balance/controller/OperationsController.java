@@ -70,6 +70,14 @@ public class OperationsController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/admin-expenses")
+    public ResponseEntity<List<AllOperationsDTO>> getAdminExpenses(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long storeId) {
+        return ResponseEntity.ok(formsService.getAdminExpenses(startDate, endDate, storeId));
+    }
+
     @GetMapping("/mine")
     public ResponseEntity<List<AllOperationsDTO>> getMyOperations(
             @RequestParam String username,
