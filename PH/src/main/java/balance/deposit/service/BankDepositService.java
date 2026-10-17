@@ -225,6 +225,31 @@ public class BankDepositService {
         return DepositResponse.from(saved);
     }
 
+    // Editar campos de un depósito regular (normal, no extraordinario).
+    // Permite corregir declaredAmount, depositDate, notes e imageUri.
+    @Transactional
+    public DepositResponse updateDeclaredAmount(Long depositId, Map<String, Object> body) {
+        BankDeposit deposit = depositRepo.findById(depositId)
+                .orElseThrow(() -> new IllegalArgumentException("Depósito no encontrado"));
+        if (body.containsKey("declaredAmount") && body.get("declaredAmount") != null) {
+            BigDecimal declared = new BigDecimal(body.get("declaredAmount").toString());
+            deposit.setDeclaredAmount(declared);
+            deposit.setDifference(declared.subtract(deposit.getExpectedCash()));
+            String status = deposit.getDifference().compareTo(BigDecimal.ZERO) == 0 ? "CONFIRMED" : "DISCREPANCY";
+            deposit.setStatus(status);
+        }
+        if (body.containsKey("depositDate") && body.get("depositDate") != null) {
+            deposit.setDepositDate(LocalDate.parse(body.get("depositDate").toString()));
+        }
+        if (body.containsKey("notes")) {
+            deposit.setNotes(body.get("notes") != null ? body.get("notes").toString() : null);
+        }
+        if (body.containsKey("imageUri")) {
+            deposit.setImageUri(body.get("imageUri") != null ? body.get("imageUri").toString() : null);
+        }
+        return DepositResponse.from(depositRepo.save(deposit));
+    }
+
     // Eliminar depósito bancario.
     // Si todos los cierres son extraordinarios (creados junto con el depósito), se eliminan.
     // Si son cierres normales, se revierten a PENDING para que puedan depositarse nuevamente.

@@ -107,6 +107,19 @@ public class BankDepositController {
         }
     }
 
+    // PATCH /api/v2/deposits/{id}/declared-amount
+    // Corrige el monto declarado de cualquier depósito (normal o extraordinario).
+    @PatchMapping("/{id}/declared-amount")
+    public ResponseEntity<DepositResponse> updateDeclaredAmount(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, Object> body) {
+        try {
+            return ResponseEntity.ok(service.updateDeclaredAmount(id, body));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     // DELETE /api/v2/deposits/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {

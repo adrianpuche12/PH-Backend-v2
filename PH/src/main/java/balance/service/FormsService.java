@@ -430,6 +430,16 @@ public class FormsService {
         return gastoAdminRepository.findByFechaBetween(startDate, endDate);
     }
 
+    public List<AllOperationsDTO> getAdminExpenses(LocalDate startDate, LocalDate endDate, Long storeId) {
+        LocalDate end   = endDate   != null ? endDate   : LocalDate.now(HONDURAS_TZ);
+        LocalDate start = startDate != null ? startDate : end.minusDays(90);
+        List<GastoAdmin> gastos = gastoAdminRepository.findByFechaBetween(start, end);
+        return gastos.stream()
+                .map(AllOperationsDTO::fromGastoAdmin)
+                .sorted((a, b) -> b.getDate().compareTo(a.getDate()))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
 
     public GastoAdmin updateGastoAdmin(Long id, GastoAdmin updatedGastoAdmin) {
         GastoAdmin existingGastoAdmin = gastoAdminRepository.findById(id)
