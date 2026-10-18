@@ -125,11 +125,19 @@ public class FormsService {
                     balance.deposit.model.BankDeposit::getDeclaredAmount
                 ));
 
+            Map<Long, java.math.BigDecimal> differenceMap = bankDeposits.stream()
+                .filter(bd -> bd.getDifference() != null)
+                .collect(Collectors.toMap(
+                    balance.deposit.model.BankDeposit::getId,
+                    balance.deposit.model.BankDeposit::getDifference
+                ));
+
             dtos.stream()
                 .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getBankDepositId() != null)
                 .forEach(dto -> {
                     dto.setBankDepositNotes(notesMap.get(dto.getBankDepositId()));
                     dto.setBankDeclaredAmount(declaredAmountMap.get(dto.getBankDepositId()));
+                    dto.setBankDifference(differenceMap.get(dto.getBankDepositId()));
                 });
         }
     }
