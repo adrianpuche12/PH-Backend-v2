@@ -51,6 +51,9 @@ public class AllOperationsDTO {
     // cierres del mismo depósito. El frontend lo usa para construir el DEPOSIT_GROUP.
     private java.math.BigDecimal bankDeclaredAmount;
 
+    // Diferencia en el depósito (declaredAmount - expectedCash). Positivo = sobra, negativo = falta.
+    private java.math.BigDecimal bankDifference;
+
     // shiftId guardado en ClosingDeposit — usado internamente por enrichClosingDTOs
     private Long closingShiftId;
 
@@ -271,6 +274,9 @@ public class AllOperationsDTO {
 
     public java.math.BigDecimal getBankDeclaredAmount() { return bankDeclaredAmount; }
     public void setBankDeclaredAmount(java.math.BigDecimal bankDeclaredAmount) { this.bankDeclaredAmount = bankDeclaredAmount; }
+
+    public java.math.BigDecimal getBankDifference() { return bankDifference; }
+    public void setBankDifference(java.math.BigDecimal bankDifference) { this.bankDifference = bankDifference; }
 
     public Long getClosingShiftId() { return closingShiftId; }
     public void setClosingShiftId(Long closingShiftId) { this.closingShiftId = closingShiftId; }
