@@ -233,8 +233,10 @@ public class BankDepositService {
                 .orElseThrow(() -> new IllegalArgumentException("Depósito no encontrado"));
         if (body.containsKey("declaredAmount") && body.get("declaredAmount") != null) {
             BigDecimal declared = new BigDecimal(body.get("declaredAmount").toString());
+            BigDecimal expectedCash = deposit.getExpectedCash() != null ? deposit.getExpectedCash() : BigDecimal.ZERO;
             deposit.setDeclaredAmount(declared);
-            deposit.setDifference(declared.subtract(deposit.getExpectedCash()));
+            deposit.setExpectedCash(expectedCash);
+            deposit.setDifference(declared.subtract(expectedCash));
             String status = deposit.getDifference().compareTo(BigDecimal.ZERO) == 0 ? "CONFIRMED" : "DISCREPANCY";
             deposit.setStatus(status);
         }
