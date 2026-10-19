@@ -99,7 +99,7 @@ public class BankDepositService {
             if (c.getImageUri() != null) {
                 r2StorageService.delete(c.getImageUri());
             }
-            closingDepositRepo.updateDepositInfo(c.getId(), "DEPOSITED", saved.getId(), saved.getImageUri());
+            closingDepositRepo.updateDepositInfo(c.getId(), "DEPOSITED", saved.getId(), saved.getImageUri(), saved.getDeclaredAmount(), saved.getDifference());
         }
 
         return DepositResponse.from(saved);
@@ -209,6 +209,8 @@ public class BankDepositService {
         for (ClosingDeposit closing : closings) {
             if (updates.containsKey("declaredAmount") && updates.get("declaredAmount") != null) {
                 closing.setAmount(new BigDecimal(updates.get("declaredAmount").toString()));
+                closing.setBankDeclaredAmount(saved.getDeclaredAmount());
+                closing.setBankDifference(saved.getDifference());
             }
             if (updates.containsKey("depositDate") && updates.get("depositDate") != null) {
                 LocalDate date = LocalDate.parse(updates.get("depositDate").toString());
@@ -249,7 +251,9 @@ public class BankDepositService {
         if (body.containsKey("imageUri")) {
             deposit.setImageUri(body.get("imageUri") != null ? body.get("imageUri").toString() : null);
         }
-        return DepositResponse.from(depositRepo.save(deposit));
+        DepositResponse saved2 = DepositResponse.from(depositRepo.save(deposit));
+        closingDepositRepo.updateBankAmounts(depositId, deposit.getDeclaredAmount(), deposit.getDifference());
+        return saved2;
     }
 
     // Eliminar depósito bancario.

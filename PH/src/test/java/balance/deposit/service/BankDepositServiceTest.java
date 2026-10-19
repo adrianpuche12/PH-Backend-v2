@@ -128,8 +128,8 @@ class BankDepositServiceTest {
         service.createDeposit("cajero01", buildRequest(List.of(1L, 2L), new BigDecimal("500.00")));
 
         // El servicio usa native SQL updateDepositInfo en lugar de saveAll
-        verify(closingDepositRepo).updateDepositInfo(1L, "DEPOSITED", 99L, null);
-        verify(closingDepositRepo).updateDepositInfo(2L, "DEPOSITED", 99L, null);
+        verify(closingDepositRepo).updateDepositInfo(1L, "DEPOSITED", 99L, null, new BigDecimal("500.00"), BigDecimal.ZERO);
+        verify(closingDepositRepo).updateDepositInfo(2L, "DEPOSITED", 99L, null, new BigDecimal("500.00"), BigDecimal.ZERO);
     }
 
     @Test

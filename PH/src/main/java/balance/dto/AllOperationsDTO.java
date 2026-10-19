@@ -91,6 +91,8 @@ public class AllOperationsDTO {
         dto.setImageUri(deposit.getImageUri());
         dto.setDepositStatus(deposit.getDepositStatus());
         dto.setBankDepositId(deposit.getBankDepositId());
+        dto.setBankDeclaredAmount(deposit.getBankDeclaredAmount());
+        dto.setBankDifference(deposit.getBankDifference());
         dto.setClosingShiftId(deposit.getShiftId());
         dto.setExtraordinary(Boolean.TRUE.equals(deposit.getExtraordinary()));
         return dto;

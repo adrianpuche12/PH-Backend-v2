@@ -35,8 +35,13 @@ public interface ClosingDepositRepository extends JpaRepository<ClosingDeposit, 
 
     // Actualiza directamente via SQL para evitar problemas de dirty-checking JPA
     @Modifying
-    @Query(value = "UPDATE closing_deposits SET deposit_status = :status, bank_deposit_id = :bankDepositId, image_uri = :imageUri WHERE id = :id", nativeQuery = true)
-    void updateDepositInfo(Long id, String status, Long bankDepositId, String imageUri);
+    @Query(value = "UPDATE closing_deposits SET deposit_status = :status, bank_deposit_id = :bankDepositId, image_uri = :imageUri, bank_declared_amount = :bankDeclaredAmount, bank_difference = :bankDifference WHERE id = :id", nativeQuery = true)
+    void updateDepositInfo(@Param("id") Long id, @Param("status") String status, @Param("bankDepositId") Long bankDepositId, @Param("imageUri") String imageUri, @Param("bankDeclaredAmount") java.math.BigDecimal bankDeclaredAmount, @Param("bankDifference") java.math.BigDecimal bankDifference);
+
+    // Actualiza bank_declared_amount y bank_difference en todos los cierres de un depósito (al editar)
+    @Modifying
+    @Query(value = "UPDATE closing_deposits SET bank_declared_amount = :declaredAmount, bank_difference = :difference WHERE bank_deposit_id = :bankDepositId", nativeQuery = true)
+    void updateBankAmounts(@Param("bankDepositId") Long bankDepositId, @Param("declaredAmount") java.math.BigDecimal declaredAmount, @Param("difference") java.math.BigDecimal difference);
 
     // Actualiza solo la imagen de un cierre pendiente
     @Modifying
@@ -48,7 +53,7 @@ public interface ClosingDepositRepository extends JpaRepository<ClosingDeposit, 
 
     // Revierte todos los cierres de un depósito bancario a PENDING (al eliminar el depósito)
     @Modifying
-    @Query(value = "UPDATE closing_deposits SET deposit_status = 'PENDING', bank_deposit_id = NULL, image_uri = NULL WHERE bank_deposit_id = :bankDepositId", nativeQuery = true)
+    @Query(value = "UPDATE closing_deposits SET deposit_status = 'PENDING', bank_deposit_id = NULL, image_uri = NULL, bank_declared_amount = NULL, bank_difference = NULL WHERE bank_deposit_id = :bankDepositId", nativeQuery = true)
     void revertByBankDepositId(@Param("bankDepositId") Long bankDepositId);
 
     // Elimina todos los cierres vinculados a un depósito bancario (para depósitos extraordinarios)

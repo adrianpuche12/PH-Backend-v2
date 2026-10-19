@@ -108,37 +108,19 @@ public class FormsService {
             .distinct()
             .collect(Collectors.toList());
 
+        // bankDeclaredAmount y bankDifference ya vienen directamente del entity (denormalizados en V15).
+        // Solo se enriquece bankDepositNotes (viene de bank_deposits, no está en closing_deposits).
         if (!bankDepositIds.isEmpty()) {
-            List<balance.deposit.model.BankDeposit> bankDeposits = bankDepositRepository.findAllById(bankDepositIds);
-
-            Map<Long, String> notesMap = bankDeposits.stream()
+            Map<Long, String> notesMap = bankDepositRepository.findAllById(bankDepositIds).stream()
                 .filter(bd -> bd.getNotes() != null && !bd.getNotes().isBlank())
                 .collect(Collectors.toMap(
                     balance.deposit.model.BankDeposit::getId,
                     balance.deposit.model.BankDeposit::getNotes
                 ));
 
-            Map<Long, java.math.BigDecimal> declaredAmountMap = bankDeposits.stream()
-                .filter(bd -> bd.getDeclaredAmount() != null)
-                .collect(Collectors.toMap(
-                    balance.deposit.model.BankDeposit::getId,
-                    balance.deposit.model.BankDeposit::getDeclaredAmount
-                ));
-
-            Map<Long, java.math.BigDecimal> differenceMap = bankDeposits.stream()
-                .filter(bd -> bd.getDifference() != null)
-                .collect(Collectors.toMap(
-                    balance.deposit.model.BankDeposit::getId,
-                    balance.deposit.model.BankDeposit::getDifference
-                ));
-
             dtos.stream()
                 .filter(dto -> "CLOSING".equals(dto.getType()) && dto.getBankDepositId() != null)
-                .forEach(dto -> {
-                    dto.setBankDepositNotes(notesMap.get(dto.getBankDepositId()));
-                    dto.setBankDeclaredAmount(declaredAmountMap.get(dto.getBankDepositId()));
-                    dto.setBankDifference(differenceMap.get(dto.getBankDepositId()));
-                });
+                .forEach(dto -> dto.setBankDepositNotes(notesMap.get(dto.getBankDepositId())));
         }
     }
 

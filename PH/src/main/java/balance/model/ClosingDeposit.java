@@ -51,6 +51,14 @@ public class ClosingDeposit {
     @Column(name = "shift_id")
     private Long shiftId;
 
+    // Monto declarado en banco (denormalizado de BankDeposit.declaredAmount)
+    @Column(name = "bank_declared_amount", precision = 12, scale = 2)
+    private java.math.BigDecimal bankDeclaredAmount;
+
+    // Diferencia banco (denormalizado de BankDeposit.difference)
+    @Column(name = "bank_difference", precision = 12, scale = 2)
+    private java.math.BigDecimal bankDifference;
+
     @Column(nullable = false)
     private Boolean extraordinary = false;
 
@@ -138,6 +146,12 @@ public class ClosingDeposit {
 
     public Long getShiftId() { return shiftId; }
     public void setShiftId(Long shiftId) { this.shiftId = shiftId; }
+
+    public java.math.BigDecimal getBankDeclaredAmount() { return bankDeclaredAmount; }
+    public void setBankDeclaredAmount(java.math.BigDecimal bankDeclaredAmount) { this.bankDeclaredAmount = bankDeclaredAmount; }
+
+    public java.math.BigDecimal getBankDifference() { return bankDifference; }
+    public void setBankDifference(java.math.BigDecimal bankDifference) { this.bankDifference = bankDifference; }
 
     public Boolean getExtraordinary() { return extraordinary; }
     public void setExtraordinary(Boolean extraordinary) { this.extraordinary = extraordinary != null && extraordinary; }
