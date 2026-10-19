@@ -59,6 +59,10 @@ public class Shift {
     @Column(length = 500)
     private String notes;
 
+    // Foto del comprobante de caja subida al cerrar el turno
+    @Column(name = "image_uri", length = 512)
+    private String imageUri;
+
     // Depósito bancario
     private Boolean deposited = false;
 
@@ -111,4 +115,7 @@ public class Shift {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getImageUri() { return imageUri; }
+    public void setImageUri(String imageUri) { this.imageUri = imageUri; }
 }
