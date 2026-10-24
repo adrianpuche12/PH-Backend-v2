@@ -151,6 +151,11 @@ public class FormsService {
                 .map(AllOperationsDTO::fromSalaryPayment)
                 .forEach(allOperations::add);
 
+        gastoAdminRepository.findByFechaBetween(startDate, endDate)
+                .stream()
+                .map(AllOperationsDTO::fromGastoAdmin)
+                .forEach(allOperations::add);
+
         enrichClosingDTOs(allOperations);
         allOperations.sort((o1, o2) -> {
             if (o1.getDate() == null) return 1;
