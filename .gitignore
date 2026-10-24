@@ -31,3 +31,5 @@ secrets/
 # OS specific
 .DS_Store
 Thumbs.db
+.vercel
+.env*

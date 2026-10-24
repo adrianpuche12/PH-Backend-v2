@@ -52,12 +52,14 @@ public interface ClosingDepositRepository extends JpaRepository<ClosingDeposit, 
     List<ClosingDeposit> findByBankDepositId(Long bankDepositId);
 
     // Revierte todos los cierres de un depósito bancario a PENDING (al eliminar el depósito)
-    @Modifying
+    @Modifying(clearAutomatically = true)
+    @org.springframework.transaction.annotation.Transactional
     @Query(value = "UPDATE closing_deposits SET deposit_status = 'PENDING', bank_deposit_id = NULL, image_uri = NULL, bank_declared_amount = NULL, bank_difference = NULL WHERE bank_deposit_id = :bankDepositId", nativeQuery = true)
     void revertByBankDepositId(@Param("bankDepositId") Long bankDepositId);
 
     // Elimina todos los cierres vinculados a un depósito bancario (para depósitos extraordinarios)
-    @Modifying
+    @Modifying(clearAutomatically = true)
+    @org.springframework.transaction.annotation.Transactional
     @Query(value = "DELETE FROM closing_deposits WHERE bank_deposit_id = :bankDepositId", nativeQuery = true)
     void deleteByBankDepositId(@Param("bankDepositId") Long bankDepositId);
 }
