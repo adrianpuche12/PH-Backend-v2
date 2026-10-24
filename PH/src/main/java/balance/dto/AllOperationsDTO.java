@@ -341,6 +341,21 @@ public class AllOperationsDTO {
 // AGREGAR ESTE MÉTODO CONSTRUCTOR ESTÁTICO A LA CLASE AllOperationsDTO
 // ================================================================
 
+    public static AllOperationsDTO fromTransaction(balance.model.Transaction transaction) {
+        AllOperationsDTO dto = new AllOperationsDTO();
+        dto.setId(transaction.getId());
+        dto.setType("GASTO_ADMIN");
+        dto.setAmount(transaction.getAmount());
+        dto.setDate(transaction.getDate());
+        if (transaction.getStore() != null) {
+            dto.setStoreId(transaction.getStore().getId());
+            dto.setStoreName(transaction.getStore().getName());
+        }
+        dto.setDescription(transaction.getDescription());
+        dto.setImageUri(transaction.getImageUri());
+        return dto;
+    }
+
     public static AllOperationsDTO fromGastoAdmin(balance.model.GastoAdmin gastoAdmin) {
         AllOperationsDTO dto = new AllOperationsDTO();
         dto.setId(gastoAdmin.getId());

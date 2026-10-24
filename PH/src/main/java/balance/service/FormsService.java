@@ -151,9 +151,9 @@ public class FormsService {
                 .map(AllOperationsDTO::fromSalaryPayment)
                 .forEach(allOperations::add);
 
-        gastoAdminRepository.findByFechaBetween(startDate, endDate)
+        transactionRepository.findGastoAdminTransactionsByDateBetween(startDate, endDate)
                 .stream()
-                .map(AllOperationsDTO::fromGastoAdmin)
+                .map(AllOperationsDTO::fromTransaction)
                 .forEach(allOperations::add);
 
         enrichClosingDTOs(allOperations);
@@ -190,6 +190,11 @@ public class FormsService {
         salaryPaymentRepository.findBySalaryDateBetweenAndStoreId(startDate, endDate, storeId)
                 .stream()
                 .map(AllOperationsDTO::fromSalaryPayment)
+                .forEach(allOperations::add);
+
+        transactionRepository.findGastoAdminTransactionsByDateBetweenAndStoreId(startDate, endDate, storeId)
+                .stream()
+                .map(AllOperationsDTO::fromTransaction)
                 .forEach(allOperations::add);
 
         enrichClosingDTOs(allOperations);
@@ -428,9 +433,11 @@ public class FormsService {
     public List<AllOperationsDTO> getAdminExpenses(LocalDate startDate, LocalDate endDate, Long storeId) {
         LocalDate end   = endDate   != null ? endDate   : LocalDate.now(HONDURAS_TZ);
         LocalDate start = startDate != null ? startDate : end.minusDays(90);
-        List<GastoAdmin> gastos = gastoAdminRepository.findByFechaBetween(start, end);
-        return gastos.stream()
-                .map(AllOperationsDTO::fromGastoAdmin)
+        List<balance.model.Transaction> txs = (storeId != null)
+                ? transactionRepository.findGastoAdminTransactionsByDateBetweenAndStoreId(start, end, storeId)
+                : transactionRepository.findGastoAdminTransactionsByDateBetween(start, end);
+        return txs.stream()
+                .map(AllOperationsDTO::fromTransaction)
                 .sorted((a, b) -> b.getDate().compareTo(a.getDate()))
                 .collect(java.util.stream.Collectors.toList());
     }

@@ -4,6 +4,7 @@ import balance.model.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -24,4 +25,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByStoreId(Long storeId);
     List<Transaction> findByGastoAdminId(Long gastoAdminId);
     void deleteByGastoAdminId(Long gastoAdminId);
+
+    @Query("SELECT t FROM Transaction t WHERE t.date BETWEEN :start AND :end AND t.gastoAdminId IS NOT NULL ORDER BY t.date DESC")
+    List<Transaction> findGastoAdminTransactionsByDateBetween(@Param("start") LocalDate start, @Param("end") LocalDate end);
+
+    @Query("SELECT t FROM Transaction t WHERE t.date BETWEEN :start AND :end AND t.store.id = :storeId AND t.gastoAdminId IS NOT NULL ORDER BY t.date DESC")
+    List<Transaction> findGastoAdminTransactionsByDateBetweenAndStoreId(@Param("start") LocalDate start, @Param("end") LocalDate end, @Param("storeId") Long storeId);
 }
