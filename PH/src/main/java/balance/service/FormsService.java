@@ -151,9 +151,9 @@ public class FormsService {
                 .map(AllOperationsDTO::fromSalaryPayment)
                 .forEach(allOperations::add);
 
-        transactionRepository.findGastoAdminTransactionsByDateBetween(startDate, endDate)
+        gastoAdminRepository.findByFechaBetween(startDate, endDate)
                 .stream()
-                .map(AllOperationsDTO::fromTransaction)
+                .map(AllOperationsDTO::fromGastoAdmin)
                 .forEach(allOperations::add);
 
         enrichClosingDTOs(allOperations);
@@ -526,11 +526,19 @@ public class FormsService {
     }
 
     public void deleteGastoAdmin(Long id) {
+        Long gastoAdminId = id;
         if (!gastoAdminRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                "GastoAdmin no encontrado con id " + id);
+            // Puede ser un Transaction ID (vista filtrada por local)
+            Transaction tx = transactionRepository.findById(id).orElse(null);
+            if (tx != null && tx.getGastoAdminId() != null) {
+                gastoAdminId = tx.getGastoAdminId();
+            } else {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Gasto administrativo no encontrado con id " + id);
+            }
         }
-        gastoAdminRepository.deleteById(id);
+        transactionRepository.deleteByGastoAdminId(gastoAdminId);
+        gastoAdminRepository.deleteById(gastoAdminId);
     }
 
     private BigDecimal calcularMonto(BigDecimal montoTotal, Integer porcentaje) {
