@@ -14,6 +14,7 @@ public class ShiftEditDTO {
     private BigDecimal totalShiftExpenses;
     private BigDecimal declaredCashAmount;
     private String notes;
+    private String imageUri;
 
     public String getUsername()                { return username; }
     public void setUsername(String v)          { this.username = v; }
@@ -41,4 +42,7 @@ public class ShiftEditDTO {
 
     public String getNotes()                   { return notes; }
     public void setNotes(String v)             { this.notes = v; }
+
+    public String getImageUri()                { return imageUri; }
+    public void setImageUri(String v)          { this.imageUri = v; }
 }

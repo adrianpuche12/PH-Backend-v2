@@ -171,6 +171,7 @@ public class ShiftService {
         if (dto.getTotalShiftExpenses() != null) shift.setTotalShiftExpenses(dto.getTotalShiftExpenses());
         if (amountChanged)                        shift.setDeclaredCashAmount(dto.getDeclaredCashAmount());
         shift.setNotes(dto.getNotes()); // permite borrar notas enviando null
+        if (dto.getImageUri() != null)            shift.setImageUri(dto.getImageUri());
 
         // Recalcular diferencia si hay datos suficientes
         BigDecimal declared = shift.getDeclaredCashAmount();
