@@ -62,6 +62,28 @@ class FormsServiceTest {
         assertThat(deposit.getDepositDate()).isEqualTo(specific);
     }
 
+    @Test
+    void saveClosingDeposit_throwsWhenShiftAlreadyHasClosing() {
+        ClosingDeposit deposit = new ClosingDeposit();
+        deposit.setShiftId(42L);
+        when(closingDepositRepository.findByShiftId(42L)).thenReturn(List.of(new ClosingDeposit()));
+
+        assertThatThrownBy(() -> service.saveClosingDeposit(deposit))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("42");
+    }
+
+    @Test
+    void saveClosingDeposit_allowsNullShiftId() {
+        ClosingDeposit deposit = new ClosingDeposit();
+        deposit.setAmount(new BigDecimal("100.00"));
+        when(closingDepositRepository.save(any())).thenReturn(deposit);
+
+        service.saveClosingDeposit(deposit);
+
+        verify(closingDepositRepository, never()).findByShiftId(any());
+    }
+
     // ── saveSupplierPayment ───────────────────────────────────────────────────
 
     @Test

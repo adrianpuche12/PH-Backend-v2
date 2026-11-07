@@ -212,6 +212,9 @@ public class FormsService {
         if (deposit.getDepositDate() == null) {
             deposit.setDepositDate(LocalDate.now(HONDURAS_TZ));
         }
+        if (deposit.getShiftId() != null && !closingDepositRepository.findByShiftId(deposit.getShiftId()).isEmpty()) {
+            throw new IllegalStateException("El turno " + deposit.getShiftId() + " ya tiene un cierre registrado");
+        }
         return closingDepositRepository.save(deposit);
     }
 
